@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_data">Data</string>
+    <string name="settings_data_sources_summary">Health Connect access and data diagnostics</string>
+
+    <string name="data_sources_title">Data sources</string>
+    <string name="navigate_back">Back</string>
+
+    <string name="health_connect_title">Health Connect</string>
+    <string name="health_connect_checking">Checking Health Connect…</string>
+    <string name="health_connect_unavailable">Health Connect is not available on this phone.</string>
+    <string name="health_connect_update_required">Health Connect needs an update from the Play Store.</string>
+    <string name="health_connect_access">Permissions granted: %1$d of %2$d. Grant the rest for complete analyses.</string>
+    <string name="health_connect_all_granted">PacingLab can read everything it needs.</string>
+    <string name="health_connect_history">Full history: %1$s</string>
+    <string name="health_connect_background">Background sync: %1$s</string>
+    <string name="feature_supported">supported</string>
+    <string name="feature_unsupported">not supported</string>
+    <string name="grant_access">Grant access</string>
+    <string name="open_health_connect">Open Health Connect</string>
+
+    <string name="probe_title">Data check</string>
+    <string name="probe_description">Measures what your watch data looks like in Health Connect: how often heart rate is sampled during workouts, whether routes and laps are present, and how far back history goes. The report stays on this phone unless you share it.</string>
+    <string name="probe_run">Run data check</string>
+    <string name="probe_run_again">Run again</string>
+    <string name="probe_share">Share report</string>
+    <string name="probe_failed">The data check failed: %1$s</string>
+    <string name="probe_stage_permissions">Checking permissions</string>
+    <string name="probe_stage_record_types">Reading %1$s (%2$d of %3$d)</string>
+    <string name="probe_stage_sessions">Analysing workout %1$d of %2$d</string>
+    <string name="probe_stage_daily_values">Reading daily values</string>
+    <string name="probe_stage_done">Writing report</string>
+
+    <string name="probe_section_types">Data types, last 30 days</string>
+    <string name="probe_section_sessions">Recent workouts</string>
+    <string name="probe_no_access">No access</string>
+    <string name="probe_type_error">Could not be read</string>
+    <string name="probe_since">since %1$s</string>
+    <string name="probe_no_data">no data</string>
+    <string name="probe_session_title">%1$s · %2$s · %3$d min</string>
+    <string name="probe_hr_every">HR every %1$s s</string>
+    <string name="probe_hr_missing">no heart rate</string>
+    <string name="probe_route_points">route %1$s points</string>
+    <string name="probe_route_consent">route needs consent</string>
+    <string name="probe_route_none">no route</string>
+
+    <string name="export_title">Raw workout export</string>
+    <string name="export_run">Export workouts</string>
+    <string name="export_running">Exporting…</string>
+    <string name="export_share">Share export</string>
+    <string name="export_failed">Export failed: %1$s</string>
+
+    <string name="record_exercise_session">Workouts</string>
+    <string name="record_heart_rate">Heart rate</string>
+    <string name="record_resting_heart_rate">Resting heart rate</string>
+    <string name="record_hrv">Heart rate variability (RMSSD)</string>
+    <string name="record_speed">Speed</string>
+    <string name="record_distance">Distance</string>
+    <string name="record_elevation_gained">Elevation gained</string>
+    <string name="record_steps">Steps</string>
+    <string name="record_cadence">Cadence</string>
+    <string name="record_power">Power</string>
+    <string name="record_vo2max">VO2max</string>
+    <string name="record_sleep">Sleep</string>
+    <string name="record_respiratory_rate">Respiratory rate</string>
+    <string name="record_skin_temperature">Skin temperature</string>
+    <string name="record_oxygen_saturation">Blood oxygen (SpO2)</string>
+    <string name="record_active_calories">Active energy</string>
+    <string name="record_total_calories">Total energy</string>
+    <string name="record_floors">Floors climbed</string>
+    <string name="record_weight">Weight</string>
+    <string name="record_height">Height</string>
+    <string name="record_other">Other</string>
+
+    <plurals name="probe_errors">
+        <item quantity="one">One part of the check failed; details are in the report.</item>
+        <item quantity="other">%1$d parts of the check failed; details are in the report.</item>
+    </plurals>
+    <plurals name="probe_records">
+        <item quantity="one">%1$s record</item>
+        <item quantity="other">%1$s records</item>
+    </plurals>
+    <plurals name="probe_laps">
+        <item quantity="one">%1$d lap</item>
+        <item quantity="other">%1$d laps</item>
+    </plurals>
+    <plurals name="export_done">
+        <item quantity="one">Exported %1$d workout.</item>
+        <item quantity="other">Exported %1$d workouts.</item>
+    </plurals>
+    <plurals name="export_description">
+        <item quantity="one">Saves the full-resolution streams of your most recent workout, including GPS, as a file for building test fixtures. Contains your location: keep it private.</item>
+        <item quantity="other">Saves the full-resolution streams of your %1$d most recent workouts, including GPS, as a file for building test fixtures. Contains your location: keep it private.</item>
+    </plurals>
+</resources>

@@ -1,0 +1,64 @@
+# Project-local toolchain (JDK, Android SDK, emulator) installed by tools/bootstrap.sh
+/.toolchain/
+
+# Machine-specific configuration
+local.properties
+
+# Gradle and Kotlin
+.gradle/
+build/
+.kotlin/
+
+# IDEs and editors (shared VS Code settings are kept)
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+*.swp
+*~
+
+# Android build outputs and caches
+*.apk
+*.aab
+*.ap_
+*.dex
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Signing keys and credentials
+*.jks
+*.keystore
+*.p12
+*.pem
+keystore.properties
+.secrets/
+google-services.json
+client_secret*.json
+credentials*.json
+.env
+.env.*
+
+# Personal health data: real recordings, probe reports and exports
+fixtures-private/
+*.tcx
+*.gpx
+*.fit
+
+# Working notes for AI-assisted development
+CLAUDE.md
+CLAUDE.local.md
+PLAN.md
+INITIAL_PLAN.md
+.claude/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and crash dumps
+*.log
+hs_err_pid*
+replay_pid*

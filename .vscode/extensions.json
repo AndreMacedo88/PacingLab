@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "jetbrains.kotlin-server",
+    "editorconfig.editorconfig",
+    "redhat.vscode-xml",
+    "tamasfe.even-better-toml"
+  ]
+}

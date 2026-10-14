@@ -1,0 +1,61 @@
+{
+  "version": "2.0.0",
+  "options": {
+    "env": {
+      "JAVA_HOME": "${workspaceFolder}/.toolchain/jdk",
+      "ANDROID_HOME": "${workspaceFolder}/.toolchain/android-sdk",
+      "ANDROID_USER_HOME": "${workspaceFolder}/.toolchain/android-user"
+    }
+  },
+  "tasks": [
+    {
+      "label": "Build debug APK",
+      "type": "shell",
+      "command": "./gradlew assembleDebug",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run all checks",
+      "detail": "Formatting, unit tests, screenshot verification and lint",
+      "type": "shell",
+      "command": "./gradlew check verifyRoborazziDebug",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Unit tests",
+      "type": "shell",
+      "command": "./gradlew test",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Record screenshots",
+      "detail": "Re-render reference screenshots after intended UI changes",
+      "type": "shell",
+      "command": "./gradlew recordRoborazziDebug",
+      "problemMatcher": []
+    },
+    {
+      "label": "Format code",
+      "type": "shell",
+      "command": "./gradlew spotlessApply",
+      "problemMatcher": []
+    },
+    {
+      "label": "Install debug build on phone",
+      "detail": "Needs a phone connected over USB or paired over wireless debugging",
+      "type": "shell",
+      "command": "./gradlew installDebug && ${workspaceFolder}/.toolchain/android-sdk/platform-tools/adb shell am start -n app.pacinglab.debug/app.pacinglab.MainActivity",
+      "problemMatcher": []
+    },
+    {
+      "label": "Start emulator",
+      "type": "shell",
+      "command": "${workspaceFolder}/.toolchain/android-sdk/emulator/emulator -avd pacinglab_api37 -no-snapshot-save",
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}
