@@ -1,5 +1,6 @@
 package app.pacinglab.feature.settings.datasources
 
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -73,7 +74,15 @@ fun DataSourcesRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewMode
         exportSessionCount = viewModel.exportSessionCount,
         onBack = onBack,
         onGrantAccess = { permissionLauncher.launch(viewModel.requestedPermissions) },
-        onOpenHealthConnect = { context.startActivity(viewModel.healthConnectSettingsIntent) },
+        onOpenHealthConnect = {
+            try {
+                context.startActivity(viewModel.healthConnectSettingsIntent)
+            } catch (_: ActivityNotFoundException) {
+                context.startActivity(viewModel.healthConnectFallbackIntent)
+            } catch (_: SecurityException) {
+                context.startActivity(viewModel.healthConnectFallbackIntent)
+            }
+        },
         onRunProbe = viewModel::runProbe,
         onExport = viewModel::exportRawSessions,
         onShareFile = context::shareJson,
@@ -155,14 +164,20 @@ private fun HealthConnectCard(state: DataSourcesUiState, onGrantAccess: () -> Un
             }
 
             HealthConnectAvailability.AVAILABLE -> {
-                if (state.allGranted) {
-                    StatusLine(
+                when {
+                    state.allGranted -> StatusLine(
                         PacingLabIcons.CheckCircle,
                         MaterialTheme.colorScheme.primary,
                         stringResource(R.string.health_connect_all_granted),
                     )
-                } else {
-                    StatusLine(
+
+                    state.onlyRoutesMissing -> StatusLine(
+                        PacingLabIcons.Route,
+                        MaterialTheme.colorScheme.tertiary,
+                        stringResource(R.string.health_connect_routes_hint),
+                    )
+
+                    else -> StatusLine(
                         PacingLabIcons.Warning,
                         MaterialTheme.colorScheme.tertiary,
                         stringResource(R.string.health_connect_access, state.grantedCount, state.requestedCount),
@@ -177,10 +192,18 @@ private fun HealthConnectCard(state: DataSourcesUiState, onGrantAccess: () -> Un
                     )
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (!state.allGranted) {
-                        Button(onClick = onGrantAccess) { Text(stringResource(R.string.grant_access)) }
+                    when {
+                        state.allGranted ->
+                            OutlinedButton(onClick = onOpenHealthConnect) { Text(stringResource(R.string.open_health_connect)) }
+
+                        state.onlyRoutesMissing ->
+                            Button(onClick = onOpenHealthConnect) { Text(stringResource(R.string.open_health_connect)) }
+
+                        else -> {
+                            Button(onClick = onGrantAccess) { Text(stringResource(R.string.grant_access)) }
+                            OutlinedButton(onClick = onOpenHealthConnect) { Text(stringResource(R.string.open_health_connect)) }
+                        }
                     }
-                    OutlinedButton(onClick = onOpenHealthConnect) { Text(stringResource(R.string.open_health_connect)) }
                 }
             }
         }

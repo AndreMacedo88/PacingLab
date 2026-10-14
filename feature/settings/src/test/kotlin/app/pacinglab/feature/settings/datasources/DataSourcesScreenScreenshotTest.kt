@@ -25,6 +25,9 @@ class DataSourcesScreenScreenshotTest {
     fun permissionsMissing() = capture(SampleProbe.available)
 
     @Test
+    fun onlyRoutesMissing() = capture(SampleProbe.available.copy(grantedCount = 21, requestedCount = 22, onlyRoutesMissing = true))
+
+    @Test
     fun probeRunning() = capture(
         SampleProbe.available.copy(
             probe = ProbeState.Running(ProbeProgress(ProbeProgress.Stage.RECORD_TYPES, 2, 20, "HeartRateRecord")),

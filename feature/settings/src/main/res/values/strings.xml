@@ -11,12 +11,13 @@
     <string name="health_connect_checking">Checking Health Connect…</string>
     <string name="health_connect_unavailable">Health Connect is not available on this phone.</string>
     <string name="health_connect_update_required">Health Connect needs an update from the Play Store.</string>
-    <string name="health_connect_access">Permissions granted: %1$d of %2$d. Grant the rest for complete analyses.</string>
+    <string name="health_connect_access">Permissions granted: %1$d of %2$d. Grant all of them for complete analyses.</string>
     <string name="health_connect_all_granted">PacingLab can read everything it needs.</string>
     <string name="health_connect_history">Full history: %1$s</string>
     <string name="health_connect_background">Background sync: %1$s</string>
     <string name="feature_supported">supported</string>
     <string name="feature_unsupported">not supported</string>
+    <string name="health_connect_routes_hint">Route maps need one more setting. In Health Connect, open PacingLab under your apps, then Additional access, and set Access exercise routes to Always allow.</string>
     <string name="grant_access">Grant access</string>
     <string name="open_health_connect">Open Health Connect</string>
 

@@ -49,6 +49,12 @@ class HealthConnectManager @Inject constructor(@param:ApplicationContext private
     fun permissionRequestContract(): ActivityResultContract<Set<String>, Set<String>> =
         PermissionController.createRequestPermissionResultContract()
 
-    /** Opens Health Connect's own settings, where the user can review or revoke access. */
-    fun settingsIntent(): Intent = HealthConnectClient.getHealthConnectManageDataIntent(context)
+    /**
+     * Opens Health Connect's home screen, from where the user reaches App permissions. Apps may not
+     * open their own permission page directly: that intent requires a privileged permission.
+     */
+    fun settingsIntent(): Intent = Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS)
+
+    /** Health Connect's data screen, used if the home screen cannot be opened. */
+    fun fallbackSettingsIntent(): Intent = HealthConnectClient.getHealthConnectManageDataIntent(context)
 }

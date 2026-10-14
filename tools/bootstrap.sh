@@ -80,6 +80,7 @@ fi
 export ANDROID_HOME="$TOOLCHAIN/android-sdk"
 export ANDROID_USER_HOME="$TOOLCHAIN/android-user"
 export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+export ANDROID_EMULATOR_HOME="$ANDROID_USER_HOME"
 export JAVA_HOME="$TOOLCHAIN/jdk"
 SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
 if [[ ! -x "$SDKMANAGER" ]]; then

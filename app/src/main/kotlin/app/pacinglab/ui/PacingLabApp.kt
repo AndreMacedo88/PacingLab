@@ -1,6 +1,7 @@
 package app.pacinglab.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -43,6 +44,9 @@ fun PacingLabApp(modifier: Modifier = Modifier) {
 
     Scaffold(
         modifier = modifier,
+        // Each screen draws its own top app bar and handles the status bar inset itself; the frame
+        // only reserves space for the navigation bar.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             NavigationBar {
                 TopLevelDestination.entries.forEach { destination ->
@@ -66,7 +70,7 @@ fun PacingLabApp(modifier: Modifier = Modifier) {
             backStack = backStack,
             onBack = { backStack.removeLastOrNull() },
             modifier = Modifier
-                .padding(bottom = padding.calculateBottomPadding())
+                .padding(padding)
                 .consumeWindowInsets(padding),
             entryDecorators = listOf(
                 rememberSaveableStateHolderNavEntryDecorator(),

@@ -30,8 +30,8 @@ source tools/env.sh                  # puts java, adb and the emulator on PATH
 ./gradlew assembleDebug
 ```
 
-Gradle keeps its download cache in `~/.gradle`. Deleting `.toolchain/` and `~/.gradle/` removes the
-whole setup.
+Gradle keeps its download cache in `~/.gradle`, and adb stores its small pairing key in
+`~/.android`. Deleting `.toolchain/`, `~/.gradle/` and `~/.android/` removes the whole setup.
 
 ### VS Code
 

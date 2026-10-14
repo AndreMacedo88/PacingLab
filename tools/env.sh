@@ -12,4 +12,5 @@ export ANDROID_HOME="$PACINGLAB_ROOT/.toolchain/android-sdk"
 export ANDROID_USER_HOME="$PACINGLAB_ROOT/.toolchain/android-user"
 # The emulator looks for AVDs here rather than under ANDROID_USER_HOME.
 export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+export ANDROID_EMULATOR_HOME="$ANDROID_USER_HOME"
 export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"

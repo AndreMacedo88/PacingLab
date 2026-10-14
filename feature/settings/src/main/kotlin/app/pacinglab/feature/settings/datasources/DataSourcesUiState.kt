@@ -10,6 +10,11 @@ data class DataSourcesUiState(
     val availability: HealthConnectAvailability? = null,
     val grantedCount: Int = 0,
     val requestedCount: Int = 0,
+    /**
+     * True when everything is granted except reading exercise routes. Health Connect does not
+     * offer that permission in its dialog; the user has to allow it in Health Connect's settings.
+     */
+    val onlyRoutesMissing: Boolean = false,
     val features: HealthConnectFeatureSupport? = null,
     val probe: ProbeState = ProbeState.Idle,
     val export: ExportState = ExportState.Idle,

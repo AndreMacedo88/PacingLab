@@ -5,7 +5,8 @@
       "JAVA_HOME": "${workspaceFolder}/.toolchain/jdk",
       "ANDROID_HOME": "${workspaceFolder}/.toolchain/android-sdk",
       "ANDROID_USER_HOME": "${workspaceFolder}/.toolchain/android-user",
-      "ANDROID_AVD_HOME": "${workspaceFolder}/.toolchain/android-user/avd"
+      "ANDROID_AVD_HOME": "${workspaceFolder}/.toolchain/android-user/avd",
+      "ANDROID_EMULATOR_HOME": "${workspaceFolder}/.toolchain/android-user"
     }
   },
   "tasks": [

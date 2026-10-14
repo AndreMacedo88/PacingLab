@@ -36,6 +36,8 @@ class DataSourcesViewModel @Inject constructor(
 
     val healthConnectSettingsIntent: Intent get() = healthConnect.settingsIntent()
 
+    val healthConnectFallbackIntent: Intent get() = healthConnect.fallbackSettingsIntent()
+
     val exportSessionCount: Int = RawSessionExporter.DEFAULT_SESSIONS
 
     init {
@@ -50,11 +52,13 @@ class DataSourcesViewModel @Inject constructor(
                 return@launch
             }
             val granted = healthConnect.grantedPermissions()
+            val missing = requestedPermissions - granted
             _state.update {
                 it.copy(
                     availability = availability,
-                    grantedCount = requestedPermissions.count(granted::contains),
+                    grantedCount = requestedPermissions.size - missing.size,
                     requestedCount = requestedPermissions.size,
+                    onlyRoutesMissing = missing == setOf(HealthConnectPermissions.READ_EXERCISE_ROUTES),
                     features = healthConnect.featureSupport(),
                 )
             }
