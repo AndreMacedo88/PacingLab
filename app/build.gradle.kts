@@ -33,7 +33,9 @@ dependencies {
     implementation(projects.core.designsystem)
     implementation(projects.core.healthconnect)
     implementation(projects.core.model)
+    implementation(projects.core.data)
     implementation(projects.feature.settings)
+    implementation(projects.feature.workouts)
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.ktx)
@@ -43,6 +45,8 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.profileinstaller)
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.hilt.work)
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit4)

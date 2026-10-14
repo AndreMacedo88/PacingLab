@@ -7,7 +7,7 @@ import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.dependencies
 
-/** Room 3 with the bundled SQLite driver. Exported schemas are committed for migration tests. */
+/** Room 3 on the platform SQLite driver. Exported schemas are committed for migration tests. */
 class RoomConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
         apply(plugin = "com.google.devtools.ksp")
@@ -16,8 +16,9 @@ class RoomConventionPlugin : Plugin<Project> {
             schemaDirectory("$projectDir/schemas")
         }
         dependencies {
-            add("implementation", libs.library("androidx-room-runtime"))
-            add("implementation", libs.library("androidx-sqlite-bundled"))
+            // Database classes extend RoomDatabase, so Room is part of the module's public API.
+            add("api", libs.library("androidx-room-runtime"))
+            add("implementation", libs.library("androidx-sqlite-framework"))
             add("ksp", libs.library("androidx-room-compiler"))
         }
     }

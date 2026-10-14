@@ -13,6 +13,4 @@ dependencies {
     api(libs.androidx.health.connect.client)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
-
-    testImplementation(libs.androidx.health.connect.testing)
 }

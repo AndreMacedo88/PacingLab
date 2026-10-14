@@ -11,29 +11,34 @@ plugins {
     alias(libs.plugins.spotless)
 }
 
+// Directories Spotless must never walk into: generated output is written there during builds.
+val formatExcludes = listOf("**/build/**", ".toolchain/**", ".gradle/**", ".kotlin/**", "fixtures-private/**")
+
+fun sources(vararg patterns: String) = fileTree(rootDir) {
+    include(*patterns)
+    exclude(formatExcludes)
+}
+
 spotless {
     val ktlintVersion = libs.versions.ktlint.get()
     val composeRules = "io.nlopez.compose.rules:ktlint:${libs.versions.composeRules.get()}"
     // Kotlin's official coding conventions. Spotless does not pick the style up from .editorconfig.
     val ktlintStyle = mapOf("ktlint_code_style" to "intellij_idea")
     kotlin {
-        target("**/*.kt")
-        targetExclude("**/build/**", ".toolchain/**", ".gradle/**")
+        target(sources("**/*.kt"))
         ktlint(ktlintVersion)
             .setEditorConfigPath(rootProject.file(".editorconfig"))
             .editorConfigOverride(ktlintStyle)
             .customRuleSets(listOf(composeRules))
     }
     kotlinGradle {
-        target("**/*.gradle.kts")
-        targetExclude("**/build/**", ".toolchain/**", ".gradle/**")
+        target(sources("**/*.gradle.kts"))
         ktlint(ktlintVersion)
             .setEditorConfigPath(rootProject.file(".editorconfig"))
             .editorConfigOverride(ktlintStyle)
     }
     format("misc") {
-        target("**/*.md", "**/*.toml", "**/*.properties", "**/*.yml", ".gitignore", ".gitattributes", ".editorconfig")
-        targetExclude("**/build/**", ".toolchain/**", ".gradle/**")
+        target(sources("**/*.md", "**/*.toml", "**/*.properties", "**/*.yml", ".gitignore", ".gitattributes", ".editorconfig"))
         trimTrailingWhitespace()
         endWithNewline()
     }

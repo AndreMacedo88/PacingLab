@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workouts_title">Workouts</string>
+    <string name="navigate_back">Back</string>
+    <string name="workouts_empty">No workouts yet. Workouts recorded with your watch appear here after the next sync.</string>
+    <string name="workouts_importing">Importing your workout history</string>
+    <string name="workouts_importing_reached">Reached %1$s</string>
+    <string name="workouts_no_access">PacingLab can\'t read your workouts yet.</string>
+    <string name="workouts_set_up_access">Set up access</string>
+    <string name="workouts_sync_failed">The last sync ran into a problem.</string>
+    <string name="workouts_try_again">Try again</string>
+    <string name="workouts_paused">Health Connect asked PacingLab to slow down. Syncing continues in a minute.</string>
+
+    <string name="sport_run">Run</string>
+    <string name="sport_walk">Walk</string>
+    <string name="sport_ride">Ride</string>
+    <string name="sport_strength">Strength</string>
+    <string name="sport_other">Workout</string>
+
+    <string name="unit_km">%1$s km</string>
+    <string name="unit_pace">%1$s /km</string>
+    <string name="unit_bpm">%1$d bpm</string>
+
+    <string name="session_title">Session</string>
+    <string name="metric_distance">Distance</string>
+    <string name="metric_duration">Moving time</string>
+    <string name="metric_pace">Average pace</string>
+    <string name="metric_avg_hr">Average HR</string>
+    <string name="metric_max_hr">Max HR</string>
+    <string name="session_parts_heading">Recorded parts</string>
+    <string name="part_time_range">%1$s – %2$s</string>
+    <string name="part_streams">HR %1$s · speed %2$s · GPS %3$s</string>
+    <string name="part_none">none</string>
+    <string name="session_not_found">This session no longer exists. It may have been deleted in Health Connect.</string>
+
+    <plurals name="session_parts">
+        <item quantity="one">%1$d part</item>
+        <item quantity="other">%1$d parts</item>
+    </plurals>
+    <plurals name="part_laps">
+        <item quantity="one">%1$d lap</item>
+        <item quantity="other">%1$d laps</item>
+    </plurals>
+</resources>

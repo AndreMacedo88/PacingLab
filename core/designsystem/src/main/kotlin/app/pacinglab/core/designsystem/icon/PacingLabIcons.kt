@@ -52,4 +52,22 @@ object PacingLabIcons {
     @DrawableRes val Timer = R.drawable.ic_timer
 
     @DrawableRes val Warning = R.drawable.ic_warning
+
+    @DrawableRes val Run = R.drawable.ic_directions_run_filled
+
+    @DrawableRes val Walk = R.drawable.ic_directions_walk
+
+    @DrawableRes val Ride = R.drawable.ic_directions_bike
+
+    @DrawableRes val Strength = R.drawable.ic_fitness_center
+
+    @DrawableRes val OtherWorkout = R.drawable.ic_exercise
+
+    @DrawableRes val Refresh = R.drawable.ic_refresh
+
+    @DrawableRes val Schedule = R.drawable.ic_schedule
+
+    @DrawableRes val Distance = R.drawable.ic_straighten
+
+    @DrawableRes val Speed = R.drawable.ic_speed
 }

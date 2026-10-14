@@ -4,6 +4,9 @@ import android.content.Intent
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.pacinglab.core.data.repository.WorkoutRepository
+import app.pacinglab.core.data.sync.HealthSync
+import app.pacinglab.core.data.sync.SyncScheduler
 import app.pacinglab.core.healthconnect.HealthConnectAvailability
 import app.pacinglab.core.healthconnect.HealthConnectManager
 import app.pacinglab.core.healthconnect.HealthConnectPermissions
@@ -15,6 +18,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,6 +29,9 @@ class DataSourcesViewModel @Inject constructor(
     private val probe: HealthDataProbe,
     private val exporter: RawSessionExporter,
     private val files: ProbeFileStore,
+    healthSync: HealthSync,
+    workouts: WorkoutRepository,
+    private val scheduler: SyncScheduler,
 ) : ViewModel() {
     private val _state = MutableStateFlow(DataSourcesUiState())
     val state: StateFlow<DataSourcesUiState> = _state.asStateFlow()
@@ -42,6 +49,31 @@ class DataSourcesViewModel @Inject constructor(
 
     init {
         refresh()
+        viewModelScope.launch {
+            combine(healthSync.status, healthSync.info, healthSync.lastOutcome, workouts.observeWorkoutCount()) {
+                    status,
+                    info,
+                    outcome,
+                    count,
+                ->
+                SyncCardState(
+                    status = status,
+                    lastSuccess = info.lastSuccess,
+                    importComplete = info.importComplete,
+                    workoutCount = count,
+                    problem = outcome?.errors?.firstOrNull(),
+                    paused = outcome?.rateLimited == true,
+                )
+            }.collect { sync -> _state.update { it.copy(sync = sync) } }
+        }
+    }
+
+    fun syncNow() = scheduler.syncNow()
+
+    /** Called with the permissions granted in Health Connect's dialog. */
+    fun onPermissionsResult() {
+        refresh()
+        scheduler.syncNow()
     }
 
     fun refresh() {

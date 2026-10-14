@@ -58,7 +58,7 @@ object HealthConnectPermissions {
 
     /**
      * Lets the app read routes of sessions recorded by other apps without asking per session.
-     * Platform permission from Android 15; the 1.1 client library has no constant for it yet.
+     * Platform permission from Android 15; the stable client library has no constant for it yet.
      */
     const val READ_EXERCISE_ROUTES = "android.permission.health.READ_EXERCISE_ROUTES"
 

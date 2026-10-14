@@ -77,6 +77,8 @@ data class SessionSummary(
     val laps: Int,
     val segmentTypes: Map<Int, Int>,
     val route: RouteSummary,
+    /** Route status as reported by the bulk read that listed the session (no single-record read). */
+    val bulkRouteStatus: String? = null,
     val heartRate: SeriesSummary?,
     val speed: SeriesSummary?,
     val stepsCadence: SeriesSummary?,

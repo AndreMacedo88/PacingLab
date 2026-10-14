@@ -5,12 +5,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import app.pacinglab.core.data.sync.SyncScheduler
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.ui.PacingLabApp
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject lateinit var syncScheduler: SyncScheduler
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -20,5 +24,11 @@ class MainActivity : ComponentActivity() {
                 PacingLabApp()
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Health Connect allows the most reads while the app is in the foreground.
+        syncScheduler.syncNow()
     }
 }

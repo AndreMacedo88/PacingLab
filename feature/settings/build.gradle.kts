@@ -8,4 +8,5 @@ android {
 
 dependencies {
     implementation(projects.core.healthconnect)
+    implementation(projects.core.data)
 }

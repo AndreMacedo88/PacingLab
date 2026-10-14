@@ -22,11 +22,13 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import app.pacinglab.R
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
+import app.pacinglab.feature.settings.navigation.DataSourcesKey
+import app.pacinglab.feature.settings.navigation.SettingsKey
 import app.pacinglab.feature.settings.navigation.settingsEntries
+import app.pacinglab.feature.workouts.navigation.workoutsEntries
 import app.pacinglab.navigation.TodayKey
 import app.pacinglab.navigation.TopLevelDestination
 import app.pacinglab.navigation.TrendsKey
-import app.pacinglab.navigation.WorkoutsKey
 
 /**
  * App frame: navigation bar plus a single back stack whose first entry is always a top-level
@@ -84,13 +86,14 @@ fun PacingLabApp(modifier: Modifier = Modifier) {
                         message = stringResource(R.string.placeholder_today),
                     )
                 }
-                entry<WorkoutsKey> {
-                    PlaceholderScreen(
-                        title = stringResource(R.string.destination_workouts),
-                        icon = PacingLabIcons.WorkoutsSelected,
-                        message = stringResource(R.string.placeholder_workouts),
-                    )
-                }
+                workoutsEntries(
+                    navigateTo = { backStack.add(it) },
+                    navigateBack = { backStack.removeLastOrNull() },
+                    openDataSources = {
+                        backStack.replaceWith(SettingsKey)
+                        backStack.add(DataSourcesKey)
+                    },
+                )
                 entry<TrendsKey> {
                     PlaceholderScreen(
                         title = stringResource(R.string.destination_trends),

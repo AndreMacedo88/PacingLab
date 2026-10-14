@@ -47,6 +47,7 @@ internal object SampleProbe {
 
     val finished = available.copy(
         grantedCount = 23,
+        sync = SyncCardState(lastSuccess = Instant.parse("2026-10-14T13:05:00Z"), importComplete = true, workoutCount = 315),
         probe = ProbeState.Finished(highlights, File("report.json")),
         export = ExportState.Finished(8, File("raw.json")),
     )

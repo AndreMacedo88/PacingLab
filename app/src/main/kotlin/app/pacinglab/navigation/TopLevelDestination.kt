@@ -6,13 +6,11 @@ import androidx.navigation3.runtime.NavKey
 import app.pacinglab.R
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.feature.settings.navigation.SettingsKey
+import app.pacinglab.feature.workouts.navigation.WorkoutsKey
 import kotlinx.serialization.Serializable
 
 @Serializable
 data object TodayKey : NavKey
-
-@Serializable
-data object WorkoutsKey : NavKey
 
 @Serializable
 data object TrendsKey : NavKey

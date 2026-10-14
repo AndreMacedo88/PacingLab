@@ -20,6 +20,8 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
             add("testImplementation", libs.library("kotlinx-coroutines-test"))
             add("testImplementation", libs.library("turbine"))
             add("testImplementation", libs.library("robolectric"))
+            add("testImplementation", libs.library("kotest-property"))
+            add("testImplementation", libs.library("androidx-test-core"))
         }
     }
 }

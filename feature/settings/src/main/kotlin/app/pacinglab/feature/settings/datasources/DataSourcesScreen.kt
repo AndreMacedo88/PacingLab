@@ -47,6 +47,7 @@ import androidx.core.content.FileProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.pacinglab.core.data.sync.SyncStatus
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import app.pacinglab.core.healthconnect.HealthConnectAvailability
@@ -57,13 +58,14 @@ import java.text.NumberFormat
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @Composable
 fun DataSourcesRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: DataSourcesViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val contract = remember(viewModel) { viewModel.permissionContract }
-    val permissionLauncher = rememberLauncherForActivityResult(contract) { viewModel.refresh() }
+    val permissionLauncher = rememberLauncherForActivityResult(contract) { viewModel.onPermissionsResult() }
     // Permissions can change in Health Connect's own settings while the app is in the background.
     LifecycleResumeEffect(viewModel) {
         viewModel.refresh()
@@ -83,6 +85,7 @@ fun DataSourcesRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewMode
                 context.startActivity(viewModel.healthConnectFallbackIntent)
             }
         },
+        onSyncNow = viewModel::syncNow,
         onRunProbe = viewModel::runProbe,
         onExport = viewModel::exportRawSessions,
         onShareFile = context::shareJson,
@@ -98,6 +101,7 @@ fun DataSourcesScreen(
     onBack: () -> Unit,
     onGrantAccess: () -> Unit,
     onOpenHealthConnect: () -> Unit,
+    onSyncNow: () -> Unit,
     onRunProbe: () -> Unit,
     onExport: () -> Unit,
     onShareFile: (File) -> Unit,
@@ -126,6 +130,7 @@ fun DataSourcesScreen(
                 HealthConnectCard(state, onGrantAccess, onOpenHealthConnect)
             }
             if (state.availability == HealthConnectAvailability.AVAILABLE) {
+                item { SyncCard(state.sync, onSyncNow, zoneId) }
                 item { ProbeCard(state.probe, onRunProbe, onShareFile) }
                 val probe = state.probe
                 if (probe is ProbeState.Finished) {
@@ -207,6 +212,57 @@ private fun HealthConnectCard(state: DataSourcesUiState, onGrantAccess: () -> Un
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SyncCard(sync: SyncCardState, onSyncNow: () -> Unit, zoneId: ZoneId) {
+    val locale = LocalConfiguration.current.locales[0]
+    val numbers = remember(locale) { NumberFormat.getIntegerInstance(locale) }
+    val time = remember(locale, zoneId) { DateTimeFormatter.ofPattern("d MMM, HH:mm", locale).withZone(zoneId) }
+    SectionCard(title = stringResource(R.string.sync_title)) {
+        when (val status = sync.status) {
+            is SyncStatus.Importing -> {
+                LinearProgressIndicator(progress = { status.fraction }, modifier = Modifier.fillMaxWidth())
+                Text(
+                    text = stringResource(R.string.sync_importing, (status.fraction * 100).roundToInt()),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+
+            SyncStatus.Updating -> {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Text(stringResource(R.string.sync_updating), style = MaterialTheme.typography.bodySmall)
+            }
+
+            SyncStatus.Idle -> when {
+                sync.paused -> StatusLine(
+                    PacingLabIcons.Schedule,
+                    MaterialTheme.colorScheme.onSurfaceVariant,
+                    stringResource(R.string.sync_paused),
+                )
+
+                sync.problem != null -> StatusLine(
+                    PacingLabIcons.Warning,
+                    MaterialTheme.colorScheme.tertiary,
+                    stringResource(R.string.sync_problem, sync.problem),
+                )
+
+                sync.lastSuccess != null -> StatusLine(
+                    PacingLabIcons.CheckCircle,
+                    MaterialTheme.colorScheme.primary,
+                    stringResource(R.string.sync_last, time.format(sync.lastSuccess)),
+                )
+
+                else -> StatusLine(PacingLabIcons.Sync, MaterialTheme.colorScheme.onSurfaceVariant, stringResource(R.string.sync_never))
+            }
+        }
+        Text(
+            text = pluralStringResource(R.plurals.sync_workouts_stored, sync.workoutCount, numbers.format(sync.workoutCount)),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(onClick = onSyncNow, enabled = sync.status == SyncStatus.Idle) { Text(stringResource(R.string.sync_now)) }
     }
 }
 

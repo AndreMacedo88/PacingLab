@@ -7,7 +7,6 @@
     <string name="navigate_back">Back</string>
 
     <string name="placeholder_today">Your daily overview arrives once data sync is in place. Until then, Settings › Data sources shows what your watch records.</string>
-    <string name="placeholder_workouts">Your workouts will appear here once data sync is in place.</string>
     <string name="placeholder_trends">Training load, form and recovery trends will appear here once data sync is in place.</string>
 
     <string name="privacy_title">How PacingLab uses your data</string>

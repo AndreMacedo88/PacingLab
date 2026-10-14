@@ -2,6 +2,7 @@ package app.pacinglab.feature.settings.datasources
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
+import app.pacinglab.core.data.sync.SyncStatus
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.healthconnect.HealthConnectAvailability
 import app.pacinglab.core.healthconnect.probe.ProbeProgress
@@ -35,6 +36,10 @@ class DataSourcesScreenScreenshotTest {
     )
 
     @Test
+    fun importing() =
+        capture(SampleProbe.available.copy(sync = SyncCardState(status = SyncStatus.Importing(null, 0.35f), workoutCount = 120)))
+
+    @Test
     fun unavailable() = capture(DataSourcesUiState(availability = HealthConnectAvailability.UNAVAILABLE))
 
     @Test
@@ -58,6 +63,7 @@ class DataSourcesScreenScreenshotTest {
                     onBack = {},
                     onGrantAccess = {},
                     onOpenHealthConnect = {},
+                    onSyncNow = {},
                     onRunProbe = {},
                     onExport = {},
                     onShareFile = {},

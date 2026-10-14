@@ -211,6 +211,7 @@ class HealthDataProbe @Inject constructor(
                 .eachCount()
                 .toSortedMap(),
             route = routeSummary(session.exerciseRouteResult),
+            bulkRouteStatus = routeSummary(listed.exerciseRouteResult).status,
             heartRate = if (has(HeartRateRecord::class)) {
                 attempt(errors, "heart rate") {
                     seriesSummary(HeartRateRecord::class, start, end, bounds) { r ->

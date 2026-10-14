@@ -21,6 +21,15 @@
     <string name="grant_access">Grant access</string>
     <string name="open_health_connect">Open Health Connect</string>
 
+    <string name="sync_title">Sync</string>
+    <string name="sync_importing">Importing your history: %1$d %%</string>
+    <string name="sync_updating">Checking for new data…</string>
+    <string name="sync_problem">The last sync failed: %1$s</string>
+    <string name="sync_last">Up to date. Last synced %1$s.</string>
+    <string name="sync_never">Not synced yet.</string>
+    <string name="sync_paused">Paused: Health Connect asked PacingLab to slow down. Continuing in a minute.</string>
+    <string name="sync_now">Sync now</string>
+
     <string name="probe_title">Data check</string>
     <string name="probe_description">Measures what your watch data looks like in Health Connect: how often heart rate is sampled during workouts, whether routes and laps are present, and how far back history goes. The report stays on this phone unless you share it.</string>
     <string name="probe_run">Run data check</string>
@@ -74,6 +83,10 @@
     <string name="record_height">Height</string>
     <string name="record_other">Other</string>
 
+    <plurals name="sync_workouts_stored">
+        <item quantity="one">%1$s workout stored on this phone</item>
+        <item quantity="other">%1$s workouts stored on this phone</item>
+    </plurals>
     <plurals name="probe_errors">
         <item quantity="one">One part of the check failed; details are in the report.</item>
         <item quantity="other">%1$d parts of the check failed; details are in the report.</item>
