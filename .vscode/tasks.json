@@ -4,7 +4,8 @@
     "env": {
       "JAVA_HOME": "${workspaceFolder}/.toolchain/jdk",
       "ANDROID_HOME": "${workspaceFolder}/.toolchain/android-sdk",
-      "ANDROID_USER_HOME": "${workspaceFolder}/.toolchain/android-user"
+      "ANDROID_USER_HOME": "${workspaceFolder}/.toolchain/android-user",
+      "ANDROID_AVD_HOME": "${workspaceFolder}/.toolchain/android-user/avd"
     }
   },
   "tasks": [
@@ -12,7 +13,10 @@
       "label": "Build debug APK",
       "type": "shell",
       "command": "./gradlew assembleDebug",
-      "group": { "kind": "build", "isDefault": true },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
       "problemMatcher": []
     },
     {
@@ -20,7 +24,10 @@
       "detail": "Formatting, unit tests, screenshot verification and lint",
       "type": "shell",
       "command": "./gradlew check verifyRoborazziDebug",
-      "group": { "kind": "test", "isDefault": true },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
       "problemMatcher": []
     },
     {

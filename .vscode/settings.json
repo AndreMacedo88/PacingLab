@@ -3,7 +3,8 @@
     "JAVA_HOME": "${workspaceFolder}/.toolchain/jdk",
     "ANDROID_HOME": "${workspaceFolder}/.toolchain/android-sdk",
     "ANDROID_USER_HOME": "${workspaceFolder}/.toolchain/android-user",
-    "PATH": "${workspaceFolder}/.toolchain/jdk/bin:${workspaceFolder}/.toolchain/android-sdk/platform-tools:${workspaceFolder}/.toolchain/android-sdk/emulator:${env:PATH}"
+    "PATH": "${workspaceFolder}/.toolchain/jdk/bin:${workspaceFolder}/.toolchain/android-sdk/platform-tools:${workspaceFolder}/.toolchain/android-sdk/emulator:${env:PATH}",
+    "ANDROID_AVD_HOME": "${workspaceFolder}/.toolchain/android-user/avd"
   },
   "files.exclude": {
     "**/.gradle": true,
@@ -21,7 +22,9 @@
     ".toolchain/**": true,
     ".gradle/**": true
   },
-  "editor.rulers": [140],
+  "editor.rulers": [
+    140
+  ],
   "[kotlin]": {
     "editor.tabSize": 4
   }
