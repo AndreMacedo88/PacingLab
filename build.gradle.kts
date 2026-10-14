@@ -32,7 +32,7 @@ spotless {
             .editorConfigOverride(ktlintStyle)
     }
     format("misc") {
-        target("**/*.md", "**/*.toml", "**/*.properties", ".gitignore", ".gitattributes", ".editorconfig")
+        target("**/*.md", "**/*.toml", "**/*.properties", "**/*.yml", ".gitignore", ".gitattributes", ".editorconfig")
         targetExclude("**/build/**", ".toolchain/**", ".gradle/**")
         trimTrailingWhitespace()
         endWithNewline()
