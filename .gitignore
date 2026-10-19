@@ -54,6 +54,9 @@ PLAN.md
 INITIAL_PLAN.md
 .claude/
 
+# Python bytecode from the scripts in tools/
+__pycache__/
+
 # OS files
 .DS_Store
 Thumbs.db
