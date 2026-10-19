@@ -36,6 +36,7 @@ enum class ChangeChannel(val measurementKind: MeasurementKind? = null) {
  * @property affectedSpans time spans of changed stream records (heart rate, speed, distance);
  *   workouts overlapping them need their streams read again.
  * @property deletedRecordIds source record ids that no longer exist, of any record type in the channel.
+ *   Never names a record that the same batch delivers as new or changed.
  * @property tokenExpired the token was too old; the caller must re-read recent data and start over
  *   with a fresh token.
  */

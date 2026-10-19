@@ -19,6 +19,7 @@ import app.pacinglab.core.model.SegmentKind
 import app.pacinglab.core.model.source.ChangeChannel
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.containsExactlyInAnyOrder
 import assertk.assertions.isCloseTo
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
@@ -183,6 +184,31 @@ class HealthConnectDataSourceTest {
         val removed = source.readChanges(ChangeChannel.WORKOUTS, added.nextToken)
         assertThat(removed.deletedRecordIds).containsExactly("s1")
         assertThat(removed.workouts).isEmpty()
+    }
+
+    @Test
+    fun `a workout deleted and rewritten under the same id is reported as changed, not deleted`() = runTest {
+        client.insert(session("warm-up", minute = 0, length = 6))
+        val token = source.changesToken(ChangeChannel.WORKOUTS)
+
+        client.delete(ExerciseSessionRecord::class, "warm-up")
+        client.insert(session("warm-up", minute = 0, length = 6), session("intervals", minute = 7, length = 36))
+        val batch = source.readChanges(ChangeChannel.WORKOUTS, token)
+
+        assertThat(batch.workouts.map { it.sourceRecordId }).containsExactlyInAnyOrder("warm-up", "intervals")
+        assertThat(batch.deletedRecordIds).isEmpty()
+    }
+
+    @Test
+    fun `a workout written and deleted between two syncs is reported as deleted only`() = runTest {
+        val token = source.changesToken(ChangeChannel.WORKOUTS)
+
+        client.insert(session("false-start", minute = 0, length = 1))
+        client.delete(ExerciseSessionRecord::class, "false-start")
+        val batch = source.readChanges(ChangeChannel.WORKOUTS, token)
+
+        assertThat(batch.workouts).isEmpty()
+        assertThat(batch.deletedRecordIds).containsExactly("false-start")
     }
 
     @Test

@@ -96,7 +96,12 @@ class HealthConnectDataSource @Inject constructor(private val gateway: HealthCon
             return ChangeBatch(nextToken = token, hasMore = false, tokenExpired = true)
         }
         val upserted = response.upserted
-        val deleted = response.deletedIds
+        // Health Connect reports upserts and deletions in separate lists, so their order is lost.
+        // Upserted records are read as they are now, which means they exist: a deletion of the same
+        // id came before a rewrite. Fitbit rewrites workouts this way (record ids derive from its
+        // client ids, so the rewrite keeps the id), and applying such a deletion would lose the workout.
+        val upsertedIds = upserted.mapTo(HashSet()) { it.metadata.id }
+        val deleted = response.deletedIds.filterNot { it in upsertedIds }
         return when (channel) {
             ChangeChannel.WORKOUTS -> ChangeBatch(
                 workouts = upserted.filterIsInstance<ExerciseSessionRecord>().map { it.toSourceWorkout() },

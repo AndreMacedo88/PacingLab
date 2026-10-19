@@ -14,7 +14,8 @@ import kotlin.reflect.KClass
  *
  * Time filtering mimics the strict case: a record is returned only if it *starts* inside the
  * requested window, so code under test has to pad its windows to catch records that begin earlier.
- * Pages are deliberately small to exercise paging.
+ * Pages are deliberately small to exercise paging. Changes follow the platform: upserted records
+ * and deleted ids arrive as two lists, with no order between them.
  */
 class FakeHealthConnectGateway(var granted: Set<String> = HealthConnectPermissions.all, private val pageSize: Int = 3) :
     HealthConnectGateway {
@@ -73,8 +74,10 @@ class FakeHealthConnectGateway(var granted: Set<String> = HealthConnectPermissio
     override suspend fun changes(token: String): ChangesPage {
         val (typeName, position) = token.split("@").let { it[0] to it[1].toInt() }
         val relevant = log.drop(position).filter { it.first.qualifiedName == typeName }
+        // Like the platform: upserts come as the record's current state, and only if it still exists.
+        val upsertedIds = relevant.mapNotNull { (it.second as? Record)?.metadata?.id }.distinct()
         return ChangesPage(
-            upserted = relevant.mapNotNull { it.second as? Record },
+            upserted = upsertedIds.mapNotNull { id -> records.firstOrNull { it.metadata.id == id } },
             deletedIds = relevant.mapNotNull { it.second as? String },
             nextToken = "$typeName@${log.size}",
             hasMore = false,
