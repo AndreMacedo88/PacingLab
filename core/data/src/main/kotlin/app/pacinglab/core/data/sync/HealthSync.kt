@@ -331,6 +331,7 @@ class HealthSync @Inject constructor(
         laps = laps,
         segments = segments,
         routePending = routePending,
+        recordingMethod = recordingMethod,
     )
 
     private fun Workout.toSourceWorkout(route: Route?) = SourceWorkout(
@@ -346,6 +347,7 @@ class HealthSync @Inject constructor(
         laps = laps,
         segments = segments,
         route = route,
+        recordingMethod = recordingMethod,
     )
 
     private suspend inline fun <T> attempt(tally: Tally, what: String, block: () -> T): T? = try {
@@ -386,8 +388,9 @@ class HealthSync @Inject constructor(
         /**
          * Bump when stored workouts must be rebuilt from the source, for example after changing how
          * streams are read. The next foreground sync then re-imports the whole history.
+         * 3: workouts carry their recording method.
          */
-        const val CURRENT_SYNC_VERSION = "2"
+        const val CURRENT_SYNC_VERSION = "3"
 
         fun workoutId(sourceRecordId: String) = "hc:$sourceRecordId"
 

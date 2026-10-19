@@ -1,5 +1,6 @@
 package app.pacinglab.core.analytics.workout
 
+import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Sport
 import app.pacinglab.core.model.Workout
 import java.time.Duration
@@ -47,12 +48,15 @@ object TrainingSessions {
     }
 
     /**
-     * When two apps recorded the same activity (Fitbit and Google Fit both log a ride), keeps the
-     * richer record: the one with heart rate, then with a route, then the longer one.
+     * When two apps recorded the same activity (Fitbit and Google Fit both log a ride), keeps one.
+     * A workout the athlete started on the watch wins over one an app detected by itself, whatever
+     * extras the detected one has: its type, title and laps reflect what was actually trained.
+     * Otherwise the richer record wins: the one with heart rate, then with a route, then the longer one.
      */
     fun removeDuplicates(workouts: List<Workout>): List<Workout> {
         val ranked = workouts.sortedWith(
-            compareByDescending<Workout> { it.summary.averageHr != null }
+            compareByDescending<Workout> { it.recordingMethod == RecordingMethod.ACTIVE }
+                .thenByDescending { it.summary.averageHr != null }
                 .thenByDescending { it.summary.hasRoute }
                 .thenByDescending { it.summary.durationMillis }
                 .thenBy { it.id },

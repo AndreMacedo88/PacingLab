@@ -6,10 +6,13 @@ import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import app.pacinglab.core.database.store.WorkoutStore
+import app.pacinglab.core.model.RecordingMethod
+import app.pacinglab.core.model.Workout
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNotNull
+import assertk.assertions.isTrue
 import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
 import org.junit.Test
@@ -29,32 +32,57 @@ class MigrationTest {
 
     @Test
     fun `version 1 workouts survive the upgrade with route_pending false`() = runTest {
-        val file = context.getDatabasePath("migration-test.db").apply {
-            parentFile?.mkdirs()
-            delete()
-        }
+        val file = databaseFile()
         createFromSchema(file, version = 1)
+        insertWorkout(file, extraColumns = "", extraValues = "")
+
+        val workout = openAndRead(file)
+
+        assertThat(workout.summary.averageHr).isEqualTo(150)
+        assertThat(workout.routePending).isFalse()
+        assertThat(workout.recordingMethod).isEqualTo(RecordingMethod.UNKNOWN)
+    }
+
+    @Test
+    fun `version 2 workouts survive the upgrade with an unknown recording method`() = runTest {
+        val file = databaseFile()
+        createFromSchema(file, version = 2)
+        insertWorkout(file, extraColumns = ", route_pending", extraValues = ", 1")
+
+        val workout = openAndRead(file)
+
+        assertThat(workout.summary.distanceMeters).isEqualTo(250.0)
+        assertThat(workout.routePending).isTrue()
+        assertThat(workout.recordingMethod).isEqualTo(RecordingMethod.UNKNOWN)
+    }
+
+    private fun databaseFile(): File = context.getDatabasePath("migration-test.db").apply {
+        parentFile?.mkdirs()
+        delete()
+    }
+
+    private fun insertWorkout(file: File, extraColumns: String, extraValues: String) {
         SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
             db.execSQL(
                 """
                 INSERT INTO workouts (id, source, source_record_id, origin, device, activity, title, start_ms, end_ms,
                     zone_offset_s, last_modified_ms, sport, duration_ms, distance_m, avg_hr, max_hr, has_route, has_speed,
-                    laps, segments)
+                    laps, segments$extraColumns)
                 VALUES ('hc:1', 'HEALTH_CONNECT', '1', 'com.fitbit.FitbitMobile', 'Sense', 'running', 'Run', 1000, 61000,
-                    7200, 1000, 'RUN', 60000, 250.0, 150, 170, 1, 1, X'0100', X'0100')
+                    7200, 1000, 'RUN', 60000, 250.0, 150, 170, 1, 1, X'0100', X'0100'$extraValues)
                 """.trimIndent(),
             )
         }
+    }
 
+    private suspend fun openAndRead(file: File): Workout {
         val database = Room.databaseBuilder(context, PacingLabDatabase::class.java, file.path)
             .setDriver(AndroidSQLiteDriver())
             .build()
         val workout = WorkoutStore(database).get("hc:1")
         database.close()
-
         assertThat(workout).isNotNull()
-        assertThat(workout!!.summary.averageHr).isEqualTo(150)
-        assertThat(workout.routePending).isFalse()
+        return workout!!
     }
 
     private fun createFromSchema(file: File, version: Int) {

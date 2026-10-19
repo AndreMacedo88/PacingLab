@@ -92,7 +92,12 @@ class FakeHealthConnectGateway(var granted: Set<String> = HealthConnectPermissio
          * Metadata as Health Connect would return it for a record written by another app. Its full
          * constructor is internal to the client library, so it is called reflectively.
          */
-        fun metadata(id: String, origin: String, lastModified: Instant = Instant.EPOCH): Metadata = Metadata::class.java
+        fun metadata(
+            id: String,
+            origin: String,
+            lastModified: Instant = Instant.EPOCH,
+            recordingMethod: Int = Metadata.RECORDING_METHOD_ACTIVELY_RECORDED,
+        ): Metadata = Metadata::class.java
             .getConstructor(
                 Int::class.javaPrimitiveType,
                 String::class.java,
@@ -102,6 +107,6 @@ class FakeHealthConnectGateway(var granted: Set<String> = HealthConnectPermissio
                 Long::class.javaPrimitiveType,
                 Device::class.java,
             )
-            .newInstance(Metadata.RECORDING_METHOD_ACTIVELY_RECORDED, id, DataOrigin(origin), lastModified, null, 0L, SENSE)
+            .newInstance(recordingMethod, id, DataOrigin(origin), lastModified, null, 0L, SENSE)
     }
 }

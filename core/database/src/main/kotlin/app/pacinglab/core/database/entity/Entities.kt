@@ -29,6 +29,7 @@ class WorkoutEntity(
     @ColumnInfo(name = "laps", typeAffinity = ColumnInfo.BLOB) val laps: ByteArray,
     @ColumnInfo(name = "segments", typeAffinity = ColumnInfo.BLOB) val segments: ByteArray,
     @ColumnInfo(name = "route_pending", defaultValue = "0") val routePending: Boolean,
+    @ColumnInfo(name = "recording_method", defaultValue = "UNKNOWN") val recordingMethod: String,
 )
 
 /** One encoded stream (see StreamCodec) per workout and channel. */

@@ -8,6 +8,17 @@ enum class DataSource {
     HEALTH_CONNECT,
 }
 
+/**
+ * How a workout was captured. A workout the athlete started on a watch is [ACTIVE]; one an app
+ * recognised from movement on its own (Google Fit detecting a walk or a run) is [AUTOMATIC].
+ */
+enum class RecordingMethod {
+    ACTIVE,
+    AUTOMATIC,
+    MANUAL,
+    UNKNOWN,
+}
+
 /** A lap as recorded by the watch (Fitbit writes automatic laps per kilometre on GPS runs). */
 data class Lap(val start: Instant, val end: Instant, val lengthMeters: Double?)
 
@@ -28,6 +39,7 @@ data class Segment(val start: Instant, val end: Instant, val kind: SegmentKind, 
  * @property activity the source's activity type as a lower-case name, such as "running" or "boot_camp".
  * @property route the GPS track; empty when the workout has none, null when the source could not
  *   provide it at the moment (Health Connect only releases routes to apps in the foreground).
+ * @property recordingMethod how the workout was captured, as declared by the recording app.
  */
 data class SourceWorkout(
     val sourceRecordId: String,
@@ -42,6 +54,7 @@ data class SourceWorkout(
     val laps: List<Lap>,
     val segments: List<Segment>,
     val route: Route? = Route.EMPTY,
+    val recordingMethod: RecordingMethod = RecordingMethod.UNKNOWN,
 )
 
 /**
@@ -70,6 +83,7 @@ data class WorkoutSummary(
  * A workout as PacingLab stores it. [id] is unique across sources, for example "hc:<record id>".
  *
  * @property routePending the route could not be read yet and should be fetched again.
+ * @property recordingMethod how the workout was captured, as declared by the recording app.
  */
 data class Workout(
     val id: String,
@@ -88,4 +102,5 @@ data class Workout(
     val laps: List<Lap>,
     val segments: List<Segment>,
     val routePending: Boolean = false,
+    val recordingMethod: RecordingMethod = RecordingMethod.UNKNOWN,
 )

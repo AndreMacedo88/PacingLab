@@ -10,6 +10,7 @@ import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Lap
 import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
+import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.SampleSeries
 import app.pacinglab.core.model.Sport
@@ -148,6 +149,7 @@ class StoresTest {
             summary = WorkoutSummary(30 * 60_000L, 5_000.0, 150, 176, hasRoute = true, hasSpeed = true),
             laps = listOf(Lap(start, start.plusSeconds(300), 1_000.0)),
             segments = emptyList(),
+            recordingMethod = RecordingMethod.ACTIVE,
         )
     }
 }

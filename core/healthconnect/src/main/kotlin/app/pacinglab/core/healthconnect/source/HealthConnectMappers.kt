@@ -14,11 +14,13 @@ import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.Vo2MaxRecord
 import androidx.health.connect.client.records.WeightRecord
 import androidx.health.connect.client.records.metadata.Device
+import androidx.health.connect.client.records.metadata.Metadata
 import app.pacinglab.core.healthconnect.exerciseTypeName
 import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Lap
 import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
+import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.SampleSeries
 import app.pacinglab.core.model.Segment
@@ -49,7 +51,15 @@ internal fun ExerciseSessionRecord.toSourceWorkout() = SourceWorkout(
     lastModified = metadata.lastModifiedTime,
     laps = laps.map(ExerciseLap::toLap),
     segments = segments.map(ExerciseSegment::toSegment),
+    recordingMethod = recordingMethod(metadata.recordingMethod),
 )
+
+internal fun recordingMethod(method: Int): RecordingMethod = when (method) {
+    Metadata.RECORDING_METHOD_ACTIVELY_RECORDED -> RecordingMethod.ACTIVE
+    Metadata.RECORDING_METHOD_AUTOMATICALLY_RECORDED -> RecordingMethod.AUTOMATIC
+    Metadata.RECORDING_METHOD_MANUAL_ENTRY -> RecordingMethod.MANUAL
+    else -> RecordingMethod.UNKNOWN
+}
 
 internal fun Device.label(): String? = listOfNotNull(manufacturer, model).joinToString(" ").ifBlank { null }
 

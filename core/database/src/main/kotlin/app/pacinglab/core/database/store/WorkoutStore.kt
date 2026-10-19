@@ -6,6 +6,7 @@ import app.pacinglab.core.database.entity.WorkoutEntity
 import app.pacinglab.core.database.entity.WorkoutStreamEntity
 import app.pacinglab.core.model.DataSource
 import app.pacinglab.core.model.HeartRateSeries
+import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.SampleSeries
 import app.pacinglab.core.model.Sport
@@ -99,6 +100,7 @@ class WorkoutStore @Inject constructor(database: PacingLabDatabase) {
         laps = StreamCodec.encodeLaps(laps),
         segments = StreamCodec.encodeSegments(segments),
         routePending = routePending,
+        recordingMethod = recordingMethod.name,
     )
 
     private fun WorkoutEntity.toDomain() = Workout(
@@ -125,6 +127,7 @@ class WorkoutStore @Inject constructor(database: PacingLabDatabase) {
         laps = StreamCodec.decodeLaps(laps),
         segments = StreamCodec.decodeSegments(segments),
         routePending = routePending,
+        recordingMethod = RecordingMethod.entries.firstOrNull { it.name == recordingMethod } ?: RecordingMethod.UNKNOWN,
     )
 
     private companion object {

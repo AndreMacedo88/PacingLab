@@ -21,11 +21,13 @@ import app.pacinglab.core.database.entity.WorkoutStreamEntity
         SleepSessionEntity::class,
         SyncStateEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
     autoMigrations = [
         // 2: workouts.route_pending
         AutoMigration(from = 1, to = 2),
+        // 3: workouts.recording_method
+        AutoMigration(from = 2, to = 3),
     ],
 )
 abstract class PacingLabDatabase : RoomDatabase() {

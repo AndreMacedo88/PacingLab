@@ -15,6 +15,7 @@ import androidx.health.connect.client.units.Length
 import androidx.health.connect.client.units.Velocity
 import app.pacinglab.core.healthconnect.HealthConnectPermissions
 import app.pacinglab.core.model.MeasurementKind
+import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.SegmentKind
 import app.pacinglab.core.model.source.ChangeChannel
 import assertk.assertThat
@@ -60,6 +61,33 @@ class HealthConnectDataSourceTest {
         assertThat(run.origin).isEqualTo(FITBIT)
         assertThat(run.laps.single().lengthMeters).isEqualTo(1_000.0)
         assertThat(run.segments.map { it.kind }).containsExactly(SegmentKind.RUNNING, SegmentKind.PAUSE)
+    }
+
+    @Test
+    fun `the recording method separates watch workouts from detected ones`() = runTest {
+        client.insert(session("watch", minute = 0, length = 30))
+        client.insert(
+            session(
+                "detected",
+                minute = 40,
+                length = 30,
+                origin = googleFit,
+                recordingMethod = Metadata.RECORDING_METHOD_AUTOMATICALLY_RECORDED,
+            ),
+        )
+        client.insert(session("typed", minute = 80, length = 30, recordingMethod = Metadata.RECORDING_METHOD_MANUAL_ENTRY))
+        client.insert(session("unknown", minute = 120, length = 30, recordingMethod = Metadata.RECORDING_METHOD_UNKNOWN))
+
+        val methods = source.readWorkouts(t0, t0.plus(Duration.ofHours(3))).associate { it.sourceRecordId to it.recordingMethod }
+
+        assertThat(methods).isEqualTo(
+            mapOf(
+                "watch" to RecordingMethod.ACTIVE,
+                "detected" to RecordingMethod.AUTOMATIC,
+                "typed" to RecordingMethod.MANUAL,
+                "unknown" to RecordingMethod.UNKNOWN,
+            ),
+        )
     }
 
     @Test
@@ -270,7 +298,8 @@ class HealthConnectDataSourceTest {
         assertThat(source.earliestWorkoutTime()).isEqualTo(t0.minus(Duration.ofMinutes(600)))
     }
 
-    private fun metadata(id: String, origin: String): Metadata = FakeHealthConnectGateway.metadata(id, origin)
+    private fun metadata(id: String, origin: String, recordingMethod: Int = Metadata.RECORDING_METHOD_ACTIVELY_RECORDED): Metadata =
+        FakeHealthConnectGateway.metadata(id, origin, recordingMethod = recordingMethod)
 
     private fun session(
         id: String,
@@ -279,6 +308,7 @@ class HealthConnectDataSourceTest {
         type: Int = ExerciseSessionRecord.EXERCISE_TYPE_RUNNING,
         route: ExerciseRoute? = null,
         origin: String = fitbit,
+        recordingMethod: Int = Metadata.RECORDING_METHOD_ACTIVELY_RECORDED,
     ): ExerciseSessionRecord {
         val start = t0.plus(Duration.ofMinutes(minute))
         val end = start.plus(Duration.ofMinutes(length))
@@ -287,7 +317,7 @@ class HealthConnectDataSourceTest {
             startZoneOffset = offset,
             endTime = end,
             endZoneOffset = offset,
-            metadata = metadata(id, origin),
+            metadata = metadata(id, origin, recordingMethod),
             exerciseType = type,
             title = null,
             notes = null,

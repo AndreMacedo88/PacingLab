@@ -1,5 +1,6 @@
 package app.pacinglab.core.analytics.workout
 
+import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Sport
 import assertk.assertThat
 import assertk.assertions.containsExactly
@@ -78,6 +79,23 @@ class TrainingSessionsTest {
     }
 
     @Test
+    fun `a run detected by Google Fit does not hide the interval workout started on the watch`() {
+        // Seen on the device: Google Fit detected 48 minutes of running from the phone, with a sparse route,
+        // around a watch interval workout and a short GPS run straight after it.
+        val detected = workout("detected", Sport.RUN, startMinute = 0, minutes = 48).withHr(160).withRoute()
+            .copy(origin = "com.google.android.apps.fitness", recordingMethod = RecordingMethod.AUTOMATIC)
+        val intervals = workout("intervals", Sport.RUN, startMinute = 8, minutes = 36).withHr(163)
+            .copy(recordingMethod = RecordingMethod.ACTIVE)
+        val coolDown = workout("cool-down", Sport.RUN, startMinute = 44, minutes = 3).withHr(164).withRoute()
+            .copy(recordingMethod = RecordingMethod.ACTIVE)
+
+        val sessions = TrainingSessions.group(listOf(detected, intervals, coolDown))
+
+        assertThat(sessions.size).isEqualTo(1)
+        assertThat(sessions.single().workouts.map { it.id }).containsExactly("intervals", "cool-down")
+    }
+
+    @Test
     fun `back-to-back workouts from the same app are not duplicates`() {
         val run = workout("run", Sport.RUN, startMinute = 0, minutes = 6)
         val intervals = workout("intervals", Sport.RUN, startMinute = 5, minutes = 30)
@@ -86,4 +104,6 @@ class TrainingSessionsTest {
     }
 
     private fun app.pacinglab.core.model.Workout.withHr(bpm: Int) = copy(summary = summary.copy(averageHr = bpm))
+
+    private fun app.pacinglab.core.model.Workout.withRoute() = copy(summary = summary.copy(hasRoute = true))
 }
