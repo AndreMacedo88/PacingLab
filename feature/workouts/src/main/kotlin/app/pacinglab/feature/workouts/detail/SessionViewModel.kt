@@ -3,15 +3,16 @@ package app.pacinglab.feature.workouts.detail
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.pacinglab.core.analytics.intervals.RecordingMode
+import app.pacinglab.core.analytics.load.AnchorTimeline
+import app.pacinglab.core.analytics.load.TrainingLoads
 import app.pacinglab.core.analytics.session.SessionAnalysis
 import app.pacinglab.core.analytics.session.SessionAnalyzer
 import app.pacinglab.core.analytics.session.SessionPart
 import app.pacinglab.core.analytics.workout.TrainingSession
-import app.pacinglab.core.analytics.zones.ThresholdEstimates
 import app.pacinglab.core.analytics.zones.Zones
-import app.pacinglab.core.data.repository.PhysiologyRepository
+import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.repository.WorkoutRepository
-import app.pacinglab.core.model.PhysiologyHistory
+import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.Sport
@@ -92,21 +93,19 @@ sealed interface SessionUiState {
 class SessionViewModel @AssistedInject constructor(
     @Assisted private val sessionId: String,
     private val repository: WorkoutRepository,
-    physiology: PhysiologyRepository,
+    trainingLoad: TrainingLoadRepository,
 ) : ViewModel() {
-    val state: StateFlow<SessionUiState> = combine(repository.observeSessions(), physiology.observeHistory()) { sessions, history ->
-        sessions.firstOrNull { it.id == sessionId } to history
+    val state: StateFlow<SessionUiState> = combine(repository.observeSessions(), trainingLoad.anchors) { sessions, timeline ->
+        sessions.firstOrNull { it.id == sessionId } to timeline
     }
-        .mapLatest { (session, history) -> if (session == null) SessionUiState.NotFound else load(session, history) }
+        .mapLatest { (session, timeline) -> if (session == null) SessionUiState.NotFound else load(session, timeline) }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), SessionUiState.Loading)
 
-    private suspend fun load(session: TrainingSession, history: PhysiologyHistory): SessionUiState.Loaded {
+    private suspend fun load(session: TrainingSession, timeline: AnchorTimeline): SessionUiState.Loaded {
         val parts = session.workouts.map { SessionPart(it, repository.streams(it.id)) }
-        val date = session.start.atZone(session.workouts.first().zoneOffset ?: ZoneId.systemDefault()).toLocalDate()
-        val zoneSets = history.at(date)?.let(ThresholdEstimates::anchors)?.let { anchors ->
-            listOf(Zones.of(ZoneModel.LTHR_FIVE, anchors), Zones.of(ZoneModel.POLARIZED_THREE, anchors))
-        }.orEmpty()
+        val anchors = timeline.at(TrainingLoads.dateOf(session.workouts.first(), ZoneId.systemDefault()))
+        val zoneSets = anchors?.let { listOf(Zones.of(ZoneModel.LTHR_FIVE, it), Zones.of(ZoneModel.POLARIZED_THREE, it)) }.orEmpty()
         val item = session.toItem()
         val whole = DetailScope(
             title = null,
@@ -120,14 +119,14 @@ class SessionViewModel @AssistedInject constructor(
             maxHr = item.maxHr,
             routes = parts.map { it.streams.route }.filterNot { it.isEmpty() },
             routeOnlyFrom = routeOnlyFrom(parts),
-            analysis = SessionAnalyzer.analyze(parts, zoneSets),
+            analysis = SessionAnalyzer.analyze(parts, zoneSets, anchors),
             recording = parts.singleOrNull()?.recording(),
         )
-        val scopes = if (parts.size == 1) listOf(whole) else listOf(whole) + parts.map { it.scope(zoneSets) }
+        val scopes = if (parts.size == 1) listOf(whole) else listOf(whole) + parts.map { it.scope(zoneSets, anchors) }
         return SessionUiState.Loaded(session = item, scopes = scopes, zonesAvailable = zoneSets.isNotEmpty())
     }
 
-    private fun SessionPart.scope(zoneSets: List<ZoneSet>) = DetailScope(
+    private fun SessionPart.scope(zoneSets: List<ZoneSet>, anchors: HeartRateAnchors?) = DetailScope(
         title = workout.title,
         sport = workout.sport,
         start = workout.start,
@@ -139,7 +138,7 @@ class SessionViewModel @AssistedInject constructor(
         maxHr = workout.summary.maxHr,
         routes = listOf(streams.route).filterNot { it.isEmpty() },
         routeOnlyFrom = emptyList(),
-        analysis = SessionAnalyzer.analyze(listOf(this), zoneSets),
+        analysis = SessionAnalyzer.analyze(listOf(this), zoneSets, anchors),
         recording = recording(),
     )
 

@@ -53,6 +53,7 @@ import java.text.NumberFormat
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @Composable
 fun SessionRoute(sessionId: String, onBack: () -> Unit, onOpenPhysiology: () -> Unit, modifier: Modifier = Modifier) {
@@ -184,6 +185,9 @@ private fun ScopeContent(
             item(key = "intervals") { IntervalsCard(scope.analysis, toggle, locale) }
         }
         item(key = "zones") { ZonesCard(scope.analysis.zones, onOpenPhysiology) }
+        scope.analysis.load?.takeIf { it.heartRateMillis > 0 }?.let { load ->
+            item(key = "load") { LoadCard(load) }
+        }
         if (parts.isNotEmpty()) {
             item(key = "parts") {
                 Text(
@@ -245,6 +249,9 @@ private fun Metrics(scope: DetailScope, toggle: SpeedToggle, locale: Locale, mod
         }
         scope.averageHr?.let { Metric(stringResource(R.string.metric_avg_hr), it.toString(), "bpm") }
         scope.maxHr?.let { Metric(stringResource(R.string.metric_max_hr), it.toString(), "bpm") }
+        scope.analysis.load?.takeIf { it.heartRateMillis > 0 }?.let {
+            Metric(stringResource(R.string.metric_load), it.stressScore.roundToInt().toString(), null)
+        }
     }
 }
 

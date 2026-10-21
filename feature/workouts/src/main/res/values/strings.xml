@@ -27,6 +27,12 @@
     <string name="metric_pace">Average pace</string>
     <string name="metric_avg_hr">Average HR</string>
     <string name="metric_max_hr">Max HR</string>
+    <string name="metric_load">Load</string>
+    <string name="load_title">Training load</string>
+    <string name="load_stress">Stress score</string>
+    <string name="load_trimp">Banister TRIMP</string>
+    <string name="load_edwards">Edwards TRIMP</string>
+    <string name="load_explained">The stress score scales Banister\'s TRIMP so that an hour at threshold heart rate scores 100. Edwards adds up minutes in five bands of maximum heart rate, weighted 1 to 5.</string>
     <string name="session_parts_heading">Recorded parts</string>
     <string name="session_when">%1$s, %2$s–%3$s</string>
     <string name="scope_whole_session">Whole session</string>

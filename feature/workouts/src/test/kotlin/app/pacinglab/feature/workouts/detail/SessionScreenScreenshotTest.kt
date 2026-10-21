@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import app.pacinglab.core.analytics.intervals.PhaseKind
+import app.pacinglab.core.analytics.load.LoadScores
 import app.pacinglab.core.analytics.session.PhaseSummary
 import app.pacinglab.core.analytics.session.SessionAnalysis
 import app.pacinglab.core.analytics.zones.ZoneDistribution
@@ -93,7 +94,8 @@ class SessionScreenScreenshotTest {
         Route(LongArray(n) { it * 3_000L }, latitudes, longitudes, DoubleArray(n) { Double.NaN }, DoubleArray(n) { Double.NaN })
     }
 
-    private val analysis = SessionAnalysis(phases, zones)
+    private val analysis =
+        SessionAnalysis(phases, zones, LoadScores(trimp = 89.1, stressScore = 52.9, edwards = 145.8, heartRateMillis = 2_160_000))
 
     private val warmUp = DetailScope(
         title = "Run",
