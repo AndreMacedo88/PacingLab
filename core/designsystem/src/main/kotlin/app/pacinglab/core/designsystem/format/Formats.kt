@@ -18,6 +18,12 @@ object Formats {
         }
     }
 
+    /** Hours and minutes ("3:50", "0:40") for totals where seconds do not matter. */
+    fun hoursMinutes(millis: Long): String {
+        val minutes = (millis / 60_000.0).roundToLong().coerceAtLeast(0)
+        return String.format(Locale.ROOT, "%d:%02d", minutes / 60, minutes % 60)
+    }
+
     /** Kilometres with two decimals below 100 km, one above. */
     fun kilometres(meters: Double, locale: Locale): String {
         val km = meters / 1000.0

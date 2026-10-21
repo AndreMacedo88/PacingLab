@@ -26,10 +26,10 @@ import app.pacinglab.feature.settings.navigation.DataSourcesKey
 import app.pacinglab.feature.settings.navigation.PhysiologyKey
 import app.pacinglab.feature.settings.navigation.SettingsKey
 import app.pacinglab.feature.settings.navigation.settingsEntries
+import app.pacinglab.feature.trends.navigation.trendsEntries
 import app.pacinglab.feature.workouts.navigation.workoutsEntries
 import app.pacinglab.navigation.TodayKey
 import app.pacinglab.navigation.TopLevelDestination
-import app.pacinglab.navigation.TrendsKey
 
 /**
  * App frame: navigation bar plus a single back stack whose first entry is always a top-level
@@ -96,13 +96,7 @@ fun PacingLabApp(modifier: Modifier = Modifier) {
                     },
                     openPhysiology = { backStack.add(PhysiologyKey) },
                 )
-                entry<TrendsKey> {
-                    PlaceholderScreen(
-                        title = stringResource(R.string.destination_trends),
-                        icon = PacingLabIcons.TrendsSelected,
-                        message = stringResource(R.string.placeholder_trends),
-                    )
-                }
+                trendsEntries(openPhysiology = { backStack.add(PhysiologyKey) })
                 settingsEntries(
                     navigateTo = { backStack.add(it) },
                     navigateBack = { backStack.removeLastOrNull() },

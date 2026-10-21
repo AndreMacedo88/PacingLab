@@ -15,6 +15,13 @@ class FormatsTest {
     }
 
     @Test
+    fun `hours and minutes round to the minute`() {
+        assertThat(Formats.hoursMinutes(40 * 60_000L)).isEqualTo("0:40")
+        assertThat(Formats.hoursMinutes((3 * 3600 + 50 * 60 + 31) * 1_000L)).isEqualTo("3:51")
+        assertThat(Formats.hoursMinutes(25 * 3_600_000L)).isEqualTo("25:00")
+    }
+
+    @Test
     fun `kilometres use the locale's decimal separator`() {
         assertThat(Formats.kilometres(10_951.4, Locale.UK)).isEqualTo("10.95")
         assertThat(Formats.kilometres(10_951.4, Locale.forLanguageTag("da-DK"))).isEqualTo("10,95")

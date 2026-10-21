@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="trends_title">Trends</string>
+    <string name="trends_needs_values">Training load is calculated from heart rate and needs your maximum and resting heart rate.</string>
+    <string name="trends_set_values">Set heart rate values</string>
+    <string name="trends_empty">No training yet. Workouts with heart rate appear here after the next sync.</string>
+
+    <string name="form_title">Fitness and form</string>
+    <string name="range_six_weeks">6 weeks</string>
+    <string name="range_three_months">3 months</string>
+    <string name="range_year">1 year</string>
+    <string name="form_fitness">Fitness</string>
+    <string name="form_fatigue">Fatigue</string>
+    <string name="form_form">Form</string>
+    <string name="form_today">Today</string>
+    <string name="form_day_load">Load %1$d</string>
+    <string name="form_ramp">Fitness %1$s in 7 days</string>
+    <string name="form_chart_description">Fitness %1$d, fatigue %2$d, form %3$d</string>
+    <string name="form_explained">Load is a heart rate stress score: an hour at threshold heart rate scores 100. Fitness averages daily load over about six weeks, fatigue over about one week. Form is fitness minus fatigue going into the day. Walks and rides that an app detected by itself are left out.</string>
+    <string name="chart_load">Daily load</string>
+    <string name="chart_fitness_fatigue">Fitness and fatigue</string>
+    <string name="chart_form">Form</string>
+
+    <string name="weeks_title">Weekly training</string>
+    <string name="weeks_week">Week</string>
+    <string name="weeks_load">Load</string>
+    <string name="weeks_time">Hours</string>
+    <string name="weeks_intensity">Intensity</string>
+    <string name="weeks_this_week">This week</string>
+
+    <plurals name="weeks_workouts">
+        <item quantity="one">%1$d workout</item>
+        <item quantity="other">%1$d workouts</item>
+    </plurals>
+</resources>
