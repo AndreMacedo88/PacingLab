@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="sleep_title">Sleep</string>
-    <string name="navigate_back">Back</string>
     <string name="sleep_empty">No nights recorded yet. Wear the watch to bed and the night appears here after the next sync.</string>
     <string name="sleep_previous">Previous night</string>
     <string name="sleep_next">Next night</string>

@@ -17,9 +17,10 @@ fun EntryProviderScope<NavKey>.workoutsEntries(
     navigateBack: () -> Unit,
     openDataSources: () -> Unit,
     openPhysiology: () -> Unit,
+    openSettings: () -> Unit,
 ) {
     entry<WorkoutsKey> {
-        WorkoutsRoute(onOpenSession = { navigateTo(SessionKey(it)) }, onOpenDataSources = openDataSources)
+        WorkoutsRoute(onOpenSession = { navigateTo(SessionKey(it)) }, onOpenDataSources = openDataSources, onOpenSettings = openSettings)
     }
     entry<SessionKey> { key ->
         SessionRoute(sessionId = key.sessionId, onBack = navigateBack, onOpenPhysiology = openPhysiology)

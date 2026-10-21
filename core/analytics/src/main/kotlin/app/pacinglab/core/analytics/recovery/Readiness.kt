@@ -36,8 +36,19 @@ data class HrvStatus(
     val score: Int,
 )
 
-/** Last night's resting heart rate against its usual level. */
-data class RestingHrStatus(val lastNight: Double, val usual: Double, val standing: Standing, val score: Int)
+/**
+ * Last night's resting heart rate against its usual level. [normalLow] to [normalHigh] is the range in
+ * which it counts as [Standing.NORMAL]: the usual level plus or minus one standard deviation, at least
+ * 3 bpm either way.
+ */
+data class RestingHrStatus(
+    val lastNight: Double,
+    val usual: Double,
+    val standing: Standing,
+    val score: Int,
+    val normalLow: Double = usual,
+    val normalHigh: Double = usual,
+)
 
 /** Last night's sleep score, with the average score of the last three nights. Poor sleep (below 60) is [Standing.BELOW]. */
 data class SleepStatus(
@@ -55,9 +66,11 @@ data class TrainingStatus(val form: Double, val fitness: Double, val band: Doubl
 /**
  * How ready the body is today, from what the watch measured overnight and from recent training.
  *
- * @property score 0 to 100, null while the HRV baseline is still being built.
- * @property baselineNights nights of HRV the baseline has so far; [Readiness.BASELINE_NIGHTS] are needed.
+ * @property score 0 to 100, null until the HRV baseline has [Readiness.PROVISIONAL_NIGHTS] nights.
+ * @property baselineNights nights of HRV the baseline has so far; from [Readiness.BASELINE_NIGHTS] on the
+ *   score is settled, before that it is [provisional].
  * @property breathingElevated breathing rate during sleep clearly above usual, a common early sign of illness.
+ * @property breathingUsual the average breathing rate of the nights before; null with fewer than a week of them.
  */
 data class Readiness(
     val date: LocalDate,
@@ -69,10 +82,20 @@ data class Readiness(
     val training: TrainingStatus?,
     val breathingElevated: Boolean,
     val baselineNights: Int,
+    val breathingUsual: Double? = null,
 ) {
+    /** True while the score rests on fewer than [BASELINE_NIGHTS] nights of HRV: a first impression. */
+    val provisional: Boolean get() = score != null && baselineNights < BASELINE_NIGHTS
+
     companion object {
-        /** Nights of HRV before a baseline means anything. */
+        /** Nights of HRV for a baseline that can be trusted. */
         const val BASELINE_NIGHTS = 14
+
+        /**
+         * Nights of HRV for a first, provisional score. With a week of nights, last night can be placed
+         * against the range seen so far, but the week's trend cannot yet be told apart from the baseline.
+         */
+        const val PROVISIONAL_NIGHTS = 7
 
         /** Days the HRV baseline looks back. */
         const val HRV_WINDOW_DAYS = 60
@@ -140,6 +163,7 @@ data class Readiness(
                 training = training,
                 breathingElevated = breathing,
                 baselineNights = hrvNights.size,
+                breathingUsual = breathingUsual(shortWindow, today),
             )
         }
 
@@ -153,7 +177,7 @@ data class Readiness(
         }
 
         private fun hrvStatus(nights: List<Night>, lastNight: Night?, today: LocalDate): HrvStatus? {
-            if (nights.size < BASELINE_NIGHTS) return null
+            if (nights.size < PROVISIONAL_NIGHTS) return null
             val logs = nights.map { ln(it.hrvMs!!) }
             val mean = logs.average()
             val sd = sqrt(logs.sumOf { (it - mean) * (it - mean) } / (logs.size - 1)).coerceAtLeast(MIN_LN_SD)
@@ -186,7 +210,8 @@ data class Readiness(
                 position < -1 && usual - tonight >= RESTING_HR_MARGIN -> Standing.BELOW
                 else -> Standing.NORMAL
             }
-            return RestingHrStatus(tonight, usual, standing, clampScore(70 - 15 * position))
+            val margin = maxOf(sd, RESTING_HR_MARGIN)
+            return RestingHrStatus(tonight, usual, standing, clampScore(70 - 15 * position), usual - margin, usual + margin)
         }
 
         private fun sleepStatus(
@@ -210,11 +235,17 @@ data class Readiness(
             )
         }
 
+        /** Half-width of the band of normal form at [fitness]: 30 % of fitness, at least 10. */
+        fun formBand(fitness: Double): Double = maxOf(MIN_FORM_BAND, FORM_BAND_SHARE * fitness)
+
         private fun trainingStatus(day: FormDay): TrainingStatus {
-            val band = maxOf(MIN_FORM_BAND, FORM_BAND_SHARE * day.fitness)
+            val band = formBand(day.fitness)
             val position = day.form / band
             return TrainingStatus(day.form, day.fitness, band, standing(position, -1.0, 1.0), clampScore(75 + 25 * position))
         }
+
+        private fun breathingUsual(nights: List<Night>, today: LocalDate): Double? =
+            nights.filter { it.date < today }.mapNotNull { it.respiratoryRate }.takeIf { it.size >= MIN_SHORT_BASELINE }?.average()
 
         private fun breathingElevated(nights: List<Night>, lastNight: Night?): Boolean {
             val tonight = lastNight?.respiratoryRate ?: return false
@@ -235,11 +266,17 @@ data class Readiness(
         const val MIN_SHORT_BASELINE = 7
         private const val MIN_LN_SD = 0.05
         private const val RESTING_HR_MARGIN = 3.0
-        private const val BREATHING_MARGIN = 1.0
+
+        /** Breathing this much above usual, in breaths a minute, counts as raised. */
+        const val BREATHING_MARGIN = 1.0
         private const val MIN_FORM_BAND = 10.0
         private const val FORM_BAND_SHARE = 0.3
         private const val ILLNESS_CAP = 40.0
-        private const val READY_FROM = 70
-        private const val MODERATE_FROM = 50
+
+        /** Scores from here up are [ReadinessLevel.READY]. */
+        const val READY_FROM = 70
+
+        /** Scores from here up to [READY_FROM] are [ReadinessLevel.MODERATE], below it [ReadinessLevel.LOW]. */
+        const val MODERATE_FROM = 50
     }
 }

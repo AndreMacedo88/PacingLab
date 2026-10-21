@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import app.pacinglab.core.analytics.recovery.Readiness
 import app.pacinglab.core.analytics.recovery.ReadinessLevel
 import app.pacinglab.core.analytics.recovery.Standing
+import app.pacinglab.core.designsystem.chart.ChartLevel
+import app.pacinglab.core.designsystem.chart.LevelSparkline
 import app.pacinglab.core.designsystem.component.CardHeader
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
@@ -37,11 +39,15 @@ import app.pacinglab.core.designsystem.theme.tabularNumbers
 import kotlin.math.roundToInt
 
 /**
- * Readiness: the score and its level once the HRV baseline exists, progress towards it before, and
- * one row per contributor with where it stands against the athlete's own normal.
+ * Readiness: the score and its level once the HRV baseline has a week of nights (marked provisional until
+ * it has two), progress towards it before, the last week's scores on the levels' bands, and one row per
+ * contributor with where it stands against the athlete's own normal.
+ *
+ * @param history readiness on each of the last days, oldest first, ending with [readiness].
+ * @param days weekday initials of [history].
  */
 @Composable
-internal fun ReadinessCard(readiness: Readiness, modifier: Modifier = Modifier) {
+internal fun ReadinessCard(readiness: Readiness, history: List<Readiness>, days: List<String>, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -53,7 +59,24 @@ internal fun ReadinessCard(readiness: Readiness, modifier: Modifier = Modifier) 
             CardHeader(title = stringResource(R.string.readiness_title), info = stringResource(R.string.readiness_info))
             val score = readiness.score
             val level = readiness.level
-            if (score != null && level != null) Score(score, level) else Calibrating(readiness.baselineNights)
+            if (score != null && level != null) {
+                Score(score, level)
+                if (readiness.provisional) {
+                    Text(
+                        text = pluralStringResource(
+                            R.plurals.readiness_provisional,
+                            Readiness.BASELINE_NIGHTS,
+                            readiness.baselineNights,
+                            Readiness.BASELINE_NIGHTS,
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (history.count { it.score != null } > 1) Week(history, days)
+            } else {
+                Calibrating(readiness.baselineNights)
+            }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Contributors(readiness)
             if (readiness.breathingElevated) {
@@ -87,6 +110,33 @@ private fun Score(score: Int, level: ReadinessLevel, modifier: Modifier = Modifi
         )
     }
 }
+
+/** The last week's scores on the bands of the three levels, coloured by the level each falls in. */
+@Composable
+private fun Week(history: List<Readiness>, days: List<String>, modifier: Modifier = Modifier) {
+    LevelSparkline(
+        values = history.map { it.score?.toDouble() },
+        levels = listOf(
+            ChartLevel(
+                WEEK_SCALE_FLOOR..Readiness.MODERATE_FROM.toDouble(),
+                StatusColors.Serious,
+                stringResource(R.string.readiness_level_low),
+            ),
+            ChartLevel(
+                Readiness.MODERATE_FROM.toDouble()..Readiness.READY_FROM.toDouble(),
+                StatusColors.Warning,
+                stringResource(R.string.readiness_level_moderate),
+            ),
+            ChartLevel(Readiness.READY_FROM.toDouble()..100.0, StatusColors.Good, stringResource(R.string.readiness_level_ready)),
+        ),
+        scale = WEEK_SCALE_FLOOR..100.0,
+        labels = days,
+        modifier = modifier,
+    )
+}
+
+/** Scores below this sit on the bottom edge of the week chart, so that the three levels get room. */
+private const val WEEK_SCALE_FLOOR = 30.0
 
 private fun levelIcon(level: ReadinessLevel): Int = when (level) {
     ReadinessLevel.READY -> PacingLabIcons.CheckCircle

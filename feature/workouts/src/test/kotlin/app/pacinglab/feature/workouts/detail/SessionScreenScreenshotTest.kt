@@ -19,6 +19,7 @@ import app.pacinglab.core.analytics.zones.ZoneDistribution
 import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.model.HeartRateAnchors
+import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.Sport
@@ -35,6 +36,7 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.util.Locale
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
@@ -94,6 +96,36 @@ class SessionScreenScreenshotTest {
         Route(LongArray(n) { it * 3_000L }, latitudes, longitudes, DoubleArray(n) { Double.NaN }, DoubleArray(n) { Double.NaN })
     }
 
+    /**
+     * Heart rate once a second between [from] and [until] seconds after the start: a warm-up, a minute's
+     * pause, then five reps and their recoveries, heart rate following each change with a lag.
+     */
+    private fun heartRate(from: Int, until: Int): HeartRateSeries {
+        val times = ArrayList<Long>()
+        val bpm = ArrayList<Int>()
+        var hr = 100.0
+        val repPeaks = listOf(171.0, 176.0, 179.0, 180.0, 181.0)
+        for (second in 0 until until) {
+            if (second in 360 until 420) {
+                hr = 128.0
+                continue
+            }
+            val u = second - 420
+            val target = when {
+                second < 360 -> 148.0
+                u < 5 * 361 - 120 && u % 361 < 241 -> repPeaks[u / 361]
+                u < 5 * 361 - 120 -> 135.0
+                else -> 150.0
+            }
+            hr += (target - hr) / 30
+            if (second >= from) {
+                times += start.toEpochMilli() + second * 1_000L
+                bpm += (hr + 1.5 * sin(second / 7.0)).roundToInt()
+            }
+        }
+        return HeartRateSeries(times.toLongArray(), bpm.toIntArray())
+    }
+
     private val analysis =
         SessionAnalysis(phases, zones, LoadScores(trimp = 89.1, stressScore = 52.9, edwards = 145.8, heartRateMillis = 2_160_000))
 
@@ -117,6 +149,7 @@ class SessionScreenScreenshotTest {
             ),
         ),
         recording = RecordingItem("com.fitbit.FitbitMobile", RecordingMethod.ACTIVE, "running", 193, 348, 349, 2),
+        heartRate = heartRate(0, 360),
     )
 
     private val intervalWorkout = warmUp.copy(
@@ -136,6 +169,7 @@ class SessionScreenScreenshotTest {
             ),
         ),
         recording = RecordingItem("com.fitbit.FitbitMobile", RecordingMethod.ACTIVE, "boot_camp", 994, 1_799, 0, 0),
+        heartRate = heartRate(420, 2_400),
     )
 
     private val whole = warmUp.copy(
@@ -148,6 +182,7 @@ class SessionScreenScreenshotTest {
         routeOnlyFrom = listOf("Run"),
         analysis = analysis,
         recording = null,
+        heartRate = heartRate(0, 2_400),
     )
 
     private val loaded = SessionUiState.Loaded(session, listOf(whole, warmUp, intervalWorkout), zonesAvailable = true)
@@ -177,6 +212,40 @@ class SessionScreenScreenshotTest {
                         locale = Locale.UK,
                         modifier = Modifier.padding(16.dp),
                     )
+                }
+            }
+        }
+        compose.onRoot().captureRoboImage()
+    }
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun heartRateCard() = captureHeartRateCard(darkTheme = false)
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun heartRateCardDark() = captureHeartRateCard(darkTheme = true)
+
+    @Test
+    fun theZoneSwitchMovesChartAndBarsToThreeZones() {
+        compose.setContent {
+            PacingLabTheme {
+                HeartRateCard(zones, whole.heartRate, ZoneOffset.UTC, onOpenPhysiology = {})
+            }
+        }
+        compose.onNodeWithText("Threshold", useUnmergedTree = true).assertExists()
+
+        compose.onNodeWithText("3 zones").performClick()
+
+        compose.onNodeWithText("Threshold", useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithText("Above VT2", useUnmergedTree = true).assertExists()
+    }
+
+    private fun captureHeartRateCard(darkTheme: Boolean) {
+        compose.setContent {
+            PacingLabTheme(darkTheme = darkTheme) {
+                Surface {
+                    HeartRateCard(zones, whole.heartRate, ZoneOffset.UTC, onOpenPhysiology = {}, modifier = Modifier.padding(16.dp))
                 }
             }
         }

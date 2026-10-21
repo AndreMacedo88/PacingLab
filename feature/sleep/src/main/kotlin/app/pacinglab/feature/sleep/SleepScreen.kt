@@ -51,12 +51,15 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.Nights
+import app.pacinglab.core.analytics.recovery.PersonalRange
 import app.pacinglab.core.analytics.recovery.Readiness
 import app.pacinglab.core.analytics.recovery.SleepMeasureKind
 import app.pacinglab.core.analytics.recovery.SleepRating
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.designsystem.chart.Sparkline
+import app.pacinglab.core.designsystem.chart.weekdayInitials
 import app.pacinglab.core.designsystem.component.CardHeader
+import app.pacinglab.core.designsystem.component.SettingsAction
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.StatusColors
@@ -69,20 +72,25 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 @Composable
-fun SleepRoute(initialDate: String?, onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: SleepViewModel = hiltViewModel()) {
+fun SleepRoute(
+    initialDate: String?,
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: SleepViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    SleepScreen(state = state, initialDate = initialDate?.let(LocalDate::parse), onBack = onBack, modifier = modifier)
+    SleepScreen(state = state, initialDate = initialDate?.let(LocalDate::parse), onOpenSettings = onOpenSettings, modifier = modifier)
 }
 
 /**
  * One night in depth, laid out like the sleep screen of Google Health: score and duration at the
  * top, the night's stages, the score's parts, sleep quality against published ranges, heart rate
  * through the night, the night's recovery measurements and key metrics over recent nights. Arrows
- * step from night to night.
+ * step from night to night. A top-level screen: settings sit at the right of the app bar.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SleepScreen(state: SleepUiState, onBack: () -> Unit, modifier: Modifier = Modifier, initialDate: LocalDate? = null) {
+fun SleepScreen(state: SleepUiState, onOpenSettings: () -> Unit, modifier: Modifier = Modifier, initialDate: LocalDate? = null) {
     val locale = LocalConfiguration.current.locales[0]
     val loaded = state as? SleepUiState.Loaded
     val nights = loaded?.nights.orEmpty()
@@ -94,9 +102,7 @@ fun SleepScreen(state: SleepUiState, onBack: () -> Unit, modifier: Modifier = Mo
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.sleep_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(painterResource(PacingLabIcons.ArrowBack), stringResource(R.string.navigate_back)) }
-                },
+                actions = { SettingsAction(onOpenSettings) },
             )
         },
     ) { padding ->
@@ -127,7 +133,7 @@ fun SleepScreen(state: SleepUiState, onBack: () -> Unit, modifier: Modifier = Mo
                             onNext = nights.getOrNull(index + 1)?.let { { selectedDay = it.date.toEpochDay() } },
                         )
                     }
-                    item(key = "tiles") { TopTiles(night, score, need, nights, loaded.scores) }
+                    item(key = "tiles") { TopTiles(night, score, need, nights, loaded.scores, loaded.needs, locale) }
                     item(key = "stages") { NightCard(night, score, locale) }
                     item(key = "score") { ScoreCard(night, score, need) }
                     if (night.continuity != null) item(key = "quality") { QualityCard(night, score) }
@@ -167,9 +173,12 @@ private fun TopTiles(
     need: Long,
     nights: List<Night>,
     scores: Map<LocalDate, SleepScore>,
+    needs: Map<LocalDate, Long>,
+    locale: Locale,
     modifier: Modifier = Modifier,
 ) {
     val days = (WEEK - 1 downTo 0).map { night.date.minusDays(it) }
+    val labels = weekdayInitials(days, locale)
     val byDate = nights.associateBy { it.date }
     Row(modifier = modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Tile(
@@ -179,7 +188,7 @@ private fun TopTiles(
             good = score.rating == SleepRating.GOOD,
             modifier = Modifier.weight(1f),
         ) {
-            Sparkline(values = days.map { scores[it]?.score?.toDouble() }, band = SleepScore.GOOD_FROM.toDouble()..100.0)
+            Sparkline(values = days.map { scores[it]?.score?.toDouble() }, band = SleepScore.GOOD_FROM.toDouble()..100.0, labels = labels)
         }
         val met = night.asleepMillis >= need
         Tile(
@@ -191,8 +200,9 @@ private fun TopTiles(
         ) {
             Sparkline(
                 values = days.map { byDate[it]?.asleepMillis?.div(HOUR) },
-                band = need / HOUR..SleepScore.MAX_NEED.toMillis() / HOUR,
+                bands = days.map { day -> needs[day]?.let { it / HOUR..Double.POSITIVE_INFINITY } },
                 color = chartColors().series[2],
+                labels = labels,
             )
         }
     }
@@ -467,13 +477,18 @@ private fun Value(label: String, value: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** HRV, resting heart rate and breathing rate of the night against the athlete's usual, with the last two weeks. */
+/**
+ * HRV, resting heart rate and breathing rate of the night against the athlete's usual, with the last
+ * week; each day's usual range is shaded behind its value.
+ */
 @Composable
 private fun BodyCard(nights: List<Night>, night: Night, modifier: Modifier = Modifier) {
     val locale = LocalConfiguration.current.locales[0]
     val colors = chartColors()
-    val readiness = remember(nights, night) { Readiness.of(nights, null, night.date) }
-    val days = (BODY_NIGHTS - 1 downTo 0).map { night.date.minusDays(it) }
+    val days = (WEEK - 1 downTo 0).map { night.date.minusDays(it) }
+    val history = remember(nights, night) { days.map { Readiness.of(nights, null, it) } }
+    val readiness = history.last()
+    val labels = weekdayInitials(days, locale)
     val byDate = nights.associateBy { it.date }
     fun series(value: (Night) -> Double?) = days.map { byDate[it]?.let(value) }
     val earlierBreathing = nights.filter { it.date < night.date && it.date > night.date.minusDays(30) }.mapNotNull { it.respiratoryRate }
@@ -485,24 +500,27 @@ private fun BodyCard(nights: List<Night>, night: Night, modifier: Modifier = Mod
                 stringResource(R.string.sleep_hrv_normal, it.normalLowMs.roundToInt(), it.normalHighMs.roundToInt())
             },
             values = series { it.hrvMs },
-            band = readiness.hrv?.let { it.normalLowMs..it.normalHighMs },
+            bands = history.map { day -> day.hrv?.let { it.normalLowMs..it.normalHighMs } },
             color = colors.series[0],
+            labels = labels,
         )
         BodyRow(
             name = stringResource(R.string.sleep_resting_hr),
             value = night.restingHr?.let { stringResource(R.string.unit_bpm, it.roundToInt()) },
             usual = readiness.restingHr?.let { stringResource(R.string.sleep_usual_bpm, it.usual.roundToInt()) },
             values = series { it.restingHr },
-            band = null,
-            color = colors.series[1],
+            bands = history.map { day -> day.restingHr?.let { it.normalLow..it.normalHigh } },
+            color = colors.restingHr,
+            labels = labels,
         )
         BodyRow(
             name = stringResource(R.string.sleep_breathing),
             value = night.respiratoryRate?.let { stringResource(R.string.unit_breaths, "%.1f".format(locale, it)) },
             usual = Nights.median(earlierBreathing)?.let { stringResource(R.string.sleep_usual_breaths, "%.1f".format(locale, it)) },
             values = series { it.respiratoryRate },
-            band = null,
+            bands = history.map { day -> day.breathingUsual?.let { it - Readiness.BREATHING_MARGIN..it + Readiness.BREATHING_MARGIN } },
             color = colors.series[2],
+            labels = labels,
         )
     }
 }
@@ -513,8 +531,9 @@ private fun BodyRow(
     value: String?,
     usual: String?,
     values: List<Double?>,
-    band: ClosedFloatingPointRange<Double>?,
+    bands: List<ClosedFloatingPointRange<Double>?>,
     color: Color,
+    labels: List<String>,
     modifier: Modifier = Modifier,
 ) {
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -525,7 +544,7 @@ private fun BodyRow(
                 Text(it, style = MaterialTheme.typography.bodySmall.tabularNumbers(), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Box(Modifier.weight(1f)) { Sparkline(values = values, color = color, band = band) }
+        Box(Modifier.weight(1f)) { Sparkline(values = values, color = color, bands = bands, labels = labels) }
     }
 }
 
@@ -546,7 +565,6 @@ private fun KeyMetricsCard(
     val byDate = nights.associateBy { it.date }
     val colors = chartColors()
     fun series(value: (Night) -> Double?) = days.map { byDate[it]?.let(value) }
-    val need = needs[until] ?: SleepScore.MIN_NEED.toMillis()
     SleepCard(stringResource(R.string.sleep_metrics_title), stringResource(R.string.sleep_metrics_info), modifier) {
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             listOf(R.string.sleep_metrics_week, R.string.sleep_metrics_month).forEachIndexed { i, label ->
@@ -555,13 +573,20 @@ private fun KeyMetricsCard(
                 }, shape = SegmentedButtonDefaults.itemShape(i, 2)) { Text(stringResource(label)) }
             }
         }
+        // Weekday initials fit under a week; a month is read as a shape.
+        val labels = if (count == WEEK) weekdayInitials(days, locale) else null
         val scoreValues = days.map { scores[it]?.score?.toDouble() }
         MetricRow(stringResource(R.string.sleep_score_title), average(scoreValues)?.roundToInt()?.toString()) {
-            Sparkline(values = scoreValues, band = SleepScore.GOOD_FROM.toDouble()..100.0)
+            Sparkline(values = scoreValues, band = SleepScore.GOOD_FROM.toDouble()..100.0, labels = labels)
         }
         val asleep = series { it.asleepMillis / HOUR }
         MetricRow(stringResource(R.string.sleep_time_asleep), average(asleep)?.let { Formats.hoursMinutes((it * HOUR).toLong()) }) {
-            Sparkline(values = asleep, band = need / HOUR..SleepScore.MAX_NEED.toMillis() / HOUR, color = colors.series[2])
+            Sparkline(
+                values = asleep,
+                bands = days.map { day -> needs[day]?.let { it / HOUR..Double.POSITIVE_INFINITY } },
+                color = colors.series[2],
+                labels = labels,
+            )
         }
         Text(stringResource(R.string.sleep_metrics_windows), style = MaterialTheme.typography.labelLarge)
         SleepWindows(days.mapNotNull { byDate[it] }, until, stringResource(R.string.sleep_schedule_description), locale)
@@ -572,18 +597,24 @@ private fun KeyMetricsCard(
                 stringResource(R.string.sleep_percent, it.roundToInt())
             },
         ) {
-            Sparkline(values = efficiency, band = 85.0..100.0)
+            Sparkline(values = efficiency, band = 85.0..100.0, labels = labels)
         }
         for (type in listOf(SleepStageType.DEEP, SleepStageType.REM)) {
             val typical = type.typical() ?: continue
-            val shares = series { n -> (n.stageMillis[type] ?: 0L).takeIf { it > 0 }?.let { 100.0 * it / n.asleepMillis } }
+            fun share(n: Night) = (n.stageMillis[type] ?: 0L).takeIf { it > 0 }?.let { 100.0 * it / n.asleepMillis }
+            val shares = series(::share)
+            // Each day's own usual range from the month before it; the published range until there is a week of nights.
+            val history = nights.mapNotNull { n -> share(n)?.let { n.date to it } }.toMap()
+            val ranges = days.map { day ->
+                PersonalRange.of(history, day, minHalfWidth = MIN_STAGE_HALF_WIDTH) ?: typical.first.toDouble()..typical.last.toDouble()
+            }
             MetricRow(
                 stringResource(R.string.sleep_quality_stage, stringResource(type.label())),
                 average(shares)?.let {
                     stringResource(R.string.sleep_percent, it.roundToInt())
                 },
             ) {
-                Sparkline(values = shares, band = typical.first.toDouble()..typical.last.toDouble(), color = colors.stage(type))
+                Sparkline(values = shares, bands = ranges, color = colors.stage(type), labels = labels)
             }
         }
     }
@@ -666,7 +697,9 @@ private const val HOUR = 3_600_000.0
 private const val DASH = "–"
 private const val WEEK = 7L
 private const val MONTH = 30L
-private const val BODY_NIGHTS = 14L
+
+/** Narrowest usual range of a stage's share, in percentage points either way. */
+private const val MIN_STAGE_HALF_WIDTH = 2.0
 
 /** A measure this close to full points counts as excellent in the summary. */
 private const val NEARLY_FULL = 0.85

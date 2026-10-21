@@ -49,6 +49,7 @@ import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.FormDay
 import app.pacinglab.core.analytics.load.WeekSummary
 import app.pacinglab.core.designsystem.component.CardHeader
+import app.pacinglab.core.designsystem.component.SettingsAction
 import app.pacinglab.core.designsystem.component.zoneName
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.theme.chartColors
@@ -61,11 +62,17 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 @Composable
-fun TrendsRoute(onOpenPhysiology: () -> Unit, modifier: Modifier = Modifier, viewModel: TrendsViewModel = hiltViewModel()) {
+fun TrendsRoute(
+    onOpenPhysiology: () -> Unit,
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: TrendsViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     TrendsScreen(
         state = state,
         onOpenPhysiology = onOpenPhysiology,
+        onOpenSettings = onOpenSettings,
         modifier = modifier,
         onSaveTest = viewModel::saveTest,
         onDeleteTest = viewModel::deleteTest,
@@ -81,9 +88,13 @@ fun TrendsScreen(
     initialRange: TrendRange = TrendRange.THREE_MONTHS,
     onSaveTest: (LocalDate, Double) -> Unit = { _, _ -> },
     onDeleteTest: (LocalDate) -> Unit = {},
+    onOpenSettings: () -> Unit = {},
 ) {
     val locale = LocalConfiguration.current.locales[0]
-    Scaffold(modifier = modifier, topBar = { TopAppBar(title = { Text(stringResource(R.string.trends_title)) }) }) { padding ->
+    Scaffold(
+        modifier = modifier,
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.trends_title)) }, actions = { SettingsAction(onOpenSettings) }) },
+    ) { padding ->
         when (state) {
             TrendsUiState.Loading -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()

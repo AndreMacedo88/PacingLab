@@ -13,6 +13,7 @@ fun EntryProviderScope<NavKey>.todayEntries(
     onOpenTrends: () -> Unit,
     onOpenSleep: () -> Unit,
     onOpenPhysiology: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     entry<TodayKey> {
         TodayRoute(
@@ -20,6 +21,7 @@ fun EntryProviderScope<NavKey>.todayEntries(
             onOpenTrends = onOpenTrends,
             onOpenSleep = onOpenSleep,
             onOpenPhysiology = onOpenPhysiology,
+            onOpenSettings = onOpenSettings,
         )
     }
 }

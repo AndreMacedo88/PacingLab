@@ -49,6 +49,7 @@ import app.pacinglab.core.maps.RouteMap
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Sport
 import app.pacinglab.feature.workouts.R
+import app.pacinglab.feature.workouts.originName
 import java.text.NumberFormat
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -181,10 +182,10 @@ private fun ScopeContent(
         if (scope.routes.isNotEmpty()) {
             item(key = "map") { RouteSection(scope) }
         }
+        item(key = "heart-rate") { HeartRateCard(scope.analysis.zones, scope.heartRate, scope.zoneOffset ?: zoneId, onOpenPhysiology) }
         if (scope.analysis.isIntervalSession) {
             item(key = "intervals") { IntervalsCard(scope.analysis, toggle, locale) }
         }
-        item(key = "zones") { ZonesCard(scope.analysis.zones, onOpenPhysiology) }
         scope.analysis.load?.takeIf { it.heartRateMillis > 0 }?.let { load ->
             item(key = "load") { LoadCard(load) }
         }
@@ -321,11 +322,7 @@ private fun RecordingCard(recording: RecordingItem, hasRoute: Boolean, modifier:
     val numbers = remember(locale) { NumberFormat.getIntegerInstance(locale) }
     val none = stringResource(R.string.part_none)
     fun count(n: Int) = if (n == 0) none else numbers.format(n)
-    val app = when (recording.origin) {
-        FITBIT -> stringResource(R.string.origin_fitbit)
-        GOOGLE_FIT -> stringResource(R.string.origin_google_fit)
-        else -> recording.origin
-    }
+    val app = originName(recording.origin)
     val how = when (recording.method) {
         RecordingMethod.ACTIVE -> stringResource(R.string.recording_active, app)
         RecordingMethod.AUTOMATIC -> stringResource(R.string.recording_automatic, app)
@@ -356,6 +353,3 @@ private fun RecordingCard(recording: RecordingItem, hasRoute: Boolean, modifier:
         )
     }
 }
-
-private const val FITBIT = "com.fitbit.FitbitMobile"
-private const val GOOGLE_FIT = "com.google.android.apps.fitness"

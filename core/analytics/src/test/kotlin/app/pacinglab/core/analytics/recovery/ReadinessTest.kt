@@ -43,15 +43,26 @@ class ReadinessTest {
     private fun form(form: Double, fitness: Double = 40.0) = FormDay(today, 0.0, fitness, fitness - form, form)
 
     @Test
-    fun `fewer than two weeks of HRV nights leave the score out`() {
-        val readiness = Readiness.of(usualNights(10), form(0.0), today)
+    fun `fewer than a week of HRV nights leaves the score out`() {
+        val readiness = Readiness.of(usualNights(6), form(0.0), today)
 
         assertThat(readiness.score).isNull()
+        assertThat(readiness.provisional).isFalse()
         assertThat(readiness.hrv).isNull()
-        assertThat(readiness.baselineNights).isEqualTo(10)
+        assertThat(readiness.baselineNights).isEqualTo(6)
         // Contributors with enough data are still reported.
-        assertThat(readiness.restingHr).isNotNull()
         assertThat(readiness.training).isNotNull()
+    }
+
+    @Test
+    fun `between one and two weeks of HRV nights the score is provisional`() {
+        val early = Readiness.of(usualNights(10), form(0.0), today)
+        assertThat(early.score).isNotNull()
+        assertThat(early.provisional).isTrue()
+        assertThat(early.baselineNights).isEqualTo(10)
+
+        val settled = Readiness.of(usualNights(14), form(0.0), today)
+        assertThat(settled.provisional).isFalse()
     }
 
     @Test

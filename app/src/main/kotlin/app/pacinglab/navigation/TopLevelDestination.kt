@@ -5,12 +5,12 @@ import androidx.annotation.StringRes
 import androidx.navigation3.runtime.NavKey
 import app.pacinglab.R
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
-import app.pacinglab.feature.settings.navigation.SettingsKey
+import app.pacinglab.feature.sleep.navigation.SleepKey
 import app.pacinglab.feature.today.navigation.TodayKey
 import app.pacinglab.feature.trends.navigation.TrendsKey
 import app.pacinglab.feature.workouts.navigation.WorkoutsKey
 
-/** The destinations in the navigation bar, in display order. */
+/** The destinations in the navigation bar, in display order. Settings open from each one's app bar. */
 enum class TopLevelDestination(
     val key: NavKey,
     @param:StringRes val label: Int,
@@ -20,5 +20,5 @@ enum class TopLevelDestination(
     TODAY(TodayKey, R.string.destination_today, PacingLabIcons.Today, PacingLabIcons.TodaySelected),
     WORKOUTS(WorkoutsKey, R.string.destination_workouts, PacingLabIcons.Workouts, PacingLabIcons.WorkoutsSelected),
     TRENDS(TrendsKey, R.string.destination_trends, PacingLabIcons.Trends, PacingLabIcons.TrendsSelected),
-    SETTINGS(SettingsKey, R.string.destination_settings, PacingLabIcons.Settings, PacingLabIcons.SettingsSelected),
+    SLEEP(SleepKey(), R.string.destination_sleep, PacingLabIcons.Sleep, PacingLabIcons.SleepSelected),
 }

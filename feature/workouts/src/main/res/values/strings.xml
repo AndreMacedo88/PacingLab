@@ -42,6 +42,8 @@
     <string name="recording_manual">Entered by hand in %1$s</string>
     <string name="recording_unknown">From %1$s</string>
     <string name="recording_no_gps_intervals">No GPS: the watch records none in interval mode.</string>
+    <string name="capture_detected">Detected by %1$s</string>
+    <string name="capture_entered">Entered in %1$s</string>
     <string name="origin_fitbit">Fitbit</string>
     <string name="origin_google_fit">Google Fit</string>
     <string name="unit_speed">%1$s km/h</string>
@@ -64,8 +66,9 @@
     <string name="intervals_hr">%1$d bpm average</string>
     <string name="intervals_hr_pair">%1$d/%2$d</string>
 
-    <string name="zones_title">Time in zones</string>
-    <string name="zones_info" tools:ignore="Typos" formatted="false">Time in each heart rate zone, using the heart rate values in force on the day of the session.\n\n# 5 zones\nJoe Friel\'s running zones, as a share of threshold heart rate (LTHR):\n- Z1 Recovery: below 85 %\n- Z2 Aerobic: 85–89 %\n- Z3 Tempo: 90–94 %\n- Z4 Threshold: 95–102 %\n- Z5 VO2max: 103 % and above\n\n# 3 zones\nThe polarized view used in endurance research:\n- Below VT1: under 90 % of LTHR\n- VT1 to VT2: 90 % of LTHR up to LTHR\n- Above VT2: LTHR and above\nWithout a lab test, both thresholds are approximations.\n\n# How time is counted\n- Each heart rate sample counts until the next one, at most 15 seconds, so gaps in the recording do not inflate a zone.\n- Wrist heart rate lags at the start of hard reps, so short reps show less time in the top zones than they deserve.</string>
+    <string name="zones_title">Heart rate</string>
+    <string name="zones_chart_description">Heart rate over the session, coloured by zone</string>
+    <string name="zones_info" tools:ignore="Typos" formatted="false">Heart rate over the session and the time spent in each zone, using the heart rate values in force on the day of the session.\n\n# The chart\n- The line takes the colour of the zone it is in; dotted lines mark the zone boundaries, with their heart rate on the right.\n- Touch the chart to read the time and heart rate.\n- Gaps are pauses between recorded parts or moments without heart rate.\n\n# 5 zones\nJoe Friel\'s running zones, as a share of threshold heart rate (LTHR):\n- Z1 Recovery: below 85 %\n- Z2 Aerobic: 85–89 %\n- Z3 Tempo: 90–94 %\n- Z4 Threshold: 95–102 %\n- Z5 VO2max: 103 % and above\n\n# 3 zones\nThe polarized view used in endurance research:\n- Below VT1: under 90 % of LTHR\n- VT1 to VT2: 90 % of LTHR up to LTHR\n- Above VT2: LTHR and above\nWithout a lab test, both thresholds are approximations.\n\n# How time is counted\n- Each heart rate sample counts until the next one, at most 15 seconds, so gaps in the recording do not inflate a zone.\n- Wrist heart rate lags at the start of hard reps, so short reps show less time in the top zones than they deserve. Sprints of 10 seconds barely move heart rate at all; judge them by speed.</string>
     <string name="zones_five">5 zones</string>
     <string name="zones_three">3 zones</string>
     <string name="zones_missing">Set your maximum heart rate to see time in each zone.</string>

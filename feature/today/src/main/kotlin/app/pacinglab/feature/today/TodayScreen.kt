@@ -43,10 +43,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.Readiness
 import app.pacinglab.core.analytics.recovery.SleepRating
+import app.pacinglab.core.analytics.recovery.SleepScore
+import app.pacinglab.core.designsystem.chart.HeartRateChart
 import app.pacinglab.core.designsystem.chart.MiniBars
 import app.pacinglab.core.designsystem.chart.SegmentBar
 import app.pacinglab.core.designsystem.chart.Sparkline
+import app.pacinglab.core.designsystem.chart.weekdayInitials
 import app.pacinglab.core.designsystem.component.CardHeader
+import app.pacinglab.core.designsystem.component.SettingsAction
 import app.pacinglab.core.designsystem.component.icon
 import app.pacinglab.core.designsystem.component.label
 import app.pacinglab.core.designsystem.format.Formats
@@ -67,11 +71,12 @@ fun TodayRoute(
     onOpenTrends: () -> Unit,
     onOpenSleep: () -> Unit,
     onOpenPhysiology: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    TodayScreen(state, onOpenSession, onOpenTrends, onOpenPhysiology, modifier, onOpenSleep = onOpenSleep)
+    TodayScreen(state, onOpenSession, onOpenTrends, onOpenPhysiology, modifier, onOpenSleep = onOpenSleep, onOpenSettings = onOpenSettings)
 }
 
 /**
@@ -88,6 +93,7 @@ fun TodayScreen(
     modifier: Modifier = Modifier,
     zoneId: ZoneId = ZoneId.systemDefault(),
     onOpenSleep: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
 ) {
     val locale = LocalConfiguration.current.locales[0]
     Scaffold(
@@ -107,6 +113,7 @@ fun TodayScreen(
                         }
                     }
                 },
+                actions = { SettingsAction(onOpenSettings) },
             )
         },
     ) { padding ->
@@ -123,7 +130,7 @@ fun TodayScreen(
                 if (!state.heartRateValuesSet) {
                     item(key = "values") { SetValuesCard(onOpenPhysiology) }
                 }
-                item(key = "readiness") { ReadinessCard(state.readiness) }
+                item(key = "readiness") { ReadinessCard(state.readiness, state.readinessHistory, state.days(locale)) }
                 item(key = "night") {
                     TileRow {
                         SleepTile(state, onOpenSleep, Modifier.weight(1f))
@@ -193,11 +200,15 @@ private fun Tile(
     }
 }
 
-/** One value per day of the last two weeks, oldest first, null for days without a night. */
+/** One value per day of the last week, oldest first, null for days without a night. */
 private fun TodayUiState.Loaded.byNight(value: (Night) -> Double?): List<Double?> {
     val nights = nights.associateBy { it.date }
-    return (TodayViewModel.NIGHT_DAYS - 1 downTo 0).map { back -> nights[today.minusDays(back.toLong())]?.let(value) }
+    return (TodayViewModel.TILE_DAYS - 1 downTo 0).map { back -> nights[today.minusDays(back.toLong())]?.let(value) }
 }
+
+/** Weekday initials of the days [byNight] covers. */
+private fun TodayUiState.Loaded.days(locale: Locale): List<String> =
+    weekdayInitials((TodayViewModel.TILE_DAYS - 1 downTo 0).map { today.minusDays(it.toLong()) }, locale)
 
 private fun TodayUiState.Loaded.lastNight(): Night? = nights.lastOrNull()?.takeIf { it.date == today }
 
@@ -226,7 +237,12 @@ private fun SleepTile(state: TodayUiState.Loaded, onOpenSleep: () -> Unit, modif
                     colors = listOf(colors.deepSleep, colors.remSleep, colors.lightSleep, colors.awake),
                 )
             }
-            MiniBars(values = state.byNight { state.sleepScores[it.date]?.score?.toDouble() }, color = colors.series[0], height = 32.dp)
+            Sparkline(
+                values = state.byNight { state.sleepScores[it.date]?.score?.toDouble() },
+                band = SleepScore.GOOD_FROM.toDouble()..100.0,
+                labels = state.days(LocalConfiguration.current.locales[0]),
+                height = 32.dp,
+            )
         }
     }
 }
@@ -253,7 +269,11 @@ private fun HrvTile(state: TodayUiState.Loaded, modifier: Modifier = Modifier) {
             ),
         modifier = modifier,
     ) {
-        Sparkline(values = state.byNight { it.hrvMs }, band = hrv?.let { it.normalLowMs..it.normalHighMs })
+        Sparkline(
+            values = state.byNight { it.hrvMs },
+            bands = state.readinessHistory.map { day -> day.hrv?.let { it.normalLowMs..it.normalHighMs } },
+            labels = state.days(LocalConfiguration.current.locales[0]),
+        )
     }
 }
 
@@ -278,7 +298,12 @@ private fun RestingHrTile(state: TodayUiState.Loaded, modifier: Modifier = Modif
         },
         modifier = modifier,
     ) {
-        Sparkline(values = state.byNight { it.restingHr }, color = chartColors().series[1])
+        Sparkline(
+            values = state.byNight { it.restingHr },
+            color = chartColors().restingHr,
+            bands = state.readinessHistory.map { day -> day.restingHr?.let { it.normalLow..it.normalHigh } },
+            labels = state.days(LocalConfiguration.current.locales[0]),
+        )
     }
 }
 
@@ -295,7 +320,14 @@ private fun BreathingTile(state: TodayUiState.Loaded, modifier: Modifier = Modif
         }?.let { stringResource(R.string.tile_usual_breaths, "%.1f".format(locale, it.average())) },
         modifier = modifier,
     ) {
-        Sparkline(values = state.byNight { it.respiratoryRate }, color = chartColors().series[2])
+        Sparkline(
+            values = state.byNight { it.respiratoryRate },
+            color = chartColors().series[2],
+            bands = state.readinessHistory.map { day ->
+                day.breathingUsual?.let { it - Readiness.BREATHING_MARGIN..it + Readiness.BREATHING_MARGIN }
+            },
+            labels = state.days(locale),
+        )
     }
 }
 
@@ -309,7 +341,12 @@ private fun FormTile(state: TodayUiState.Loaded, onOpenTrends: () -> Unit, modif
         modifier = modifier,
         onClick = onOpenTrends,
     ) {
-        Sparkline(values = state.form.map { it.form }, color = MaterialTheme.colorScheme.onSurfaceVariant, baseline = 0.0)
+        Sparkline(
+            values = state.form.map { it.form },
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            bands = state.form.map { Readiness.formBand(it.fitness).let { band -> -band..band } },
+            baseline = 0.0,
+        )
     }
 }
 
@@ -328,7 +365,17 @@ private fun WeekTile(state: TodayUiState.Loaded, onOpenTrends: () -> Unit, modif
         onClick = onOpenTrends,
     ) {
         // Days still to come stay empty rather than showing zero.
-        MiniBars(values = state.weekLoads.mapIndexed { i, load -> if (i > today) null else load }, color = chartColors().series[0])
+        MiniBars(
+            values = state.weekLoads.mapIndexed { i, load -> if (i > today) null else load },
+            color = chartColors().series[0],
+            labels = weekdayInitials(
+                (0 until 7).map {
+                    state.today.minusDays((today - it).toLong())
+                },
+                LocalConfiguration.current.locales[0],
+            ),
+            today = today,
+        )
     }
 }
 
@@ -398,6 +445,17 @@ private fun LastWorkoutCard(
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 facts.forEach { Text(it, style = MaterialTheme.typography.bodyLarge.tabularNumbers()) }
+            }
+            val zones = workout.zones
+            if (zones != null && workout.heartRate.size > 1) {
+                HeartRateChart(
+                    heartRate = workout.heartRate,
+                    zones = zones,
+                    zoneId = zone,
+                    description = stringResource(R.string.workout_heart_rate),
+                    height = 100.dp,
+                    scrubbable = false,
+                )
             }
             if (workout.routes.isNotEmpty()) {
                 RouteMap(routes = workout.routes, contentDescription = stringResource(R.string.workout_map), height = 120.dp)

@@ -32,24 +32,35 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.pacinglab.core.analytics.zones.ZoneDistribution
+import app.pacinglab.core.designsystem.chart.HeartRateChart
 import app.pacinglab.core.designsystem.component.CardHeader
 import app.pacinglab.core.designsystem.component.zoneName
 import app.pacinglab.core.designsystem.component.zoneNumber
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import app.pacinglab.core.designsystem.theme.zoneColors
+import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.feature.workouts.R
+import java.time.ZoneId
 import kotlin.math.roundToInt
 
 /**
- * Time in each heart rate zone as horizontal bars, hardest zone on top. Bars are scaled to the largest
- * zone so that differences stay visible; the time and share beside each bar carry the exact values.
+ * Heart rate over the session, coloured by zone, and the time in each zone as horizontal bars, hardest
+ * zone on top. One switch moves both between the five-zone and the polarized model; the bars, labelled
+ * with each zone's name and colour, double as the chart's legend. Bars are scaled to the largest zone so
+ * that differences stay visible; the time and share beside each bar carry the exact values.
  *
  * @param distributions five-zone model first, polarized model second; empty when zones are not set up.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun ZonesCard(distributions: List<ZoneDistribution>, onOpenPhysiology: () -> Unit, modifier: Modifier = Modifier) {
+internal fun HeartRateCard(
+    distributions: List<ZoneDistribution>,
+    heartRate: HeartRateSeries,
+    zoneId: ZoneId,
+    onOpenPhysiology: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var selected by rememberSaveable { mutableIntStateOf(0) }
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -82,7 +93,15 @@ internal fun ZonesCard(distributions: List<ZoneDistribution>, onOpenPhysiology: 
                             ) { Text(stringResource(label)) }
                         }
                     }
-                    ZoneBars(distributions[selected.coerceAtMost(distributions.lastIndex)])
+                    val distribution = distributions[selected.coerceAtMost(distributions.lastIndex)]
+                    HeartRateChart(
+                        heartRate = heartRate,
+                        zones = distribution.zoneSet,
+                        zoneId = zoneId,
+                        description = stringResource(R.string.zones_chart_description),
+                        showLegend = false,
+                    )
+                    ZoneBars(distribution)
                 }
             }
         }

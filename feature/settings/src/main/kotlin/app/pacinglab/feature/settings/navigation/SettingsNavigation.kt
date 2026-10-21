@@ -19,7 +19,9 @@ data object PhysiologyKey : NavKey
 /** Registers the settings screens with the app's navigation. */
 fun EntryProviderScope<NavKey>.settingsEntries(navigateTo: (NavKey) -> Unit, navigateBack: () -> Unit) {
     entry<SettingsKey> {
-        SettingsScreen(onOpenPhysiology = { navigateTo(PhysiologyKey) }, onOpenDataSources = { navigateTo(DataSourcesKey) })
+        SettingsScreen(onOpenPhysiology = {
+            navigateTo(PhysiologyKey)
+        }, onOpenDataSources = { navigateTo(DataSourcesKey) }, onBack = navigateBack)
     }
     entry<PhysiologyKey> {
         PhysiologyRoute(onBack = navigateBack)

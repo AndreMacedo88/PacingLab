@@ -2,6 +2,7 @@ package app.pacinglab.feature.today
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.pacinglab.core.analytics.load.AnchorTimeline
 import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.FormDay
 import app.pacinglab.core.analytics.load.TrainingLoads
@@ -12,11 +13,15 @@ import app.pacinglab.core.analytics.recovery.Readiness
 import app.pacinglab.core.analytics.recovery.SleepHistory
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.analytics.workout.TrainingSession
+import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.data.repository.NightRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.repository.WorkoutRepository
+import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.Sport
+import app.pacinglab.core.model.ZoneModel
+import app.pacinglab.core.model.ZoneSet
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -47,12 +52,17 @@ data class LastWorkout(
     val averageHr: Int?,
     val load: Double?,
     val routes: List<Route>,
+    val heartRate: HeartRateSeries = HeartRateSeries.EMPTY,
+    val zones: ZoneSet? = null,
 )
 
 sealed interface TodayUiState {
     data object Loading : TodayUiState
 
     /**
+     * @property readinessHistory readiness on each of the last [TodayViewModel.TILE_DAYS] days, oldest first,
+     *   each from the data up to its own day; the last is [readiness]. Tiles take each day's normal ranges
+     *   from it.
      * @property nights the nights of the last [TodayViewModel.NIGHT_DAYS] days, oldest first.
      * @property sleepScores the sleep score of each of those nights.
      * @property form the fitness model for the last [TodayViewModel.FORM_DAYS] days; empty without load.
@@ -71,6 +81,7 @@ sealed interface TodayUiState {
         val weekSessions: Int,
         val lastWorkout: LastWorkout?,
         val heartRateValuesSet: Boolean,
+        val readinessHistory: List<Readiness> = listOf(readiness),
     ) : TodayUiState
 }
 
@@ -87,7 +98,7 @@ class TodayViewModel @Inject constructor(
         trainingLoad.observeWorkoutLoads(),
         workouts.observeSessions(),
         trainingLoad.anchors,
-    ) { sleep, loads, sessions, anchors -> Inputs(sleep, loads, sessions, anchors.at(LocalDate.now(clock)) != null) }
+    ) { sleep, loads, sessions, anchors -> Inputs(sleep, loads, sessions, anchors) }
         .mapLatest { build(it) }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TodayUiState.Loading)
@@ -96,7 +107,7 @@ class TodayViewModel @Inject constructor(
         val sleep: SleepHistory,
         val loads: List<WorkoutLoad>,
         val sessions: List<TrainingSession>,
-        val heartRateValuesSet: Boolean,
+        val anchors: AnchorTimeline,
     ) {
         val nights: List<Night> get() = sleep.nights
     }
@@ -106,9 +117,15 @@ class TodayViewModel @Inject constructor(
         val daily = TrainingLoads.daily(inputs.loads)
         val form = FitnessModel.series(daily, until = today)
         val monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val formByDate = form.associateBy { it.date }
+        val history = (TILE_DAYS - 1 downTo 0).map { back ->
+            val day = today.minusDays(back.toLong())
+            Readiness.of(inputs.nights, formByDate[day], day, inputs.sleep.scores)
+        }
         return TodayUiState.Loaded(
             today = today,
-            readiness = Readiness.of(inputs.nights, form.lastOrNull()?.takeIf { it.date == today }, today, inputs.sleep.scores),
+            readiness = history.last(),
+            readinessHistory = history,
             nights = inputs.nights.filter { it.date > today.minusDays(NIGHT_DAYS.toLong()) },
             sleepScores = inputs.sleep.scores.filterKeys { it > today.minusDays(NIGHT_DAYS.toLong()) },
             form = form.takeLast(FORM_DAYS),
@@ -117,14 +134,15 @@ class TodayViewModel @Inject constructor(
             weekSessions = inputs.sessions.count { session ->
                 session.workouts.any(TrainingLoads::counts) && !TrainingLoads.dateOf(session.workouts.first(), clock.zone).isBefore(monday)
             },
-            lastWorkout = lastWorkout(inputs.sessions, inputs.loads),
-            heartRateValuesSet = inputs.heartRateValuesSet,
+            lastWorkout = lastWorkout(inputs.sessions, inputs.loads, inputs.anchors),
+            heartRateValuesSet = inputs.anchors.at(today) != null,
         )
     }
 
     /** The newest session that counts as training; detected walks and rides do not. */
-    private suspend fun lastWorkout(sessions: List<TrainingSession>, loads: List<WorkoutLoad>): LastWorkout? {
+    private suspend fun lastWorkout(sessions: List<TrainingSession>, loads: List<WorkoutLoad>, anchors: AnchorTimeline): LastWorkout? {
         val session = sessions.firstOrNull { s -> s.workouts.any(TrainingLoads::counts) } ?: return null
+        val streams = session.workouts.map { workouts.streams(it.id) }
         val byId = loads.associateBy { it.workoutId }
         val scored = session.workouts.mapNotNull { byId[it.id]?.scores }
         val withHr = session.workouts.filter { it.summary.averageHr != null }
@@ -143,11 +161,15 @@ class TodayViewModel @Inject constructor(
                 (withHr.sumOf { it.summary.averageHr!!.toDouble() * it.summary.durationMillis } / hrMillis).roundToInt()
             },
             load = scored.takeIf { it.isNotEmpty() }?.sumOf { it.stressScore },
-            routes = session.workouts.filter { it.summary.hasRoute }.map { workouts.streams(it.id).route }.filterNot { it.isEmpty() },
+            routes = streams.map { it.route }.filterNot { it.isEmpty() },
+            heartRate = HeartRateSeries.joined(streams.map { it.heartRate }),
+            zones = anchors.at(TrainingLoads.dateOf(session.workouts.first(), clock.zone))?.let { Zones.of(ZoneModel.LTHR_FIVE, it) },
         )
     }
 
     companion object {
+        /** Days the tiles' mini charts show, labelled with weekday initials. */
+        const val TILE_DAYS = 7
         const val NIGHT_DAYS = 14
         const val FORM_DAYS = 42
         private const val STOP_TIMEOUT_MILLIS = 5_000L

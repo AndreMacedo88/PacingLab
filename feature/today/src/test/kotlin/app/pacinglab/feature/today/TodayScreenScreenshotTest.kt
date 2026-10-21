@@ -14,11 +14,15 @@ import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.Readiness
 import app.pacinglab.core.analytics.recovery.SleepContinuity
 import app.pacinglab.core.analytics.recovery.SleepScore
+import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.designsystem.component.InfoDialog
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
+import app.pacinglab.core.model.HeartRateAnchors
+import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.SleepStageType
 import app.pacinglab.core.model.Sport
+import app.pacinglab.core.model.ZoneModel
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
@@ -36,6 +40,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlin.math.cos
 import kotlin.math.exp
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
@@ -103,6 +108,31 @@ class TodayScreenScreenshotTest {
         )
     }
 
+    /** A warm-up, a minute's pause and five reps, heart rate following each change with a lag. */
+    private val workoutHeartRate: HeartRateSeries = run {
+        val start = Instant.parse("2026-11-17T17:31:00Z").toEpochMilli()
+        val times = ArrayList<Long>()
+        val bpm = ArrayList<Int>()
+        var hr = 100.0
+        for (second in 0 until 2_150) {
+            if (second in 360 until 420) {
+                hr = 128.0
+                continue
+            }
+            val u = second - 420
+            val target = when {
+                second < 360 -> 148.0
+                u < 5 * 361 - 120 && u % 361 < 241 -> 170.0 + 2 * (u / 361)
+                u < 5 * 361 - 120 -> 135.0
+                else -> 150.0
+            }
+            hr += (target - hr) / 30
+            times += start + second * 1_000L
+            bpm += (hr + 1.5 * sin(second / 7.0)).roundToInt()
+        }
+        HeartRateSeries(times.toLongArray(), bpm.toIntArray())
+    }
+
     private val workout = LastWorkout(
         sessionId = "s1",
         titles = listOf("Run", "Interval workout"),
@@ -114,6 +144,8 @@ class TodayScreenScreenshotTest {
         averageHr = 159,
         load = 52.9,
         routes = listOf(route),
+        heartRate = workoutHeartRate,
+        zones = Zones.of(ZoneModel.LTHR_FIVE, HeartRateAnchors(maxHr = 186, thresholdHr = 167)),
     )
 
     private val week = WeekSummary(
@@ -125,9 +157,19 @@ class TodayScreenScreenshotTest {
         strain = WeekStrain.of(doubleArrayOf(0.0, 58.0, 35.0, 0.0, 0.0, 0.0, 0.0)),
     )
 
-    private fun loaded(nights: List<Night>) = TodayUiState.Loaded(
+    private fun loaded(nights: List<Night>): TodayUiState.Loaded {
+        val formByDate = form.associateBy { it.date }
+        val history = (TodayViewModel.TILE_DAYS - 1 downTo 0).map { back ->
+            val day = today.minusDays(back.toLong())
+            Readiness.of(nights, formByDate[day], day)
+        }
+        return loaded(nights, history)
+    }
+
+    private fun loaded(nights: List<Night>, history: List<Readiness>) = TodayUiState.Loaded(
         today = today,
-        readiness = Readiness.of(nights, form.last(), today),
+        readiness = history.last(),
+        readinessHistory = history,
         nights = nights.filter { it.date > today.minusDays(TodayViewModel.NIGHT_DAYS.toLong()) },
         sleepScores = SleepScore.all(nights).filterKeys { it > today.minusDays(TodayViewModel.NIGHT_DAYS.toLong()) },
         form = form,
@@ -140,6 +182,9 @@ class TodayScreenScreenshotTest {
 
     @Test
     fun learningTheNormalRange() = capture(loaded(nights(6)))
+
+    @Test
+    fun provisional() = capture(loaded(nights(10)))
 
     @Test
     fun ready() = capture(loaded(nights(40)))

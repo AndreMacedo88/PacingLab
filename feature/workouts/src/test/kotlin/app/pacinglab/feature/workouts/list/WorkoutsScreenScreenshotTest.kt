@@ -28,8 +28,14 @@ class WorkoutsScreenScreenshotTest {
         item("s1", Sport.STRENGTH, listOf("Weights"), 1, "2026-10-13T14:50:35Z", 76.5, 585.0, 102, 116),
         item("s2", Sport.RUN, listOf("Run", "Interval workout"), 2, "2026-10-12T17:08:18Z", 35.9, 6_590.0, 155, 178, route = true),
         item("s3", Sport.RUN, listOf("Run", "Interval workout"), 2, "2026-10-08T17:34:42Z", 36.6, 6_825.0, 152, 182, route = true),
-        item("s4", Sport.RIDE, emptyList(), 1, "2026-09-30T07:41:00Z", 18.2, 5_210.0, null, null),
-        item("s5", Sport.WALK, emptyList(), 1, "2026-09-28T12:10:00Z", 41.0, 3_400.0, 98, 121),
+        item("s4", Sport.RIDE, emptyList(), 1, "2026-09-30T07:41:00Z", 18.2, 5_210.0, null, null, capture = Capture.DETECTED),
+        item(
+            "s5", Sport.WALK,
+            listOf(
+                "Walk",
+            ),
+            1, "2026-09-28T12:10:00Z", 41.0, 3_400.0, 98, 121, capture = Capture.DETECTED, origin = FITBIT,
+        ),
     )
 
     @Test
@@ -70,6 +76,8 @@ class WorkoutsScreenScreenshotTest {
         avgHr: Int?,
         maxHr: Int?,
         route: Boolean = false,
+        capture: Capture = Capture.RECORDED,
+        origin: String = GOOGLE_FIT,
     ) = SessionItem(
         id = id,
         sport = sport,
@@ -82,5 +90,12 @@ class WorkoutsScreenScreenshotTest {
         averageHr = avgHr,
         maxHr = maxHr,
         hasRoute = route,
+        capture = capture,
+        origin = if (capture == Capture.RECORDED) FITBIT else origin,
     )
+
+    private companion object {
+        const val FITBIT = "com.fitbit.FitbitMobile"
+        const val GOOGLE_FIT = "com.google.android.apps.fitness"
+    }
 }

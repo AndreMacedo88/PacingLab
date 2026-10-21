@@ -35,5 +35,25 @@ class HeartRateSeries(val times: LongArray, val bpm: IntArray) {
             times = LongArray(samples.size) { samples[it].first },
             bpm = IntArray(samples.size) { samples[it].second },
         )
+
+        /**
+         * [parts] one after another in time order, such as the recorded parts of one session; samples that
+         * fall at or before the end of an earlier part are dropped.
+         */
+        fun joined(parts: List<HeartRateSeries>): HeartRateSeries {
+            val ordered = parts.filterNot { it.isEmpty() }.sortedBy { it.times.first() }
+            if (ordered.size <= 1) return ordered.firstOrNull() ?: EMPTY
+            val times = ArrayList<Long>()
+            val bpm = ArrayList<Int>()
+            for (part in ordered) {
+                for (i in 0 until part.size) {
+                    if (times.isEmpty() || part.times[i] > times.last()) {
+                        times += part.times[i]
+                        bpm += part.bpm[i]
+                    }
+                }
+            }
+            return HeartRateSeries(times.toLongArray(), bpm.toIntArray())
+        }
     }
 }

@@ -39,7 +39,8 @@ import app.pacinglab.navigation.TopLevelDestination
 /**
  * App frame: navigation bar plus a single back stack whose first entry is always a top-level
  * destination. Selecting a destination replaces the stack, so back from any top-level screen
- * other than Today returns to Today, and back from Today leaves the app.
+ * other than Today returns to Today, and back from Today leaves the app. Settings open on top of the
+ * current screen from the gear at the right of each top-level app bar.
  */
 @Composable
 fun PacingLabApp(modifier: Modifier = Modifier) {
@@ -85,23 +86,23 @@ fun PacingLabApp(modifier: Modifier = Modifier) {
                 rememberViewModelStoreNavEntryDecorator(),
             ),
             entryProvider = entryProvider {
+                val openSettings: () -> Unit = { backStack.add(SettingsKey) }
                 todayEntries(
                     onOpenSession = { backStack.add(SessionKey(it)) },
                     onOpenTrends = { backStack.replaceWith(TrendsKey) },
-                    onOpenSleep = { backStack.add(SleepKey()) },
+                    onOpenSleep = { backStack.replaceWith(SleepKey()) },
                     onOpenPhysiology = { backStack.add(PhysiologyKey) },
+                    onOpenSettings = openSettings,
                 )
-                sleepEntries(navigateBack = { backStack.removeLastOrNull() })
+                sleepEntries(openSettings = openSettings)
                 workoutsEntries(
                     navigateTo = { backStack.add(it) },
                     navigateBack = { backStack.removeLastOrNull() },
-                    openDataSources = {
-                        backStack.replaceWith(SettingsKey)
-                        backStack.add(DataSourcesKey)
-                    },
+                    openDataSources = { backStack.add(DataSourcesKey) },
                     openPhysiology = { backStack.add(PhysiologyKey) },
+                    openSettings = openSettings,
                 )
-                trendsEntries(openPhysiology = { backStack.add(PhysiologyKey) })
+                trendsEntries(openPhysiology = { backStack.add(PhysiologyKey) }, openSettings = openSettings)
                 settingsEntries(
                     navigateTo = { backStack.add(it) },
                     navigateBack = { backStack.removeLastOrNull() },

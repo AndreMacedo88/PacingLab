@@ -1,6 +1,7 @@
 package app.pacinglab.feature.workouts.list
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,12 +43,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.data.sync.SyncStatus
+import app.pacinglab.core.designsystem.component.SettingsAction
 import app.pacinglab.core.designsystem.component.icon
 import app.pacinglab.core.designsystem.component.label
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import app.pacinglab.core.model.Sport
 import app.pacinglab.feature.workouts.R
+import app.pacinglab.feature.workouts.originName
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -56,6 +59,7 @@ import java.util.Locale
 fun WorkoutsRoute(
     onOpenSession: (String) -> Unit,
     onOpenDataSources: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WorkoutsViewModel = hiltViewModel(),
 ) {
@@ -65,6 +69,7 @@ fun WorkoutsRoute(
         onRefresh = viewModel::refresh,
         onOpenSession = onOpenSession,
         onOpenDataSources = onOpenDataSources,
+        onOpenSettings = onOpenSettings,
         modifier = modifier,
     )
 }
@@ -78,12 +83,13 @@ fun WorkoutsScreen(
     onOpenDataSources: () -> Unit,
     modifier: Modifier = Modifier,
     zoneId: ZoneId = ZoneId.systemDefault(),
+    onOpenSettings: () -> Unit = {},
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val monthFormat = remember(locale) { DateTimeFormatter.ofPattern("LLLL yyyy", locale) }
     Scaffold(
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.workouts_title)) }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.workouts_title)) }, actions = { SettingsAction(onOpenSettings) }) },
     ) { padding ->
         PullToRefreshBox(
             isRefreshing = state.sync == SyncStatus.Updating,
@@ -215,11 +221,17 @@ private fun NoticeCard(title: String, detail: String?, action: String, onAction:
     }
 }
 
+/**
+ * One session. Sessions started on the watch carry a filled badge and full-strength text; sessions an
+ * app detected from everyday movement, or that were typed in, recede: an outlined badge, muted title and
+ * a line saying where they came from. The difference never rests on colour alone.
+ */
 @Composable
 private fun SessionRow(session: SessionItem, locale: Locale, zoneId: ZoneId, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val dateFormat = remember(locale) { DateTimeFormatter.ofPattern("EEE d MMM", locale) }
     val zone = session.zoneOffset ?: zoneId
     val title = session.titles.joinToString(" + ").ifEmpty { stringResource(session.sport.label()) }
+    val recorded = session.capture == Capture.RECORDED
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -230,13 +242,19 @@ private fun SessionRow(session: SessionItem, locale: Locale, zoneId: ZoneId, onC
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape),
+                .then(
+                    if (recorded) {
+                        Modifier.background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                    } else {
+                        Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                    },
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 painter = painterResource(session.sport.icon()),
                 contentDescription = stringResource(session.sport.label()),
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                tint = if (recorded) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -246,6 +264,7 @@ private fun SessionRow(session: SessionItem, locale: Locale, zoneId: ZoneId, onC
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
+                    color = if (recorded) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
@@ -269,6 +288,16 @@ private fun SessionRow(session: SessionItem, locale: Locale, zoneId: ZoneId, onC
                     text = pluralStringResource(R.plurals.session_parts, session.parts, session.parts),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            if (!recorded) {
+                Text(
+                    text = stringResource(
+                        if (session.capture == Capture.ENTERED) R.string.capture_entered else R.string.capture_detected,
+                        originName(session.origin),
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

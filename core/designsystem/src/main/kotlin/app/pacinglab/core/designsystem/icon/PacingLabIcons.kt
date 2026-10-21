@@ -17,9 +17,11 @@ object PacingLabIcons {
 
     @DrawableRes val TrendsSelected = R.drawable.ic_monitoring_filled
 
-    @DrawableRes val Settings = R.drawable.ic_settings_outline
+    @DrawableRes val Sleep = R.drawable.ic_bedtime_outline
 
-    @DrawableRes val SettingsSelected = R.drawable.ic_settings_filled
+    @DrawableRes val SleepSelected = R.drawable.ic_bedtime
+
+    @DrawableRes val Settings = R.drawable.ic_settings_outline
 
     @DrawableRes val Add = R.drawable.ic_add
 

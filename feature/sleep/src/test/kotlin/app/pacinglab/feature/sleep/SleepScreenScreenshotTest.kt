@@ -132,7 +132,7 @@ class SleepScreenScreenshotTest {
     @Test
     fun arrowsStepThroughNights() {
         compose.setContent {
-            PacingLabTheme { SleepScreen(state = loaded, onBack = {}) }
+            PacingLabTheme { SleepScreen(state = loaded, onOpenSettings = {}) }
         }
         compose.onNodeWithText("Wednesday 21 October").assertExists()
 
@@ -144,7 +144,7 @@ class SleepScreenScreenshotTest {
 
     private fun capture(state: SleepUiState, darkTheme: Boolean = false) {
         compose.setContent {
-            PacingLabTheme(darkTheme = darkTheme) { SleepScreen(state = state, onBack = {}) }
+            PacingLabTheme(darkTheme = darkTheme) { SleepScreen(state = state, onOpenSettings = {}) }
         }
         compose.onRoot().captureRoboImage()
     }

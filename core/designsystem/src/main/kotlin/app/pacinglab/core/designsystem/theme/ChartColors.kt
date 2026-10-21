@@ -27,6 +27,14 @@ class ChartColors(
     val remSleep: Color,
     val lightSleep: Color,
     val awake: Color,
+    /**
+     * A value outside its shaded range in a mini chart. One colour for every chart, so that "outside"
+     * always looks the same; checked against the blue, aqua and purple a range takes (at least 10 apart
+     * in OKLab under simulated protanopia and deuteranopia) and at least 3:1 against the card.
+     */
+    val outOfRange: Color,
+    /** Resting heart rate in mini charts: purple, apart from the orange of out-of-range values. */
+    val restingHr: Color,
 ) {
     companion object {
         val Light = ChartColors(
@@ -40,6 +48,8 @@ class ChartColors(
             remSleep = Color(0xFF1BAF7A),
             lightSleep = Color(0xFF2A78D6),
             awake = Color(0xFFEB6834),
+            outOfRange = Color(0xFFD9480F),
+            restingHr = Color(0xFF6250D6),
         )
 
         val Dark = ChartColors(
@@ -53,6 +63,8 @@ class ChartColors(
             remSleep = Color(0xFF199E70),
             lightSleep = Color(0xFF3987E5),
             awake = Color(0xFFD95926),
+            outOfRange = Color(0xFFFF922B),
+            restingHr = Color(0xFF9085E9),
         )
     }
 }

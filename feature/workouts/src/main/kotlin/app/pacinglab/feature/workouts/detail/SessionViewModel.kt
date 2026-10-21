@@ -13,6 +13,7 @@ import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.repository.WorkoutRepository
 import app.pacinglab.core.model.HeartRateAnchors
+import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.Sport
@@ -44,6 +45,7 @@ import java.time.ZoneOffset
  * @property routeOnlyFrom titles of the parts that carry the [routes] when other moving parts have none,
  *   empty otherwise.
  * @property recording how the part was recorded; null for the whole session of several parts.
+ * @property heartRate heart rate over the scope; for the whole session the parts' series one after another.
  */
 data class DetailScope(
     val title: String?,
@@ -59,6 +61,7 @@ data class DetailScope(
     val routeOnlyFrom: List<String>,
     val analysis: SessionAnalysis,
     val recording: RecordingItem?,
+    val heartRate: HeartRateSeries = HeartRateSeries.EMPTY,
 )
 
 /** Where a recorded part came from and how much data it carries. */
@@ -121,6 +124,7 @@ class SessionViewModel @AssistedInject constructor(
             routeOnlyFrom = routeOnlyFrom(parts),
             analysis = SessionAnalyzer.analyze(parts, zoneSets, anchors),
             recording = parts.singleOrNull()?.recording(),
+            heartRate = HeartRateSeries.joined(parts.map { it.streams.heartRate }),
         )
         val scopes = if (parts.size == 1) listOf(whole) else listOf(whole) + parts.map { it.scope(zoneSets, anchors) }
         return SessionUiState.Loaded(session = item, scopes = scopes, zonesAvailable = zoneSets.isNotEmpty())
@@ -140,6 +144,7 @@ class SessionViewModel @AssistedInject constructor(
         routeOnlyFrom = emptyList(),
         analysis = SessionAnalyzer.analyze(listOf(this), zoneSets, anchors),
         recording = recording(),
+        heartRate = streams.heartRate,
     )
 
     private fun SessionPart.recording() = RecordingItem(
