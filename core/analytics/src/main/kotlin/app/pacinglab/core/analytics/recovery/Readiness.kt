@@ -1,7 +1,6 @@
 package app.pacinglab.core.analytics.recovery
 
 import app.pacinglab.core.analytics.load.FormDay
-import java.time.Duration
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.math.exp
@@ -40,8 +39,15 @@ data class HrvStatus(
 /** Last night's resting heart rate against its usual level. */
 data class RestingHrStatus(val lastNight: Double, val usual: Double, val standing: Standing, val score: Int)
 
-/** Last night's sleep against what the athlete usually needs, with the last three nights. */
-data class SleepStatus(val lastNightMillis: Long, val needMillis: Long, val threeNightMillis: Long, val standing: Standing, val score: Int)
+/** Last night's sleep score, with the average score of the last three nights. Poor sleep (below 60) is [Standing.BELOW]. */
+data class SleepStatus(
+    val lastNightMillis: Long,
+    val needMillis: Long,
+    val lastNight: SleepScore,
+    val threeNightScore: Int,
+    val standing: Standing,
+    val score: Int,
+)
 
 /** Form against a band that scales with fitness: below it training strain is high, above it the athlete is fresh. */
 data class TrainingStatus(val form: Double, val fitness: Double, val band: Double, val standing: Standing, val score: Int)
@@ -82,9 +88,6 @@ data class Readiness(
         const val SLEEP_WEIGHT = 0.25
         const val RESTING_HR_WEIGHT = 0.2
         const val TRAINING_WEIGHT = 0.2
-
-        val MIN_SLEEP_NEED: Duration = Duration.ofHours(7)
-        val MAX_SLEEP_NEED: Duration = Duration.ofHours(9)
 
         /**
          * Readiness for [today] from [nights] (any order, older nights are ignored) and the fitness model
@@ -187,17 +190,17 @@ data class Readiness(
 
         private fun sleepStatus(nights: List<Night>, lastNight: Night?, today: LocalDate): SleepStatus? {
             val tonight = lastNight ?: return null
-            val usual = Nights.median(nights.map { it.asleepMillis.toDouble() }) ?: return null
-            val need = usual.toLong().coerceIn(MIN_SLEEP_NEED.toMillis(), MAX_SLEEP_NEED.toMillis())
-            val threeNights = nights.filter { it.date > today.minusDays(3) }
-            val threeNightAverage = threeNights.sumOf { it.asleepMillis } / threeNights.size
-            val ratio = 0.6 * tonight.asleepMillis / need + 0.4 * threeNightAverage / need
+            val scores = SleepScore.all(nights)
+            val last = scores.getValue(tonight.date)
+            val threeNights = scores.filterKeys { it > today.minusDays(3) }.values.map { it.score }
+            val threeNightScore = threeNights.average().roundToInt()
             return SleepStatus(
                 lastNightMillis = tonight.asleepMillis,
-                needMillis = need,
-                threeNightMillis = threeNightAverage,
-                standing = if (tonight.asleepMillis < need - SHORT_SLEEP_MARGIN.toMillis()) Standing.BELOW else Standing.NORMAL,
-                score = clampScore(100 * ratio),
+                needMillis = SleepScore.need(nights, tonight.date),
+                lastNight = last,
+                threeNightScore = threeNightScore,
+                standing = if (last.rating == SleepRating.POOR) Standing.BELOW else Standing.NORMAL,
+                score = clampScore(0.6 * last.score + 0.4 * threeNightScore),
             )
         }
 
@@ -232,6 +235,5 @@ data class Readiness(
         private const val ILLNESS_CAP = 40.0
         private const val READY_FROM = 70
         private const val MODERATE_FROM = 50
-        private val SHORT_SLEEP_MARGIN: Duration = Duration.ofHours(1)
     }
 }

@@ -9,6 +9,7 @@ import app.pacinglab.core.analytics.load.WeekSummary
 import app.pacinglab.core.analytics.load.WorkoutLoad
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.Readiness
+import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.analytics.workout.TrainingSession
 import app.pacinglab.core.data.repository.NightRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
@@ -52,6 +53,7 @@ sealed interface TodayUiState {
 
     /**
      * @property nights the nights of the last [TodayViewModel.NIGHT_DAYS] days, oldest first.
+     * @property sleepScores the sleep score of each of those nights.
      * @property form the fitness model for the last [TodayViewModel.FORM_DAYS] days; empty without load.
      * @property weekLoads daily load from Monday to Sunday of the current week.
      * @property weekSessions training sessions this week; a warm-up and an interval workout make one.
@@ -61,6 +63,7 @@ sealed interface TodayUiState {
         val today: LocalDate,
         val readiness: Readiness,
         val nights: List<Night>,
+        val sleepScores: Map<LocalDate, SleepScore>,
         val form: List<FormDay>,
         val week: WeekSummary?,
         val weekLoads: List<Double>,
@@ -104,6 +107,8 @@ class TodayViewModel @Inject constructor(
             today = today,
             readiness = Readiness.of(inputs.nights, form.lastOrNull()?.takeIf { it.date == today }, today),
             nights = inputs.nights.filter { it.date > today.minusDays(NIGHT_DAYS.toLong()) },
+            sleepScores = SleepScore.all(inputs.nights.filter { it.date > today.minusDays(NIGHT_DAYS + SCORE_HISTORY_DAYS) })
+                .filterKeys { it > today.minusDays(NIGHT_DAYS.toLong()) },
             form = form.takeLast(FORM_DAYS),
             week = TrainingLoads.weeks(inputs.loads, until = today, count = 1).firstOrNull(),
             weekLoads = List(7) { daily[monday.plusDays(it.toLong())] ?: 0.0 },
@@ -143,6 +148,9 @@ class TodayViewModel @Inject constructor(
     companion object {
         const val NIGHT_DAYS = 14
         const val FORM_DAYS = 42
+
+        /** Earlier nights the sleep scores need for need and regularity. */
+        private const val SCORE_HISTORY_DAYS = 30L
         private const val STOP_TIMEOUT_MILLIS = 5_000L
     }
 }

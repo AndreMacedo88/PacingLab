@@ -69,6 +69,31 @@ class NightsTest {
     }
 
     @Test
+    fun `continuity follows the sleep quality consensus measures`() {
+        val night = sleep(
+            "n", "2026-10-20T21:00:00Z", "2026-10-21T05:30:00Z",
+            SleepStageType.AWAKE to 25, // falling asleep
+            SleepStageType.LIGHT to 120,
+            SleepStageType.AWAKE to 3, // short, not a long awakening
+            SleepStageType.DEEP to 60,
+            SleepStageType.AWAKE to 4, // with the next one a single 8-minute awakening
+            SleepStageType.OUT_OF_BED to 4,
+            SleepStageType.REM to 200,
+            SleepStageType.AWAKE to 6,
+            SleepStageType.LIGHT to 80,
+            SleepStageType.AWAKE to 8, // after the final awakening: not counted
+        )
+
+        val continuity = Nights.of(listOf(night), emptyList(), emptyList(), emptyList(), cest).single().continuity!!
+
+        assertThat(continuity.latencyMillis).isEqualTo(25 * 60_000L)
+        assertThat(continuity.wakeAfterOnsetMillis).isEqualTo(17 * 60_000L)
+        assertThat(continuity.longAwakenings).isEqualTo(2)
+        assertThat(continuity.onset).isEqualTo(Instant.parse("2026-10-20T21:25:00Z"))
+        assertThat(continuity.finalAwakening).isEqualTo(Instant.parse("2026-10-21T05:22:00Z"))
+    }
+
+    @Test
     fun `daytime resting heart rate is never taken for a night`() {
         val night = sleep("n", "2026-10-19T20:00:00Z", "2026-10-20T04:00:00Z", SleepStageType.LIGHT to 480)
         val resting = listOf(value(MeasurementKind.RESTING_HEART_RATE, "2026-10-19T22:00:00Z", 78.0))

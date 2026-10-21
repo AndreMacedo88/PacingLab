@@ -12,6 +12,8 @@ import app.pacinglab.core.analytics.load.WeekStrain
 import app.pacinglab.core.analytics.load.WeekSummary
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.Readiness
+import app.pacinglab.core.analytics.recovery.SleepContinuity
+import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.designsystem.component.InfoDialog
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.model.Route
@@ -48,10 +50,12 @@ class TodayScreenScreenshotTest {
 
     private fun night(date: LocalDate, hrv: Double, restingHr: Double, hours: Double, breathing: Double): Night {
         val asleep = (hours * 3_600_000).toLong()
+        val start = Instant.parse("${date.minusDays(1)}T21:30:00Z")
+        val end = start.plusMillis(asleep + 35 * 60_000L)
         return Night(
             date = date,
-            start = Instant.parse("${date.minusDays(1)}T21:30:00Z"),
-            end = Instant.parse("${date}T05:45:00Z"),
+            start = start,
+            end = end,
             asleepMillis = asleep,
             stageMillis = mapOf(
                 SleepStageType.DEEP to asleep / 6,
@@ -62,6 +66,8 @@ class TodayScreenScreenshotTest {
             hrvMs = hrv,
             restingHr = restingHr,
             respiratoryRate = breathing,
+            continuity = SleepContinuity(start.plusSeconds(14 * 60L), end, 14 * 60_000L, 21 * 60_000L, 1),
+            zone = cest,
         )
     }
 
@@ -123,6 +129,7 @@ class TodayScreenScreenshotTest {
         today = today,
         readiness = Readiness.of(nights, form.last(), today),
         nights = nights.filter { it.date > today.minusDays(TodayViewModel.NIGHT_DAYS.toLong()) },
+        sleepScores = SleepScore.all(nights).filterKeys { it > today.minusDays(TodayViewModel.NIGHT_DAYS.toLong()) },
         form = form,
         week = week,
         weekLoads = listOf(0.0, 58.0, 35.0, 0.0, 0.0, 0.0, 0.0),
@@ -159,6 +166,28 @@ class TodayScreenScreenshotTest {
         compose.setContent {
             PacingLabTheme {
                 InfoDialog(title = stringResource(R.string.readiness_title), text = stringResource(R.string.readiness_info), onDismiss = {})
+            }
+        }
+        captureScreenRoboImage()
+    }
+
+    @OptIn(ExperimentalRoborazziApi::class)
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun sleepScoreBreakdown() {
+        val all = nights(40)
+        val night = all.last()
+        compose.setContent {
+            PacingLabTheme {
+                SleepScoreDialog(
+                    night,
+                    SleepScore.all(
+                        all,
+                    ).getValue(night.date),
+                    needMillis = SleepScore.need(all, night.date),
+                    onDismiss = {
+                    },
+                )
             }
         }
         captureScreenRoboImage()

@@ -29,7 +29,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -42,6 +45,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.Readiness
+import app.pacinglab.core.analytics.recovery.SleepRating
+import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.designsystem.chart.MiniBars
 import app.pacinglab.core.designsystem.chart.SegmentBar
 import app.pacinglab.core.designsystem.chart.Sparkline
@@ -201,18 +206,27 @@ private fun TodayUiState.Loaded.lastNight(): Night? = nights.lastOrNull()?.takeI
 @Composable
 private fun SleepTile(state: TodayUiState.Loaded, modifier: Modifier = Modifier) {
     val night = state.lastNight()
+    val score = night?.let { state.sleepScores[it.date] }
     val colors = chartColors()
+    var breakdown by rememberSaveable { mutableStateOf(false) }
+    if (breakdown && night != null && score != null) {
+        SleepScoreDialog(
+            night = night,
+            score = score,
+            needMillis = state.readiness.sleep?.needMillis ?: SleepScore.need(state.nights, night.date),
+            onDismiss = { breakdown = false },
+        )
+    }
     Tile(
         label = stringResource(R.string.tile_sleep),
-        value = night?.let { Formats.hoursMinutes(it.asleepMillis) } ?: DASH,
-        detail = night?.let {
-            stringResource(
-                R.string.tile_sleep_detail,
-                Formats.hoursMinutes(it.stageMillis[SleepStageType.DEEP] ?: 0),
-                Formats.hoursMinutes(it.stageMillis[SleepStageType.REM] ?: 0),
-            )
-        } ?: stringResource(R.string.tile_no_night),
+        value = score?.score?.toString() ?: DASH,
+        detail = if (night != null && score != null) {
+            stringResource(R.string.tile_sleep_detail, stringResource(score.rating.label()), Formats.hoursMinutes(night.asleepMillis))
+        } else {
+            stringResource(R.string.tile_no_night)
+        },
         modifier = modifier,
+        onClick = if (score != null) ({ breakdown = true }) else null,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (night != null && night.stageMillis.isNotEmpty()) {
@@ -223,14 +237,16 @@ private fun SleepTile(state: TodayUiState.Loaded, modifier: Modifier = Modifier)
                     colors = listOf(colors.deepSleep, colors.remSleep, colors.lightSleep, colors.awake),
                 )
             }
-            MiniBars(
-                values = state.byNight { it.asleepMillis / HOUR },
-                color = colors.series[0],
-                reference = state.readiness.sleep?.needMillis?.let { it / HOUR },
-                height = 32.dp,
-            )
+            MiniBars(values = state.byNight { state.sleepScores[it.date]?.score?.toDouble() }, color = colors.series[0], height = 32.dp)
         }
     }
+}
+
+internal fun SleepRating.label(): Int = when (this) {
+    SleepRating.EXCELLENT -> R.string.sleep_excellent
+    SleepRating.GOOD -> R.string.sleep_good
+    SleepRating.FAIR -> R.string.sleep_fair
+    SleepRating.POOR -> R.string.sleep_poor
 }
 
 @Composable

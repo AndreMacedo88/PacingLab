@@ -105,15 +105,16 @@ class ReadinessTest {
     }
 
     @Test
-    fun `short sleep is below need and need stays between seven and nine hours`() {
+    fun `a short night scores poorly and need stays between seven and nine hours`() {
         val nights = usualNights(29, last = today.minusDays(1)).map { it.copy(asleepMillis = 6 * 3_600_000L) } +
-            night(today, hours = 5.0)
+            night(today, hours = 4.5)
 
         val sleep = Readiness.of(nights, null, today).sleep!!
 
         assertThat(sleep.needMillis).isEqualTo(7 * 3_600_000L)
+        assertThat(sleep.lastNight.rating).isEqualTo(SleepRating.POOR)
         assertThat(sleep.standing).isEqualTo(Standing.BELOW)
-        assertThat(sleep.score).isLessThan(80)
+        assertThat(sleep.score).isLessThan(60)
     }
 
     @Test

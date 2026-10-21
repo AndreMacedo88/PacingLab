@@ -148,13 +148,9 @@ private fun Contributors(readiness: Readiness, modifier: Modifier = Modifier) {
         readiness.sleep?.let {
             ContributorRow(
                 name = stringResource(R.string.readiness_sleep),
-                value = stringResource(
-                    R.string.readiness_sleep_value,
-                    Formats.hoursMinutes(it.lastNightMillis),
-                    Formats.hoursMinutes(it.needMillis),
-                ),
+                value = stringResource(R.string.readiness_sleep_value, it.lastNight.score, Formats.hoursMinutes(it.lastNightMillis)),
                 standing = it.standing,
-                below = R.string.standing_short,
+                below = R.string.standing_poor,
                 above = R.string.standing_normal,
             )
         }

@@ -6,7 +6,8 @@ Copy the database from the phone first (see CLAUDE.md), then for example:
     tools/pacinglab_db.py fixtures-private/db/pacinglab.db workouts 2026-10-20
     tools/pacinglab_db.py fixtures-private/db/pacinglab.db streams <workout id>
 
-As a module: `open_db(path)`, `workouts(db, day=None)`, `stream(db, workout_id, channel)`.
+As a module: `open_db(path)`, `workouts(db, day=None)`, `stream(db, workout_id, channel)`,
+`decode_sleep_stages(blob)` for the `stages` column of `sleep_sessions`.
 Stream blobs follow core/database/.../codec/StreamCodec.kt (format version 1).
 """
 
@@ -106,6 +107,20 @@ def decode_route(data):
     alt = r.optional(n, CENTIMETRES)
     acc = r.optional(n, CENTIMETRES)
     return [(times[i], lat[i] / DEGREE_SCALE, lon[i] / DEGREE_SCALE, alt[i], acc[i]) for i in range(n)]
+
+
+SLEEP_STAGES = {1: "awake", 2: "light", 3: "deep", 4: "rem", 5: "asleep", 6: "out_of_bed"}
+
+
+def decode_sleep_stages(data):
+    """[(start millis, end millis, stage name)]"""
+    r = _open(data)
+    stages = []
+    for _ in range(r.var()):
+        start = r.signed()
+        end = start + r.signed()
+        stages.append((start, end, SLEEP_STAGES.get(r.var(), "unknown")))
+    return stages
 
 
 def open_db(path):
