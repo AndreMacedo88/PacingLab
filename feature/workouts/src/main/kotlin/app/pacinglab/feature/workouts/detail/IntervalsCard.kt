@@ -23,6 +23,7 @@ import app.pacinglab.core.analytics.intervals.PhaseKind
 import app.pacinglab.core.analytics.session.PhaseSummary
 import app.pacinglab.core.analytics.session.PhaseTotals
 import app.pacinglab.core.analytics.session.SessionAnalysis
+import app.pacinglab.core.designsystem.component.CardHeader
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import app.pacinglab.feature.workouts.R
@@ -39,21 +40,16 @@ internal fun IntervalsCard(analysis: SessionAnalysis, toggle: SpeedToggle, local
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Column {
-                Text(
-                    text =
-                    stringResource(R.string.intervals_title) + " · " +
-                        pluralStringResource(R.plurals.intervals_reps, work.count, work.count),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = stringResource(R.string.intervals_found),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        Column(
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            CardHeader(
+                title =
+                stringResource(R.string.intervals_title) + " · " +
+                    pluralStringResource(R.plurals.intervals_reps, work.count, work.count),
+                info = stringResource(R.string.intervals_info),
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Totals(stringResource(R.string.intervals_running), work, toggle, locale, Modifier.weight(1f))
                 analysis.totals(PhaseKind.RECOVERY)?.let {

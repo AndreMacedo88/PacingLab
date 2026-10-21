@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="info_about">About %1$s</string>
+    <string name="info_close">Close</string>
     <string name="zone_number">Z%1$d</string>
     <string name="zone_lthr_recovery">Recovery</string>
     <string name="zone_lthr_aerobic">Aerobic</string>

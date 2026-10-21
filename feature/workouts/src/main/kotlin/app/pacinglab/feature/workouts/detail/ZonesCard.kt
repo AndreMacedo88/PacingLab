@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.pacinglab.core.analytics.zones.ZoneDistribution
+import app.pacinglab.core.designsystem.component.CardHeader
 import app.pacinglab.core.designsystem.component.zoneName
 import app.pacinglab.core.designsystem.component.zoneNumber
 import app.pacinglab.core.designsystem.format.Formats
@@ -54,12 +55,11 @@ internal fun ZonesCard(distributions: List<ZoneDistribution>, onOpenPhysiology: 
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                stringResource(R.string.zones_title),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
+        Column(
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            CardHeader(title = stringResource(R.string.zones_title), info = stringResource(R.string.zones_info))
             when {
                 distributions.isEmpty() -> {
                     Text(stringResource(R.string.zones_missing), style = MaterialTheme.typography.bodyMedium)

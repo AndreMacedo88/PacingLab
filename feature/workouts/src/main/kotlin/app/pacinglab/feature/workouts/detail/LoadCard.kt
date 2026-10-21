@@ -16,6 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import app.pacinglab.core.analytics.load.LoadScores
+import app.pacinglab.core.designsystem.component.CardHeader
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import app.pacinglab.feature.workouts.R
 import kotlin.math.roundToInt
@@ -27,22 +28,16 @@ internal fun LoadCard(load: LoadScores, modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                stringResource(R.string.load_title),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
+        Column(
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            CardHeader(title = stringResource(R.string.load_title), info = stringResource(R.string.load_info))
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.Bottom) {
                 Score(stringResource(R.string.load_stress), load.stressScore, MaterialTheme.typography.headlineMedium)
                 Score(stringResource(R.string.load_trimp), load.trimp, MaterialTheme.typography.titleLarge)
                 Score(stringResource(R.string.load_edwards), load.edwards, MaterialTheme.typography.titleLarge)
             }
-            Text(
-                text = stringResource(R.string.load_explained),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="trends_title">Trends</string>
     <string name="trends_needs_values">Training load is calculated from heart rate and needs your maximum and resting heart rate.</string>
     <string name="trends_set_values">Set heart rate values</string>
@@ -16,12 +16,21 @@
     <string name="form_day_load">Load %1$d</string>
     <string name="form_ramp">Fitness %1$s in 7 days</string>
     <string name="form_chart_description">Fitness %1$d, fatigue %2$d, form %3$d</string>
-    <string name="form_explained">Load is a heart rate stress score: an hour at threshold heart rate scores 100. Fitness averages daily load over about six weeks, fatigue over about one week. Form is fitness minus fatigue going into the day. Walks and rides that an app detected by itself are left out.</string>
+    <string name="form_info">Daily load is the sum of the stress scores of the day\'s workouts (an hour at threshold heart rate scores 100). Walks and rides that an app detected by itself are left out.
+
+Fitness averages daily load over about six weeks (a 42-day exponential average), so it rises slowly with consistent training. Fatigue does the same over about a week and reacts to the last few sessions.
+
+Form is yesterday\'s fitness minus yesterday\'s fatigue: how fresh you are going into the day. It is negative while you build and turns positive when you ease off, for example in the days before a race. It only knows your training; sleep, illness and stress are not part of it.
+
+Ramp rate is the change in fitness over the last seven days.
+
+Touch the chart and slide along it to read any day.</string>
     <string name="chart_load">Daily load</string>
     <string name="chart_fitness_fatigue">Fitness and fatigue</string>
     <string name="chart_form">Form</string>
 
     <string name="weeks_title">Weekly training</string>
+    <string name="weeks_info" tools:ignore="Typos" formatted="false">Weeks run from Monday to Sunday. Load adds up the stress scores of the week and Hours the duration of every workout that counts as training.\n\nIntensity splits the time with heart rate over the three polarized zones: below the first ventilatory threshold (VT1), between VT1 and VT2, and above VT2. Studies of successful endurance athletes typically find most of their training time, often around 80 %, below VT1 (Seiler 2010).</string>
     <string name="weeks_week">Week</string>
     <string name="weeks_load">Load</string>
     <string name="weeks_time">Hours</string>

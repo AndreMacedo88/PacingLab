@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="workouts_title">Workouts</string>
     <string name="navigate_back">Back</string>
     <string name="workouts_empty">No workouts yet. Workouts recorded with your watch appear here after the next sync.</string>
@@ -29,10 +29,10 @@
     <string name="metric_max_hr">Max HR</string>
     <string name="metric_load">Load</string>
     <string name="load_title">Training load</string>
+    <string name="load_info" formatted="false">Stress score: Banister\'s training impulse (TRIMP) scaled so that one hour at your threshold heart rate scores 100, which makes it comparable with the stress scores of other apps. TRIMP weights every minute by the share of your heart rate reserve you used, rising exponentially the way blood lactate does.\n\nBanister TRIMP: the same value before scaling.\n\nEdwards TRIMP: minutes in five bands of maximum heart rate (50–60 % up to 90–100 %), weighted 1 to 5.\n\nAll three need your maximum and resting heart rate and grow with both duration and intensity. Heart rate reacts little to strength training, so lifting sessions score lower than they feel.</string>
     <string name="load_stress">Stress score</string>
     <string name="load_trimp">Banister TRIMP</string>
     <string name="load_edwards">Edwards TRIMP</string>
-    <string name="load_explained">The stress score scales Banister\'s TRIMP so that an hour at threshold heart rate scores 100. Edwards adds up minutes in five bands of maximum heart rate, weighted 1 to 5.</string>
     <string name="session_parts_heading">Recorded parts</string>
     <string name="session_when">%1$s, %2$s–%3$s</string>
     <string name="scope_whole_session">Whole session</string>
@@ -55,7 +55,7 @@
     <string name="show_pace">Show pace per kilometre</string>
 
     <string name="intervals_title">Intervals</string>
-    <string name="intervals_found">Found from your speed: the watch does not mark reps.</string>
+    <string name="intervals_info">Your watch does not mark reps, so PacingLab finds them in the speed it records every second: stretches clearly faster than those around them are reps, the slower ones in between are recoveries. Stretches shorter than 10 seconds are ignored.\n\nDistances come from the speed, scaled so that they add up to the distance the watch reported. Average heart rate is weighted by time; the maximum ignores single-sample spikes.\n\nRunning and Recovery add up all reps and all recoveries. A short run recorded before or after the interval workout counts as warm-up or cool-down.</string>
     <string name="intervals_running">Running</string>
     <string name="intervals_recovery">Recovery</string>
     <string name="intervals_easy">Warm-up and cool-down</string>
@@ -70,6 +70,7 @@
     <string name="intervals_hr_pair">%1$d/%2$d</string>
 
     <string name="zones_title">Time in zones</string>
+    <string name="zones_info" tools:ignore="Typos" formatted="false">Five zones follow Joe Friel\'s running zones, anchored on your threshold heart rate (LTHR): Z1 below 85 %, Z2 85–89 %, Z3 90–94 %, Z4 95–102 % and Z5 from 103 %. Zone 4 holds threshold work, zone 5 VO2max work.\n\nThree zones give the polarized view used in endurance research: below the first ventilatory threshold (VT1, here 90 % of LTHR), between the two thresholds, and above the second (VT2, here LTHR). Without a lab test both thresholds are approximations.\n\nZones use the heart rate values in force on the day of the session. Each heart rate sample counts until the next one, at most 15 seconds, so gaps in the recording do not inflate a zone. Wrist heart rate lags at the start of hard reps, so short reps show less time in the top zones than they deserve.</string>
     <string name="zones_five">5 zones</string>
     <string name="zones_three">3 zones</string>
     <string name="zones_missing">Set your maximum heart rate to see time in each zone.</string>

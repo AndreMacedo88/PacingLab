@@ -48,6 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.FormDay
 import app.pacinglab.core.analytics.load.WeekSummary
+import app.pacinglab.core.designsystem.component.CardHeader
 import app.pacinglab.core.designsystem.component.zoneName
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.theme.chartColors
@@ -117,7 +118,7 @@ private fun FormCard(days: List<FormDay>, today: LocalDate, initialRange: TrendR
     val index = selected?.takeIf { it in shown.indices } ?: shown.lastIndex
     val day = shown[index]
     val ramp = FitnessModel.rampRate(days, days.size - shown.size + index)
-    TrendCard(title = stringResource(R.string.form_title), modifier = modifier) {
+    TrendCard(title = stringResource(R.string.form_title), info = stringResource(R.string.form_info), modifier = modifier) {
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             TrendRange.entries.forEachIndexed { i, option ->
                 SegmentedButton(
@@ -139,11 +140,6 @@ private fun FormCard(days: List<FormDay>, today: LocalDate, initialRange: TrendR
                 day.form.roundToInt(),
             ),
             locale = locale,
-        )
-        Text(
-            text = stringResource(R.string.form_explained),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -195,7 +191,7 @@ private fun WeeksCard(weeks: List<WeekSummary>, today: LocalDate, locale: Locale
     val zones = zoneColors(3)
     val bar = chartColors().series[0]
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    TrendCard(title = stringResource(R.string.weeks_title), modifier = modifier) {
+    TrendCard(title = stringResource(R.string.weeks_title), info = stringResource(R.string.weeks_info), modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Header(stringResource(R.string.weeks_week), Modifier.width(WEEK_WIDTH), TextAlign.Start)
             Header(stringResource(R.string.weeks_load), Modifier.weight(1f), TextAlign.Start)
@@ -283,13 +279,16 @@ private fun Header(text: String, modifier: Modifier = Modifier, align: TextAlign
 }
 
 @Composable
-private fun TrendCard(title: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+private fun TrendCard(title: String, info: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+        Column(
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            CardHeader(title = title, info = info)
             content()
         }
     }
