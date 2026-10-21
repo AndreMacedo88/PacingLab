@@ -9,9 +9,22 @@ All data stays on the device. There is no account, no server and no analytics.
 
 ## Status
 
-Early development. The app currently has the project foundation and a data check
-(Settings > Data sources) that reports what Health Connect actually holds for your watch. Workout
-analysis, training load and trends are next.
+Early development, used daily by its author. What works today:
+
+- Sync of the full Health Connect history into a local database, with change tracking
+- Workouts grouped into training sessions (a GPS warm-up plus an interval workout become one),
+  with duplicates from other apps removed
+- Interval sessions split into reps and recoveries from the watch's speed data, with pace, distance
+  and heart rate for each
+- Heart rate zones from your own maximum, threshold and resting heart rate, kept with the dates they
+  apply from, and time in zones per session
+- Route maps from OpenStreetMap data (OpenFreeMap tiles, no account needed)
+- Training load (Banister TRIMP, a stress score where an hour at threshold scores 100, Edwards
+  TRIMP), fitness, fatigue and form, and weekly training with intensity distribution
+- Nightly HRV, resting heart rate, breathing rate and sleep, and a readiness score that compares
+  them with your own baselines
+
+Planned: VO2max trend, sleep details, heart rate charts, HRmax and threshold estimates from your data.
 
 ## Requirements
 
