@@ -29,6 +29,8 @@ object PacingLabIcons {
 
     @DrawableRes val CheckCircle = R.drawable.ic_check_circle
 
+    @DrawableRes val ChevronLeft = R.drawable.ic_chevron_left
+
     @DrawableRes val ChevronRight = R.drawable.ic_chevron_right
 
     @DrawableRes val Database = R.drawable.ic_database

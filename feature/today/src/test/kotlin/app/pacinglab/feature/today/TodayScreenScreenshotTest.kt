@@ -171,28 +171,6 @@ class TodayScreenScreenshotTest {
         captureScreenRoboImage()
     }
 
-    @OptIn(ExperimentalRoborazziApi::class)
-    @Test
-    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
-    fun sleepScoreBreakdown() {
-        val all = nights(40)
-        val night = all.last()
-        compose.setContent {
-            PacingLabTheme {
-                SleepScoreDialog(
-                    night,
-                    SleepScore.all(
-                        all,
-                    ).getValue(night.date),
-                    needMillis = SleepScore.need(all, night.date),
-                    onDismiss = {
-                    },
-                )
-            }
-        }
-        captureScreenRoboImage()
-    }
-
     @Test
     fun theLastWorkoutOpensItsSession() {
         var opened: String? = null

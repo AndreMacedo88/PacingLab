@@ -114,7 +114,7 @@ class ReadinessTest {
         assertThat(sleep.needMillis).isEqualTo(7 * 3_600_000L)
         assertThat(sleep.lastNight.rating).isEqualTo(SleepRating.POOR)
         assertThat(sleep.standing).isEqualTo(Standing.BELOW)
-        assertThat(sleep.score).isLessThan(60)
+        assertThat(sleep.score).isLessThan(70)
     }
 
     @Test

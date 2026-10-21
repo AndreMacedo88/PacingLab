@@ -29,10 +29,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -46,7 +43,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.Readiness
 import app.pacinglab.core.analytics.recovery.SleepRating
-import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.designsystem.chart.MiniBars
 import app.pacinglab.core.designsystem.chart.SegmentBar
 import app.pacinglab.core.designsystem.chart.Sparkline
@@ -69,12 +65,13 @@ import kotlin.math.roundToInt
 fun TodayRoute(
     onOpenSession: (String) -> Unit,
     onOpenTrends: () -> Unit,
+    onOpenSleep: () -> Unit,
     onOpenPhysiology: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    TodayScreen(state, onOpenSession, onOpenTrends, onOpenPhysiology, modifier)
+    TodayScreen(state, onOpenSession, onOpenTrends, onOpenPhysiology, modifier, onOpenSleep = onOpenSleep)
 }
 
 /**
@@ -90,6 +87,7 @@ fun TodayScreen(
     onOpenPhysiology: () -> Unit,
     modifier: Modifier = Modifier,
     zoneId: ZoneId = ZoneId.systemDefault(),
+    onOpenSleep: () -> Unit = {},
 ) {
     val locale = LocalConfiguration.current.locales[0]
     Scaffold(
@@ -128,7 +126,7 @@ fun TodayScreen(
                 item(key = "readiness") { ReadinessCard(state.readiness) }
                 item(key = "night") {
                     TileRow {
-                        SleepTile(state, Modifier.weight(1f))
+                        SleepTile(state, onOpenSleep, Modifier.weight(1f))
                         HrvTile(state, Modifier.weight(1f))
                     }
                 }
@@ -204,19 +202,10 @@ private fun TodayUiState.Loaded.byNight(value: (Night) -> Double?): List<Double?
 private fun TodayUiState.Loaded.lastNight(): Night? = nights.lastOrNull()?.takeIf { it.date == today }
 
 @Composable
-private fun SleepTile(state: TodayUiState.Loaded, modifier: Modifier = Modifier) {
+private fun SleepTile(state: TodayUiState.Loaded, onOpenSleep: () -> Unit, modifier: Modifier = Modifier) {
     val night = state.lastNight()
     val score = night?.let { state.sleepScores[it.date] }
     val colors = chartColors()
-    var breakdown by rememberSaveable { mutableStateOf(false) }
-    if (breakdown && night != null && score != null) {
-        SleepScoreDialog(
-            night = night,
-            score = score,
-            needMillis = state.readiness.sleep?.needMillis ?: SleepScore.need(state.nights, night.date),
-            onDismiss = { breakdown = false },
-        )
-    }
     Tile(
         label = stringResource(R.string.tile_sleep),
         value = score?.score?.toString() ?: DASH,
@@ -226,7 +215,7 @@ private fun SleepTile(state: TodayUiState.Loaded, modifier: Modifier = Modifier)
             stringResource(R.string.tile_no_night)
         },
         modifier = modifier,
-        onClick = if (score != null) ({ breakdown = true }) else null,
+        onClick = onOpenSleep,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (night != null && night.stageMillis.isNotEmpty()) {
@@ -243,7 +232,6 @@ private fun SleepTile(state: TodayUiState.Loaded, modifier: Modifier = Modifier)
 }
 
 internal fun SleepRating.label(): Int = when (this) {
-    SleepRating.EXCELLENT -> R.string.sleep_excellent
     SleepRating.GOOD -> R.string.sleep_good
     SleepRating.FAIR -> R.string.sleep_fair
     SleepRating.POOR -> R.string.sleep_poor

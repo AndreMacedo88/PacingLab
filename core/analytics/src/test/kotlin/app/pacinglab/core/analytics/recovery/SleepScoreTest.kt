@@ -62,7 +62,7 @@ class SleepScoreTest {
         val score = SleepScore.of(night(day), needMillis = 7 * hour, earlier = usualWeek(day))
 
         assertThat(score.score).isEqualTo(100)
-        assertThat(score.rating).isEqualTo(SleepRating.EXCELLENT)
+        assertThat(score.rating).isEqualTo(SleepRating.GOOD)
     }
 
     @Test
@@ -91,9 +91,23 @@ class SleepScoreTest {
         val score = SleepScore.of(plain, needMillis = 7 * hour, earlier = emptyList())
 
         assertThat(score.continuity).isNull()
-        assertThat(score.depth).isNull()
         assertThat(score.regularity).isNull()
         assertThat(score.score).isEqualTo(100)
+    }
+
+    @Test
+    fun `stage shares do not change the score`() {
+        val lowRem = night(day, deep = 0.08, rem = 0.10)
+
+        assertThat(SleepScore.of(lowRem, needMillis = 7 * hour, earlier = usualWeek(day)).score).isEqualTo(100)
+    }
+
+    @Test
+    fun `timing counts minutes outside 02 00 to 04 00 around the clock`() {
+        assertThat(SleepScore.minutesOutsideWindow(3 * 60)).isEqualTo(0)
+        assertThat(SleepScore.minutesOutsideWindow(5 * 60)).isEqualTo(60)
+        assertThat(SleepScore.minutesOutsideWindow(60)).isEqualTo(60)
+        assertThat(SleepScore.minutesOutsideWindow(23 * 60)).isEqualTo(180)
     }
 
     @Test

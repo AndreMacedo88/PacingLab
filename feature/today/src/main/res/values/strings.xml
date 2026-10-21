@@ -29,7 +29,6 @@
 
     <string name="tile_sleep">Sleep score</string>
     <string name="tile_sleep_detail">%1$s · %2$s asleep</string>
-    <string name="sleep_excellent">Excellent</string>
     <string name="sleep_good">Good</string>
     <string name="sleep_fair">Fair</string>
     <string name="sleep_poor">Poor</string>
@@ -73,11 +72,4 @@
         <item quantity="one">%1$d session</item>
         <item quantity="other">%1$d sessions</item>
     </plurals>
-    <string name="sleep_score_summary">Score %1$d of 100: %2$s.</string>
-    <string name="sleep_score_last_night">Last night</string>
-    <string name="sleep_part_duration">Duration: %1$d of 50 points. %2$s asleep, your need %3$s.</string>
-    <string name="sleep_part_continuity">Continuity: %1$d of 25. Efficiency %2$d %%, awake after falling asleep %3$d min, time to fall asleep %4$d min, long awakenings %5$d.</string>
-    <string name="sleep_part_depth">Depth: %1$d of 10. Deep sleep %2$d %%, REM %3$d %%.</string>
-    <string name="sleep_part_regularity">Regularity: %1$d of 15. Middle of the night %2$d min from your usual.</string>
-    <string name="sleep_score_info" formatted="false"># How it is scored\n- Duration, 50 points: time asleep against your need, which is your usual sleep kept between 7 and 9 hours. Below 60 % of your need there are no points. Short sleep has the clearest effects on health and performance, so it weighs most.\n- Continuity, 25 points: the National Sleep Foundation\'s quality criteria. Full points for a sleep efficiency of at least 85 %, at most 20 minutes awake after falling asleep, at most 30 minutes to fall asleep and at most one awakening of 5 minutes or more.\n- Depth, 10 points: deep sleep of about 15 % and REM of about 20 % of your sleep, typical for adults. Wrist sensors tell sleep stages apart only roughly, so this part weighs least.\n- Regularity, 15 points: the middle of your sleep within 30 minutes of your usual earns full points, two hours off earns none. Regular sleep predicts health independently of its length.\n\n# Ratings\n- 90 and above: excellent\n- 80 to 89: good\n- 60 to 79: fair\n- Below 60: poor</string>
 </resources>

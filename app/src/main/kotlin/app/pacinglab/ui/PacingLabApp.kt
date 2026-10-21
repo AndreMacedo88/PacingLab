@@ -26,6 +26,8 @@ import app.pacinglab.feature.settings.navigation.DataSourcesKey
 import app.pacinglab.feature.settings.navigation.PhysiologyKey
 import app.pacinglab.feature.settings.navigation.SettingsKey
 import app.pacinglab.feature.settings.navigation.settingsEntries
+import app.pacinglab.feature.sleep.navigation.SleepKey
+import app.pacinglab.feature.sleep.navigation.sleepEntries
 import app.pacinglab.feature.today.navigation.TodayKey
 import app.pacinglab.feature.today.navigation.todayEntries
 import app.pacinglab.feature.trends.navigation.TrendsKey
@@ -86,8 +88,10 @@ fun PacingLabApp(modifier: Modifier = Modifier) {
                 todayEntries(
                     onOpenSession = { backStack.add(SessionKey(it)) },
                     onOpenTrends = { backStack.replaceWith(TrendsKey) },
+                    onOpenSleep = { backStack.add(SleepKey()) },
                     onOpenPhysiology = { backStack.add(PhysiologyKey) },
                 )
+                sleepEntries(navigateBack = { backStack.removeLastOrNull() })
                 workoutsEntries(
                     navigateTo = { backStack.add(it) },
                     navigateBack = { backStack.removeLastOrNull() },

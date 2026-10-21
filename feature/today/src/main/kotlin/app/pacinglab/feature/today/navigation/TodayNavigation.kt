@@ -8,6 +8,18 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object TodayKey : NavKey
 
-fun EntryProviderScope<NavKey>.todayEntries(onOpenSession: (String) -> Unit, onOpenTrends: () -> Unit, onOpenPhysiology: () -> Unit) {
-    entry<TodayKey> { TodayRoute(onOpenSession = onOpenSession, onOpenTrends = onOpenTrends, onOpenPhysiology = onOpenPhysiology) }
+fun EntryProviderScope<NavKey>.todayEntries(
+    onOpenSession: (String) -> Unit,
+    onOpenTrends: () -> Unit,
+    onOpenSleep: () -> Unit,
+    onOpenPhysiology: () -> Unit,
+) {
+    entry<TodayKey> {
+        TodayRoute(
+            onOpenSession = onOpenSession,
+            onOpenTrends = onOpenTrends,
+            onOpenSleep = onOpenSleep,
+            onOpenPhysiology = onOpenPhysiology,
+        )
+    }
 }

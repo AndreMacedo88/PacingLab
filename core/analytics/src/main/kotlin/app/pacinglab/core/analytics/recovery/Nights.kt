@@ -2,6 +2,7 @@ package app.pacinglab.core.analytics.recovery
 
 import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.SleepSession
+import app.pacinglab.core.model.SleepStage
 import app.pacinglab.core.model.SleepStageType
 import java.time.Duration
 import java.time.Instant
@@ -19,6 +20,7 @@ import java.time.ZoneOffset
  * @property restingHr resting heart rate the watch derived from the sleep.
  * @property continuity how unbroken the sleep was; null when the watch recorded no stages.
  * @property zone where the night was spent, for clock times.
+ * @property stages the stages as the watch recorded them, in time order.
  */
 data class Night(
     val date: LocalDate,
@@ -31,6 +33,7 @@ data class Night(
     val respiratoryRate: Double?,
     val continuity: SleepContinuity? = null,
     val zone: ZoneId = ZoneOffset.UTC,
+    val stages: List<SleepStage> = emptyList(),
 ) {
     /** Time in bed: from the start of the sleep record to its end. */
     val inBedMillis: Long get() = Duration.between(start, end).toMillis()
@@ -103,6 +106,7 @@ object Nights {
                     respiratoryRate = nearestToEnd(respiratoryRate, sleep.end),
                     continuity = continuity(sleep),
                     zone = sleep.zoneOffset ?: zone,
+                    stages = sleep.stages.sortedBy { it.start },
                 )
             }
             .sortedBy { it.date }
@@ -148,7 +152,8 @@ object Nights {
         .minByOrNull { Duration.between(it.time, end).abs() }
         ?.value
 
-    internal fun median(values: List<Double>, minimum: Int = 1): Double? {
+    /** The median of [values], or null with fewer than [minimum] of them. */
+    fun median(values: List<Double>, minimum: Int = 1): Double? {
         if (values.size < minimum || values.isEmpty()) return null
         val sorted = values.sorted()
         val middle = sorted.size / 2
