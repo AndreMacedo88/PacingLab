@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.pacinglab.core.analytics.load.AnchorTimeline
 import app.pacinglab.core.analytics.zones.MaxHeartRateEstimate
+import app.pacinglab.core.analytics.zones.ThresholdHeartRateEstimate
 import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.data.repository.PhysiologyRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
@@ -41,6 +42,8 @@ sealed interface PhysiologyUiState {
      * @property measuredRestingHr resting heart rate measured during sleep (median of the last 30 nights),
      *   used whenever an entry leaves resting heart rate empty; null before the watch has been worn at night.
      * @property estimatedMax maximal heart rate from the workouts, used whenever an entry leaves it empty.
+     * @property estimatedThreshold threshold heart rate from the hardest half hour of running, used whenever
+     *   an entry leaves it empty; without one, 90 % of the maximum stands in.
      */
     data class Loaded(
         val entries: List<PhysiologyEntry>,
@@ -48,6 +51,7 @@ sealed interface PhysiologyUiState {
         val today: LocalDate,
         val measuredRestingHr: Int? = null,
         val estimatedMax: MaxHeartRateEstimate? = null,
+        val estimatedThreshold: ThresholdHeartRateEstimate? = null,
     ) : PhysiologyUiState
 }
 
@@ -65,6 +69,7 @@ class PhysiologyViewModel @Inject constructor(
             today = today,
             measuredRestingHr = timeline.measuredRestingAt(today),
             estimatedMax = timeline.estimatedMax,
+            estimatedThreshold = timeline.estimatedThresholdAt(today),
         )
     }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), PhysiologyUiState.Loading)

@@ -1,5 +1,6 @@
 package app.pacinglab.core.data.repository
 
+import app.pacinglab.core.analytics.geo.speeds
 import app.pacinglab.core.analytics.load.AnchorTimeline
 import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.FormDay
@@ -10,12 +11,15 @@ import app.pacinglab.core.analytics.load.WorkoutLoad
 import app.pacinglab.core.analytics.workout.TrainingSessions
 import app.pacinglab.core.analytics.zones.HeartRatePeak
 import app.pacinglab.core.analytics.zones.MaxHeartRateEstimate
+import app.pacinglab.core.analytics.zones.ThresholdEffort
+import app.pacinglab.core.analytics.zones.ThresholdHeartRateEstimate
 import app.pacinglab.core.analytics.zones.TimeInZones
 import app.pacinglab.core.analytics.zones.ZoneDistribution
 import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.database.store.PhysiologyStore
 import app.pacinglab.core.database.store.WorkoutStore
 import app.pacinglab.core.model.HeartRateAnchors
+import app.pacinglab.core.model.Sport
 import app.pacinglab.core.model.Workout
 import app.pacinglab.core.model.ZoneModel
 import kotlinx.coroutines.Dispatchers
@@ -69,12 +73,46 @@ class TrainingLoadRepository @Inject constructor(
         .distinctUntilChanged()
         .flowOn(Dispatchers.Default)
 
+    private class Effort(val bpm: Double?)
+
+    /** Threshold efforts by workout and version, like [peaks]. */
+    private val efforts = ConcurrentHashMap<Pair<String, Instant>, Effort>()
+
+    /** The hardest continuous half hour of every run long enough to hold one. */
+    private val thresholdEfforts: Flow<List<ThresholdEffort>> = workouts.observeAll()
+        .mapLatest { all ->
+            val runs = all.filter {
+                it.sport == Sport.RUN && TrainingLoads.counts(it) &&
+                    Duration.between(it.start, it.end).seconds >= ThresholdHeartRateEstimate.EFFORT_SECONDS
+            }
+            TrainingSessions.removeDuplicates(runs).mapNotNull { workout ->
+                val key = workout.id to workout.lastModified
+                val effort = efforts[key] ?: Effort(thresholdEffort(workout)).also { efforts[key] = it }
+                effort.bpm?.let { ThresholdEffort(workout.id, TrainingLoads.dateOf(workout, clock.zone), it) }
+            }
+        }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.Default)
+
     /**
-     * Heart rate anchors for any day: the athlete's values, completed with the estimated maximum and the
-     * resting heart rate measured during sleep (daytime estimates run 10 to 20 bpm higher and are not used).
+     * Heart rate anchors for any day: the athlete's values, completed with the estimated maximum and
+     * threshold and the resting heart rate measured during sleep (daytime estimates run 10 to 20 bpm
+     * higher and are not used).
      */
-    val anchors: Flow<AnchorTimeline> = combine(physiology.observe(), nights.observeNights(), estimatedMax) { history, nightly, max ->
-        AnchorTimeline(history, nightly.mapNotNull { night -> night.restingHr?.let { night.date to it } }.toMap(), max)
+    val anchors: Flow<AnchorTimeline> = combine(
+        physiology.observe(),
+        nights.observeNights(),
+        estimatedMax,
+        thresholdEfforts,
+    ) { history, nightly, max, thresholds ->
+        AnchorTimeline(history, nightly.mapNotNull { night -> night.restingHr?.let { night.date to it } }.toMap(), max, thresholds)
+    }
+
+    private suspend fun thresholdEffort(workout: Workout): Double? {
+        val streams = workouts.streams(workout.id)
+        // Runs from before August 2026 have no speed stream; their GPS track stands in.
+        val speed = if (streams.speed.size > 0) streams.speed else streams.route.speeds()
+        return ThresholdHeartRateEstimate.effort(streams.heartRate, speed, workout.start.toEpochMilli(), workout.end.toEpochMilli())
     }
 
     /**

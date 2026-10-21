@@ -70,6 +70,7 @@ class PhysiologyScreenScreenshotTest {
                     today = today,
                     measuredRestingHr = 58,
                     estimatedMaxHr = 186,
+                    estimatedThresholdHr = null,
                     takenDates = setOf(first.effectiveFrom),
                     onDismiss = {},
                     onSave = {},

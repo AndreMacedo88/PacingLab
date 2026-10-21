@@ -45,6 +45,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.pacinglab.core.analytics.zones.ThresholdHeartRateEstimate
+import app.pacinglab.core.designsystem.component.CardHeader
 import app.pacinglab.core.designsystem.component.ZoneSwatch
 import app.pacinglab.core.designsystem.component.zoneName
 import app.pacinglab.core.designsystem.component.zoneNumber
@@ -125,6 +127,7 @@ fun PhysiologyScreen(
             today = loaded.today,
             measuredRestingHr = loaded.measuredRestingHr,
             estimatedMaxHr = loaded.estimatedMax?.bpm,
+            estimatedThresholdHr = loaded.estimatedThreshold?.bpm,
             takenDates = loaded.entries.map { it.effectiveFrom }.toSet() - setOfNotNull(editing?.effectiveFrom),
             onDismiss = { editor = EDITOR_CLOSED },
             onSave = { entry ->
@@ -160,7 +163,7 @@ private fun PhysiologyContent(
             item { EmptyCard(onAdd) }
             return@LazyColumn
         }
-        item { CurrentCard(current) }
+        item { CurrentCard(current, estimatedThreshold = state.estimatedThreshold) }
         item { ZonesCard(current) }
         if (state.entries.isNotEmpty()) {
             item { SectionHeading(stringResource(R.string.physiology_history)) }
@@ -185,13 +188,18 @@ private fun EmptyCard(onAdd: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun CurrentCard(current: CurrentPhysiology, modifier: Modifier = Modifier) {
+private fun CurrentCard(current: CurrentPhysiology, estimatedThreshold: ThresholdHeartRateEstimate?, modifier: Modifier = Modifier) {
+    val locale = LocalConfiguration.current.locales[0]
+    val dateFormat = remember(locale) { DateTimeFormatter.ofPattern("d MMM yyyy", locale) }
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SectionHeading(stringResource(R.string.physiology_current))
+        Column(
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            CardHeader(stringResource(R.string.physiology_current), info = stringResource(R.string.physiology_current_info))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Value(
                     label = stringResource(R.string.physiology_max_hr),
@@ -202,7 +210,14 @@ private fun CurrentCard(current: CurrentPhysiology, modifier: Modifier = Modifie
                 Value(
                     label = stringResource(R.string.physiology_threshold_hr),
                     value = stringResource(R.string.physiology_bpm, current.anchors.thresholdHr),
-                    note = if (current.thresholdEstimated) stringResource(R.string.physiology_estimated) else null,
+                    note = when {
+                        !current.thresholdEstimated -> null
+
+                        estimatedThreshold?.bpm == current.anchors.thresholdHr ->
+                            stringResource(R.string.physiology_threshold_from_run, dateFormat.format(estimatedThreshold.measuredOn))
+
+                        else -> stringResource(R.string.physiology_estimated)
+                    },
                     modifier = Modifier.weight(1f),
                 )
                 Value(

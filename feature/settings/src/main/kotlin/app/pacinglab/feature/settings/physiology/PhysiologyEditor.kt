@@ -51,6 +51,7 @@ internal fun PhysiologyEditor(
     today: LocalDate,
     measuredRestingHr: Int?,
     estimatedMaxHr: Int?,
+    estimatedThresholdHr: Int?,
     takenDates: Set<LocalDate>,
     onDismiss: () -> Unit,
     onSave: (PhysiologyEntry) -> Unit,
@@ -110,6 +111,10 @@ internal fun PhysiologyEditor(
                             R.string.physiology_error_threshold,
                             (input.effectiveMax ?: MAX_FALLBACK) - 1,
                         )
+
+                        input.effectiveMax != null && !input.maxError && estimatedThresholdHr != null &&
+                            estimatedThresholdHr < input.effectiveMax ->
+                            stringResource(R.string.physiology_editor_threshold_hint_measured, estimatedThresholdHr)
 
                         input.effectiveMax != null && !input.maxError ->
                             stringResource(

@@ -1,7 +1,9 @@
 package app.pacinglab.core.analytics.load
 
 import app.pacinglab.core.analytics.zones.MaxHeartRateEstimate
+import app.pacinglab.core.analytics.zones.ThresholdEffort
 import app.pacinglab.core.analytics.zones.ThresholdEstimates
+import app.pacinglab.core.analytics.zones.ThresholdHeartRateEstimate
 import app.pacinglab.core.analytics.zones.ZoneDistribution
 import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.PhysiologyHistory
@@ -110,14 +112,17 @@ object TrainingLoads {
 /**
  * Heart rate anchors for any day: the athlete's own values in force on that day, and PacingLab's own
  * for every value left empty: maximal heart rate estimated from workouts ([estimatedMax]), threshold
- * at 90 % of the maximum, resting heart rate measured during sleep.
+ * from the hardest half hour of running ([ThresholdHeartRateEstimate]) or else 90 % of the maximum,
+ * resting heart rate measured during sleep.
  *
  * @param measuredResting nightly resting heart rate by the date of the morning, any order.
+ * @param thresholdEfforts the hardest continuous half hour of each run, any order.
  */
 class AnchorTimeline(
     private val history: PhysiologyHistory,
     measuredResting: Map<LocalDate, Double>,
     val estimatedMax: MaxHeartRateEstimate? = null,
+    private val thresholdEfforts: List<ThresholdEffort> = emptyList(),
 ) {
     private val resting = measuredResting.toSortedMap()
 
@@ -125,10 +130,18 @@ class AnchorTimeline(
         val entry = history.at(date)
         val max = entry?.maxHr ?: estimatedMax?.bpm ?: return null
         // A threshold set with a higher maximum in mind can end up above an estimated one; the estimate then wins.
-        val threshold = entry?.thresholdHr?.takeIf { it < max } ?: ThresholdEstimates.thresholdFromMax(max)
+        val threshold = entry?.thresholdHr?.takeIf { it < max }
+            ?: ThresholdHeartRateEstimate.of(thresholdEfforts, max, date)?.bpm
+            ?: ThresholdEstimates.thresholdFromMax(max)
         val restingHr = (entry?.restingHr ?: measuredRestingAt(date))
             ?.takeIf { it in HeartRateAnchors.RESTING_HR_RANGE && it < threshold }
         return HeartRateAnchors(maxHr = max, thresholdHr = threshold, restingHr = restingHr)
+    }
+
+    /** The threshold PacingLab found in the runs up to [date], whether or not the athlete set one; null without a hard enough run. */
+    fun estimatedThresholdAt(date: LocalDate): ThresholdHeartRateEstimate? {
+        val max = history.at(date)?.maxHr ?: estimatedMax?.bpm ?: return null
+        return ThresholdHeartRateEstimate.of(thresholdEfforts, max, date)
     }
 
     /**

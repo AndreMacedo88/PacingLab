@@ -1,5 +1,6 @@
 package app.pacinglab.core.analytics.performance
 
+import app.pacinglab.core.analytics.series.secondGrid
 import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.SampleSeries
@@ -34,7 +35,6 @@ object RunVo2Max {
     const val SKIP_SECONDS = 120
     const val MIN_WINDOWS = 3
 
-    private const val MAX_HOLD_MILLIS = 5_000L
     private const val PACE_DRIFT = 0.05
     private const val HR_DRIFT_BPM = 1.5
     private const val MIN_SPEED = 2.3
@@ -54,8 +54,8 @@ object RunVo2Max {
         val resting = anchors.restingHr ?: return null
         val seconds = ((endMillis - startMillis) / 1_000).toInt()
         if (seconds < SKIP_SECONDS + WINDOW_SECONDS) return null
-        val hr = grid(heartRate.times, DoubleArray(heartRate.size) { heartRate.bpm[it].toDouble() }, startMillis, seconds)
-        val v = grid(speed.times, speed.values, startMillis, seconds)
+        val hr = secondGrid(heartRate.times, DoubleArray(heartRate.size) { heartRate.bpm[it].toDouble() }, startMillis, seconds)
+        val v = secondGrid(speed.times, speed.values, startMillis, seconds)
         val estimates = mutableListOf<Double>()
         var i = SKIP_SECONDS
         while (i + WINDOW_SECONDS <= seconds) {
@@ -82,19 +82,6 @@ object RunVo2Max {
         if (reserve !in MIN_RESERVE..MAX_RESERVE) return null
         val vo2 = RESTING_VO2 + 0.2 * mean(speed, to - 60, to) * 60
         return RESTING_VO2 + (vo2 - RESTING_VO2) / reserve
-    }
-
-    /** One value per second from [startMillis], each sample held for up to five seconds; NaN where there is none. */
-    private fun grid(times: LongArray, values: DoubleArray, startMillis: Long, seconds: Int): DoubleArray {
-        val out = DoubleArray(seconds) { Double.NaN }
-        if (times.isEmpty()) return out
-        var j = 0
-        for (s in 0 until seconds) {
-            val t = startMillis + s * 1_000L
-            while (j + 1 < times.size && times[j + 1] <= t) j++
-            if (times[j] <= t && t - times[j] <= MAX_HOLD_MILLIS) out[s] = values[j]
-        }
-        return out
     }
 
     private fun mean(values: DoubleArray, from: Int, to: Int): Double {

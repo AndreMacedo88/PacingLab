@@ -11,6 +11,7 @@
     <string name="physiology_set_values">Set heart rate values</string>
     <string name="physiology_add">New values</string>
     <string name="physiology_current">Current values</string>
+    <string name="physiology_current_info" formatted="false">The heart rate values that zones and training load are anchored on. Any value you enter wins; every value you leave empty PacingLab finds in your own data.\n\n# Maximum heart rate\nThe highest heart rate you held for 10 seconds in a workout, once a second workout comes within 3 bpm of it. A lower bound: a maximal test can only show a higher value.\n\n# Threshold heart rate\nAfter Joe Friel\'s field test: in 30 minutes of running at the hardest pace you can hold, the average heart rate of the last 20 minutes. PacingLab looks for the hardest continuous half hour of running in the last year, without walking breaks and averaging at least 85 % of your maximum. Without one, 90 % of your maximum stands in.\n- Runs that were not all-out give a value at or below your true threshold.\n- Heat and long runs raise heart rate at the same effort, which can push it a few beats too high.\n\n# Resting heart rate\nThe median of the values your watch measured during sleep over the last 30 nights.</string>
     <string name="physiology_max_hr">Max HR</string>
     <string name="physiology_threshold_hr">Threshold HR</string>
     <string name="physiology_resting_hr">Resting HR</string>
@@ -35,6 +36,7 @@
     <string name="physiology_editor_change_date">Change date</string>
     <string name="physiology_editor_max_hint">The highest heart rate you have reached, for example at the end of a maximal test or a race.</string>
     <string name="physiology_editor_threshold_hint">Optional. Leave empty to use %1$d bpm, 90 %% of max.</string>
+    <string name="physiology_editor_threshold_hint_measured">Optional. Leave empty to use %1$d bpm, from your hardest half hour of running.</string>
     <string name="physiology_editor_resting_hint">Optional. Leave empty to use what your watch measures during sleep.</string>
     <string name="physiology_editor_resting_measured">Optional. Leave empty to use what your watch measures during sleep, now %1$d bpm.</string>
     <string name="physiology_resting_measured">Measured in sleep</string>
@@ -153,6 +155,7 @@
     </plurals>
     <string name="physiology_entry_automatic">All values automatic</string>
     <string name="physiology_max_estimated">From your workouts</string>
+    <string name="physiology_threshold_from_run">From your run on %1$s</string>
     <string name="physiology_set_by_you">Set by you</string>
     <string name="physiology_editor_max_estimated">Optional. Leave empty to use the highest heart rate you held in your workouts, now %1$d bpm.</string>
 </resources>
