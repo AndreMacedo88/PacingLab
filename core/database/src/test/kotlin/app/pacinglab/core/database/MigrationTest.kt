@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
+import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
 import app.pacinglab.core.database.store.WorkoutStore
 import app.pacinglab.core.model.PhysiologyEntry
@@ -24,6 +25,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
+import java.time.Instant
 import java.time.LocalDate
 
 /**
@@ -93,6 +95,25 @@ class MigrationTest {
 
         assertThat(migrated).isEqualTo(PhysiologyEntry(LocalDate.of(2026, 9, 1), maxHr = 186, restingHr = 57))
         assertThat(automatic.maxHr).isNull()
+    }
+
+    @Test
+    fun `version 5 sleep sessions survive the upgrade without heart rate`() = runTest {
+        val file = databaseFile()
+        createFromSchema(file, version = 5)
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL(
+                "INSERT INTO sleep_sessions (source_record_id, start_ms, end_ms, zone_offset_s, origin, stages) " +
+                    "VALUES ('night', 1000, 28801000, 7200, 'com.fitbit.FitbitMobile', X'0100')",
+            )
+        }
+
+        val database = Room.databaseBuilder(context, PacingLabDatabase::class.java, file.path).setDriver(AndroidSQLiteDriver()).build()
+        val session = MeasurementStore(database).observeSleep(Instant.EPOCH, Instant.ofEpochSecond(100_000)).first().single()
+        database.close()
+
+        assertThat(session.sourceRecordId).isEqualTo("night")
+        assertThat(session.heartRate.isEmpty()).isTrue()
     }
 
     private fun databaseFile(): File = context.getDatabasePath("migration-test.db").apply {

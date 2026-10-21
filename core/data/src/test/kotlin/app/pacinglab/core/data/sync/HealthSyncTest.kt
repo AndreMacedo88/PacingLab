@@ -13,6 +13,7 @@ import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
 import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.SampleSeries
+import app.pacinglab.core.model.SleepSession
 import app.pacinglab.core.model.SourceWorkout
 import app.pacinglab.core.model.Sport
 import app.pacinglab.core.model.WorkoutStreams
@@ -284,6 +285,44 @@ class HealthSyncTest {
         assertThat(stored()).containsExactly("a")
     }
 
+    @Test
+    fun `sleep is imported with the heart rate recorded during it`() = runTest {
+        source.addWorkout(workout("run", daysAgo = 3))
+        val night = sleepSession("night", daysAgo = 1)
+        source.addHeartRate(FITBIT, beats(night.start.minusSeconds(3_600), minutes = 600, bpm = 55))
+        source.addSleep(night)
+
+        sync.sync()
+
+        val stored = measurements.observeSleep(Instant.EPOCH, now).first().single()
+        assertThat(stored.heartRate.isEmpty()).isFalse()
+        assertThat(stored.heartRate.times.first() >= night.start.toEpochMilli()).isTrue()
+        assertThat(stored.heartRate.times.last() <= night.end.toEpochMilli()).isTrue()
+    }
+
+    @Test
+    fun `heart rate written after the sleep is picked up by the next sync`() = runTest {
+        source.addWorkout(workout("run", daysAgo = 3))
+        val night = sleepSession("night", daysAgo = 1)
+        source.addSleep(night)
+        sync.sync()
+        assertThat(measurements.observeSleep(Instant.EPOCH, now).first().single().heartRate.isEmpty()).isTrue()
+
+        source.addHeartRate(FITBIT, beats(night.start, minutes = 480, bpm = 52))
+        sync.sync()
+
+        assertThat(measurements.observeSleep(Instant.EPOCH, now).first().single().heartRate.size).isEqualTo(480)
+    }
+
+    private fun sleepSession(id: String, daysAgo: Long): SleepSession {
+        val start = now.minus(Duration.ofDays(daysAgo)).minus(Duration.ofHours(9))
+        return SleepSession(id, start, start.plus(Duration.ofHours(8)), ZoneOffset.ofHours(2), FITBIT, emptyList())
+    }
+
+    /** One sample a minute. */
+    private fun beats(from: Instant, minutes: Int, bpm: Int) =
+        HeartRateSeries(LongArray(minutes) { from.toEpochMilli() + it * 60_000L }, IntArray(minutes) { bpm })
+
     private fun sampleRoute(daysAgo: Long): Route {
         val start = now.minus(Duration.ofDays(daysAgo)).toEpochMilli()
         return Route(
@@ -323,4 +362,8 @@ class HealthSyncTest {
         value = bpm,
         origin = "com.fitbit.FitbitMobile",
     )
+
+    private companion object {
+        const val FITBIT = "com.fitbit.FitbitMobile"
+    }
 }

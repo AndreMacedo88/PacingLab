@@ -8,6 +8,7 @@ import app.pacinglab.core.database.store.SyncStateStore
 import app.pacinglab.core.database.store.WorkoutStore
 import app.pacinglab.core.model.DataSource
 import app.pacinglab.core.model.Route
+import app.pacinglab.core.model.SleepSession
 import app.pacinglab.core.model.SourceWorkout
 import app.pacinglab.core.model.Sport
 import app.pacinglab.core.model.Workout
@@ -178,7 +179,28 @@ class HealthSync @Inject constructor(
             val kind = channel.measurementKind ?: continue
             measurements.saveMeasurements(source.readMeasurements(kind, from, to))
         }
-        if (ChangeChannel.SLEEP in channels) measurements.saveSleep(source.readSleep(from, to))
+        if (ChangeChannel.SLEEP in channels) saveSleep(source.readSleep(from, to), channels)
+    }
+
+    /** Saves sleep sessions with the heart rate recorded during them, when heart rate may be read. */
+    private suspend fun saveSleep(sessions: List<SleepSession>, channels: Set<ChangeChannel>) {
+        if (sessions.isEmpty()) return
+        val withHeartRate = if (ChangeChannel.HEART_RATE in channels) {
+            sessions.map { it.copy(heartRate = source.readHeartRate(it.start, it.end, it.origin)) }
+        } else {
+            sessions
+        }
+        measurements.saveSleep(withHeartRate)
+    }
+
+    /** Heart rate written after the sleep it belongs to (the watch syncs in batches) is picked up here. */
+    private suspend fun refreshSleepHeartRate(spans: List<ClosedRange<Instant>>) {
+        if (spans.isEmpty()) return
+        val candidates = measurements.sleepOverlapping(spans.minOf { it.start }, spans.maxOf { it.endInclusive })
+        for (session in candidates) {
+            if (spans.none { span -> span.start <= session.end && span.endInclusive >= session.start }) continue
+            measurements.saveSleepHeartRate(session.sourceRecordId, source.readHeartRate(session.start, session.end, session.origin))
+        }
     }
 
     private suspend fun applyChanges(channel: ChangeChannel, channels: Set<ChangeChannel>, tally: Tally, foreground: Boolean) {
@@ -189,24 +211,28 @@ class HealthSync @Inject constructor(
                 recoverExpired(channel, channels, tally, foreground)
                 return
             }
-            apply(channel, batch, tally, foreground)
+            apply(channel, batch, channels, tally, foreground)
             token = batch.nextToken
             state.put(tokenKey(channel), token)
         } while (batch.hasMore)
     }
 
-    private suspend fun apply(channel: ChangeChannel, batch: ChangeBatch, tally: Tally, foreground: Boolean) {
+    private suspend fun apply(channel: ChangeChannel, batch: ChangeBatch, channels: Set<ChangeChannel>, tally: Tally, foreground: Boolean) {
         when (channel) {
             ChangeChannel.WORKOUTS -> {
                 saveWorkouts(batch.workouts, tally, foreground)
                 deleteWorkouts(batch.deletedRecordIds, tally)
             }
 
-            ChangeChannel.HEART_RATE, ChangeChannel.SPEED, ChangeChannel.DISTANCE ->
+            ChangeChannel.HEART_RATE -> {
                 refreshStreams(batch.affectedSpans, tally, foreground)
+                if (ChangeChannel.SLEEP in channels) refreshSleepHeartRate(batch.affectedSpans)
+            }
+
+            ChangeChannel.SPEED, ChangeChannel.DISTANCE -> refreshStreams(batch.affectedSpans, tally, foreground)
 
             ChangeChannel.SLEEP -> {
-                measurements.saveSleep(batch.sleep)
+                saveSleep(batch.sleep, channels)
                 measurements.delete(batch.deletedRecordIds)
             }
 
@@ -243,8 +269,10 @@ class HealthSync @Inject constructor(
                 saveWorkouts(fresh, tally, foreground)
             }
 
-            ChangeChannel.HEART_RATE, ChangeChannel.SPEED, ChangeChannel.DISTANCE ->
+            ChangeChannel.HEART_RATE, ChangeChannel.SPEED, ChangeChannel.DISTANCE -> {
                 saveWorkouts(workouts.overlapping(from, to).map { it.toSourceWorkout(route = null) }, tally, foreground)
+                if (channel == ChangeChannel.HEART_RATE && ChangeChannel.SLEEP in channels) refreshSleepHeartRate(listOf(from..to))
+            }
 
             else -> importDaily(setOf(channel).intersect(channels), from, to)
         }
@@ -389,8 +417,9 @@ class HealthSync @Inject constructor(
          * Bump when stored workouts must be rebuilt from the source, for example after changing how
          * streams are read. The next foreground sync then re-imports the whole history.
          * 3: workouts carry their recording method.
+         * 4: sleep sessions carry the heart rate recorded during them.
          */
-        const val CURRENT_SYNC_VERSION = "3"
+        const val CURRENT_SYNC_VERSION = "4"
 
         fun workoutId(sourceRecordId: String) = "hc:$sourceRecordId"
 

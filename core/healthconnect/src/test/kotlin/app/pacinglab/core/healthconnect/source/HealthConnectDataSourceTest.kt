@@ -106,6 +106,21 @@ class HealthConnectDataSourceTest {
     }
 
     @Test
+    fun `heart rate outside workouts is read for one app and clipped to the span`() = runTest {
+        client.insert(
+            heartRate("night1", fitbit, from = t0.minusSeconds(30), seconds = 60, bpm = 52),
+            heartRate("night2", fitbit, from = t0.plusSeconds(120), seconds = 60, bpm = 50),
+            heartRate("other", googleFit, from = t0, seconds = 60, bpm = 99),
+        )
+
+        val series = source.readHeartRate(t0, t0.plusSeconds(600), fitbit)
+
+        assertThat(series.size).isEqualTo(30 + 60)
+        assertThat(series.bpm.none { it == 99 }).isTrue()
+        assertThat(series.times.first()).isEqualTo(t0.toEpochMilli())
+    }
+
+    @Test
     fun `heart rate is clipped to the workout, includes records starting before it, and ignores other apps`() = runTest {
         val workout = session("s1", minute = 0, length = 10, type = ExerciseSessionRecord.EXERCISE_TYPE_BOOT_CAMP)
         client.insert(

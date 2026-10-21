@@ -15,6 +15,7 @@ import androidx.health.connect.client.records.SpeedRecord
 import androidx.health.connect.client.records.Vo2MaxRecord
 import androidx.health.connect.client.records.WeightRecord
 import app.pacinglab.core.healthconnect.timingOf
+import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
 import app.pacinglab.core.model.Route
@@ -87,6 +88,15 @@ class HealthConnectDataSource @Inject constructor(private val gateway: HealthCon
         readAll(SleepSessionRecord::class, from, to.plus(LONGEST_SESSION))
             .filter { it.startTime >= from && it.startTime < to }
             .map(SleepSessionRecord::toSleepSession)
+
+    override suspend fun readHeartRate(from: Instant, to: Instant, origin: String): HeartRateSeries = heartRateSeries(
+        // Records may start before the span; their later samples still count.
+        readAll(HeartRateRecord::class, from.minus(STREAM_PADDING), to)
+            .filter { it.metadata.dataOrigin.packageName == origin }
+            .flatMap { record -> record.samples.map { it.time to it.beatsPerMinute } },
+        from,
+        to,
+    )
 
     override suspend fun changesToken(channel: ChangeChannel): String = gateway.changesToken(recordType(channel))
 

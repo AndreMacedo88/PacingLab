@@ -4,6 +4,7 @@ import app.pacinglab.core.database.PacingLabDatabase
 import app.pacinglab.core.database.codec.StreamCodec
 import app.pacinglab.core.database.entity.MeasurementEntity
 import app.pacinglab.core.database.entity.SleepSessionEntity
+import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
 import app.pacinglab.core.model.SleepSession
@@ -61,24 +62,33 @@ class MeasurementStore @Inject constructor(database: PacingLabDatabase) {
                     zoneOffsetSeconds = it.zoneOffset?.totalSeconds,
                     origin = it.origin,
                     stages = StreamCodec.encodeSleepStages(it.stages),
+                    heartRate = it.heartRate.takeUnless { hr -> hr.isEmpty() }?.let(StreamCodec::encodeHeartRate),
                 )
             },
         )
     }
 
+    /** Replaces the heart rate stored with a sleep session. */
+    suspend fun saveSleepHeartRate(recordId: String, heartRate: HeartRateSeries) {
+        sleep.updateHeartRate(recordId, heartRate.takeUnless { it.isEmpty() }?.let(StreamCodec::encodeHeartRate))
+    }
+
+    /** Sleep sessions whose time span intersects [from, to], without their heart rate. */
+    suspend fun sleepOverlapping(from: Instant, to: Instant): List<SleepSession> =
+        sleep.overlapping(from.toEpochMilli(), to.toEpochMilli()).map { it.toDomain(withHeartRate = false) }
+
     fun observeSleep(from: Instant, to: Instant): Flow<List<SleepSession>> =
-        sleep.observe(from.toEpochMilli(), to.toEpochMilli()).map { rows ->
-            rows.map {
-                SleepSession(
-                    sourceRecordId = it.sourceRecordId,
-                    start = Instant.ofEpochMilli(it.startMs),
-                    end = Instant.ofEpochMilli(it.endMs),
-                    zoneOffset = it.zoneOffsetSeconds?.let(ZoneOffset::ofTotalSeconds),
-                    origin = it.origin,
-                    stages = StreamCodec.decodeSleepStages(it.stages),
-                )
-            }
-        }
+        sleep.observe(from.toEpochMilli(), to.toEpochMilli()).map { rows -> rows.map { it.toDomain(withHeartRate = true) } }
+
+    private fun SleepSessionEntity.toDomain(withHeartRate: Boolean) = SleepSession(
+        sourceRecordId = sourceRecordId,
+        start = Instant.ofEpochMilli(startMs),
+        end = Instant.ofEpochMilli(endMs),
+        zoneOffset = zoneOffsetSeconds?.let(ZoneOffset::ofTotalSeconds),
+        origin = origin,
+        stages = StreamCodec.decodeSleepStages(stages),
+        heartRate = heartRate?.takeIf { withHeartRate }?.let(StreamCodec::decodeHeartRate) ?: HeartRateSeries.EMPTY,
+    )
 
     /** Deletes measurements and sleep sessions with these source ids; unknown ids are ignored. */
     suspend fun delete(recordIds: List<String>) {

@@ -1,5 +1,6 @@
 package app.pacinglab.core.model.source
 
+import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
 import app.pacinglab.core.model.SleepSession
@@ -74,6 +75,9 @@ interface HealthDataSource {
     suspend fun readMeasurements(kind: MeasurementKind, from: Instant, to: Instant): List<Measurement>
 
     suspend fun readSleep(from: Instant, to: Instant): List<SleepSession>
+
+    /** Heart rate that [origin] recorded within [from, to], such as during a night's sleep. */
+    suspend fun readHeartRate(from: Instant, to: Instant, origin: String): HeartRateSeries
 
     /** A token marking "now" for [channel], to be passed to [readChanges] later. */
     suspend fun changesToken(channel: ChangeChannel): String

@@ -1,5 +1,6 @@
 package app.pacinglab.core.data.sync
 
+import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
 import app.pacinglab.core.model.SleepSession
@@ -17,6 +18,10 @@ class FakeHealthDataSource : HealthDataSource {
     val workouts = mutableMapOf<String, SourceWorkout>()
     val streams = mutableMapOf<String, WorkoutStreams>()
     val measurements = mutableMapOf<String, Measurement>()
+    val sleep = mutableMapOf<String, SleepSession>()
+
+    /** Heart rate outside workouts, by recording app, as the watch writes it all day. */
+    val heartRate = mutableMapOf<String, HeartRateSeries>()
     var channels: Set<ChangeChannel> = ChangeChannel.entries.toSet()
 
     /** readWorkouts fails for windows starting before this instant, once per assignment. */
@@ -54,6 +59,24 @@ class FakeHealthDataSource : HealthDataSource {
         log += ChangeChannel.HEART_RATE to (workout.start..workout.end)
     }
 
+    fun addSleep(session: SleepSession) {
+        sleep[session.sourceRecordId] = session
+        log += ChangeChannel.SLEEP to session
+    }
+
+    /** Heart rate written by [origin], logged as a change over its time span. */
+    fun addHeartRate(origin: String, series: HeartRateSeries) {
+        val existing = heartRate[origin] ?: HeartRateSeries.EMPTY
+        val merged = (
+            existing.times.indices.map { existing.times[it] to existing.bpm[it] } +
+                series.times.indices.map { series.times[it] to series.bpm[it] }
+            )
+            .sortedBy { it.first }
+            .distinctBy { it.first }
+        heartRate[origin] = HeartRateSeries(merged.map { it.first }.toLongArray(), merged.map { it.second }.toIntArray())
+        log += ChangeChannel.HEART_RATE to (Instant.ofEpochMilli(series.times.first())..Instant.ofEpochMilli(series.times.last()))
+    }
+
     fun addMeasurement(measurement: Measurement) {
         measurements[measurement.sourceRecordId] = measurement
         log += ChangeChannel.forMeasurement(measurement.kind) to measurement
@@ -89,7 +112,14 @@ class FakeHealthDataSource : HealthDataSource {
     override suspend fun readMeasurements(kind: MeasurementKind, from: Instant, to: Instant): List<Measurement> =
         measurements.values.filter { it.kind == kind && it.time >= from && it.time < to }
 
-    override suspend fun readSleep(from: Instant, to: Instant): List<SleepSession> = emptyList()
+    override suspend fun readSleep(from: Instant, to: Instant): List<SleepSession> =
+        sleep.values.filter { it.start >= from && it.start < to }
+
+    override suspend fun readHeartRate(from: Instant, to: Instant, origin: String): HeartRateSeries {
+        val series = heartRate[origin] ?: return HeartRateSeries.EMPTY
+        val inside = series.times.indices.filter { series.times[it] in from.toEpochMilli()..to.toEpochMilli() }
+        return HeartRateSeries(LongArray(inside.size) { series.times[inside[it]] }, IntArray(inside.size) { series.bpm[inside[it]] })
+    }
 
     override suspend fun changesToken(channel: ChangeChannel): String = log.size.toString()
 
@@ -103,6 +133,7 @@ class FakeHealthDataSource : HealthDataSource {
         return ChangeBatch(
             workouts = entries.filterIsInstance<SourceWorkout>().map { if (routesAvailable) it else it.copy(route = null) },
             measurements = entries.filterIsInstance<Measurement>(),
+            sleep = entries.filterIsInstance<SleepSession>(),
             affectedSpans = entries.filterIsInstance<ClosedRange<*>>().map {
                 @Suppress("UNCHECKED_CAST")
                 it as ClosedRange<Instant>

@@ -45,6 +45,11 @@ enum class SleepStageType {
 
 data class SleepStage(val start: Instant, val end: Instant, val type: SleepStageType)
 
+/**
+ * A sleep record with its stages.
+ *
+ * @property heartRate heart rate the same app recorded during the sleep; empty until read.
+ */
 data class SleepSession(
     val sourceRecordId: String,
     val start: Instant,
@@ -52,4 +57,5 @@ data class SleepSession(
     val zoneOffset: ZoneOffset?,
     val origin: String,
     val stages: List<SleepStage>,
+    val heartRate: HeartRateSeries = HeartRateSeries.EMPTY,
 )

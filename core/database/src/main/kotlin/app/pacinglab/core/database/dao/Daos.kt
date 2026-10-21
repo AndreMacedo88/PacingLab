@@ -82,6 +82,12 @@ interface SleepDao {
     @Query("SELECT * FROM sleep_sessions WHERE end_ms >= :fromMs AND start_ms <= :toMs ORDER BY start_ms")
     fun observe(fromMs: Long, toMs: Long): Flow<List<SleepSessionEntity>>
 
+    @Query("SELECT * FROM sleep_sessions WHERE end_ms >= :fromMs AND start_ms <= :toMs ORDER BY start_ms")
+    suspend fun overlapping(fromMs: Long, toMs: Long): List<SleepSessionEntity>
+
+    @Query("UPDATE sleep_sessions SET heart_rate = :heartRate WHERE source_record_id = :recordId")
+    suspend fun updateHeartRate(recordId: String, heartRate: ByteArray?)
+
     @Query("DELETE FROM sleep_sessions WHERE source_record_id IN (:recordIds)")
     suspend fun delete(recordIds: List<String>): Int
 }

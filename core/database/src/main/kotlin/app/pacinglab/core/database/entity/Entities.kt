@@ -70,6 +70,7 @@ class SleepSessionEntity(
     @ColumnInfo(name = "zone_offset_s") val zoneOffsetSeconds: Int?,
     val origin: String,
     @ColumnInfo(typeAffinity = ColumnInfo.BLOB) val stages: ByteArray,
+    @ColumnInfo(name = "heart_rate", typeAffinity = ColumnInfo.BLOB) val heartRate: ByteArray? = null,
 )
 
 /** Small key-value store for sync bookkeeping (change tokens, backfill progress). */
