@@ -48,7 +48,11 @@ object TrainingSessions {
     }
 
     /**
-     * When two apps recorded the same activity (Fitbit and Google Fit both log a ride), keeps one.
+     * When the same activity was recorded twice, keeps one. That happens across apps (Fitbit and
+     * Google Fit both log a ride) and within one: Fitbit's automatic exercise detection can log a run
+     * on top of the warm-up and interval workout the athlete started. Workouts of one app only count as
+     * duplicates when one of them was detected automatically, so back-to-back recordings stay apart.
+     *
      * A workout the athlete started on the watch wins over one an app detected by itself, whatever
      * extras the detected one has: its type, title and laps reflect what was actually trained.
      * Otherwise the richer record wins: the one with heart rate, then with a route, then the longer one.
@@ -63,7 +67,10 @@ object TrainingSessions {
         )
         val kept = mutableListOf<Workout>()
         for (candidate in ranked) {
-            val duplicate = kept.any { it.origin != candidate.origin && overlapShare(it, candidate) > DUPLICATE_OVERLAP }
+            val duplicate = kept.any { other ->
+                val comparable = other.origin != candidate.origin || candidate.recordingMethod == RecordingMethod.AUTOMATIC
+                comparable && overlapShare(other, candidate) > DUPLICATE_OVERLAP
+            }
             if (!duplicate) kept += candidate
         }
         return kept

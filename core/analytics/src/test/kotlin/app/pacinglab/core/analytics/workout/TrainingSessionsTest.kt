@@ -96,6 +96,20 @@ class TrainingSessionsTest {
     }
 
     @Test
+    fun `a run the watch detected by itself does not double the warm-up and intervals started on it`() {
+        val detected = workout("detected", Sport.RUN, startMinute = 0, minutes = 45).withHr(153)
+            .copy(recordingMethod = RecordingMethod.AUTOMATIC)
+        val warmUp = workout("warm-up", Sport.RUN, startMinute = 0, minutes = 7).withHr(143).withRoute()
+            .copy(recordingMethod = RecordingMethod.ACTIVE)
+        val intervals = workout("intervals", Sport.RUN, startMinute = 9, minutes = 36).withHr(156)
+            .copy(recordingMethod = RecordingMethod.ACTIVE)
+
+        val sessions = TrainingSessions.group(listOf(detected, warmUp, intervals))
+
+        assertThat(sessions.single().workouts.map { it.id }).containsExactly("warm-up", "intervals")
+    }
+
+    @Test
     fun `back-to-back workouts from the same app are not duplicates`() {
         val run = workout("run", Sport.RUN, startMinute = 0, minutes = 6)
         val intervals = workout("intervals", Sport.RUN, startMinute = 5, minutes = 30)
