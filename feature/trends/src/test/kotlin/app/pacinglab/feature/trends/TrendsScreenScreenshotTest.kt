@@ -1,6 +1,7 @@
 package app.pacinglab.feature.trends
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -8,8 +9,12 @@ import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.LoadScores
 import app.pacinglab.core.analytics.load.TrainingLoads
 import app.pacinglab.core.analytics.load.WorkoutLoad
+import app.pacinglab.core.analytics.performance.Vo2MaxPoint
+import app.pacinglab.core.analytics.performance.Vo2MaxSource
+import app.pacinglab.core.analytics.performance.Vo2MaxTrend
 import app.pacinglab.core.analytics.zones.ZoneDistribution
 import app.pacinglab.core.analytics.zones.Zones
+import app.pacinglab.core.data.repository.Vo2MaxHistory
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.ZoneModel
@@ -26,7 +31,7 @@ import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h1300dp-xxhdpi")
+@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h2000dp-xxhdpi")
 class TrendsScreenScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
@@ -68,10 +73,22 @@ class TrendsScreenScreenshotTest {
         }
     }
 
+    /** Four months of PacingLab estimates around a slow rise from 54 to 57, a few Fitbit values and one test. */
+    private val vo2Points: List<Vo2MaxPoint> = buildList {
+        for (d in 0 until 120 step 3) {
+            add(Vo2MaxPoint(today.minusDays(120L - d), 54.0 + 3.0 * d / 120 + 2.5 * sin(d * 1.9), Vo2MaxSource.PACINGLAB))
+        }
+        listOf(100L to 52.4, 70L to 53.6, 45L to 55.1, 20L to 54.8, 6L to 55.9).forEach { (back, v) ->
+            add(Vo2MaxPoint(today.minusDays(back), v, Vo2MaxSource.FITBIT))
+        }
+        add(Vo2MaxPoint(today.minusDays(30), 56.5, Vo2MaxSource.TEST))
+    }
+
     private val loaded = TrendsUiState.Loaded(
         days = FitnessModel.series(TrainingLoads.daily(loads), until = today),
         weeks = TrainingLoads.weeks(loads, until = today, count = 8),
         today = today,
+        vo2max = Vo2MaxHistory(vo2Points.sortedBy { it.date }, Vo2MaxTrend.of(vo2Points, today)),
     )
 
     @Test
@@ -98,7 +115,8 @@ class TrendsScreenScreenshotTest {
         val today = loaded.days.last()
         val fitness = "Fitness ${Math.round(today.fitness)}"
 
-        compose.onNodeWithText("1 year").performClick()
+        // The fitness card's range buttons come first; the VO2max card has its own.
+        compose.onAllNodesWithText("1 year")[0].performClick()
         compose.onNodeWithText("Today", substring = true).assertExists()
         compose.onNodeWithText("6 weeks").performClick()
         compose.onNodeWithText("Today", substring = true).assertExists()

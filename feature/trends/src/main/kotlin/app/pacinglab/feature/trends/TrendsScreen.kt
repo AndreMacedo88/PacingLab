@@ -63,7 +63,13 @@ import kotlin.math.roundToInt
 @Composable
 fun TrendsRoute(onOpenPhysiology: () -> Unit, modifier: Modifier = Modifier, viewModel: TrendsViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    TrendsScreen(state = state, onOpenPhysiology = onOpenPhysiology, modifier = modifier)
+    TrendsScreen(
+        state = state,
+        onOpenPhysiology = onOpenPhysiology,
+        modifier = modifier,
+        onSaveTest = viewModel::saveTest,
+        onDeleteTest = viewModel::deleteTest,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,6 +79,8 @@ fun TrendsScreen(
     onOpenPhysiology: () -> Unit,
     modifier: Modifier = Modifier,
     initialRange: TrendRange = TrendRange.THREE_MONTHS,
+    onSaveTest: (LocalDate, Double) -> Unit = { _, _ -> },
+    onDeleteTest: (LocalDate) -> Unit = {},
 ) {
     val locale = LocalConfiguration.current.locales[0]
     Scaffold(modifier = modifier, topBar = { TopAppBar(title = { Text(stringResource(R.string.trends_title)) }) }) { padding ->
@@ -102,6 +110,7 @@ fun TrendsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     item(key = "form") { FormCard(state.days, state.today, initialRange, locale) }
+                    item(key = "vo2max") { Vo2MaxCard(state.vo2max, state.today, onSaveTest, onDeleteTest, locale) }
                     item(key = "weeks") { WeeksCard(state.weeks, state.today, locale) }
                 }
             }
@@ -279,7 +288,7 @@ private fun Header(text: String, modifier: Modifier = Modifier, align: TextAlign
 }
 
 @Composable
-private fun TrendCard(title: String, info: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+internal fun TrendCard(title: String, info: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),

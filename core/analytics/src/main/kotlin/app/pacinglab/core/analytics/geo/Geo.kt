@@ -1,6 +1,7 @@
 package app.pacinglab.core.analytics.geo
 
 import app.pacinglab.core.model.Route
+import app.pacinglab.core.model.SampleSeries
 import kotlin.math.asin
 import kotlin.math.cos
 import kotlin.math.pow
@@ -26,4 +27,23 @@ fun Route.lengthMeters(): Double {
         total += haversineMeters(latitudes[i - 1], longitudes[i - 1], latitudes[i], longitudes[i])
     }
     return total
+}
+
+/**
+ * Speed in m/s between consecutive route points, stamped at the earlier point, for runs recorded
+ * without a speed stream. Points more than [maxGapMillis] apart give no sample, so a gap in the
+ * recording reads as missing rather than as slow running.
+ */
+fun Route.speeds(maxGapMillis: Long = 10_000): SampleSeries {
+    val stamps = LongArray(maxOf(size - 1, 0))
+    val speeds = DoubleArray(stamps.size)
+    var n = 0
+    for (i in 1 until size) {
+        val dt = times[i] - times[i - 1]
+        if (dt <= 0 || dt > maxGapMillis) continue
+        stamps[n] = times[i - 1]
+        speeds[n] = haversineMeters(latitudes[i - 1], longitudes[i - 1], latitudes[i], longitudes[i]) * 1000.0 / dt
+        n++
+    }
+    return SampleSeries(stamps.copyOf(n), speeds.copyOf(n))
 }

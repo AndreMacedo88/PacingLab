@@ -35,6 +35,8 @@ object PacingLabIcons {
 
     @DrawableRes val Database = R.drawable.ic_database
 
+    @DrawableRes val Delete = R.drawable.ic_delete
+
     @DrawableRes val Download = R.drawable.ic_download
 
     @DrawableRes val Edit = R.drawable.ic_edit
