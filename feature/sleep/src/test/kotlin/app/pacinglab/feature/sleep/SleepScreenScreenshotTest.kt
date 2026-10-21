@@ -7,8 +7,11 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.SleepContinuity
+import app.pacinglab.core.analytics.recovery.SleepHistory
 import app.pacinglab.core.analytics.recovery.SleepScore
+import app.pacinglab.core.analytics.recovery.SleepingHeartRate
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
+import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.SleepStage
 import app.pacinglab.core.model.SleepStageType
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -26,7 +29,7 @@ import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h2100dp-xxhdpi")
+@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h3600dp-xxhdpi")
 class SleepScreenScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
@@ -76,6 +79,19 @@ class SleepScreenScreenshotTest {
             ),
             zone = cest,
             stages = stages,
+            sleepingHeartRate = SleepingHeartRate.of(heartRate(bedtime, t, index)),
+        )
+    }
+
+    /** A sample every 10 s: falling from about 60 to the low 50s by the middle of the night, then rising slowly. */
+    private fun heartRate(from: Instant, to: Instant, index: Int): HeartRateSeries {
+        val n = (Duration.between(from, to).seconds / 10).toInt()
+        return HeartRateSeries(
+            LongArray(n) { from.toEpochMilli() + it * 10_000L },
+            IntArray(n) { i ->
+                val x = i.toDouble() / n
+                (60 - 14 * sin(Math.PI * minOf(x * 1.6, 1.0) / 2) + 6 * x * x + 2 * sin(i / 37.0 + index)).toInt()
+            },
         )
     }
 

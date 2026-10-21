@@ -21,6 +21,7 @@ import java.time.ZoneOffset
  * @property continuity how unbroken the sleep was; null when the watch recorded no stages.
  * @property zone where the night was spent, for clock times.
  * @property stages the stages as the watch recorded them, in time order.
+ * @property sleepingHeartRate heart rate during the sleep; null when it was not recorded.
  */
 data class Night(
     val date: LocalDate,
@@ -34,6 +35,7 @@ data class Night(
     val continuity: SleepContinuity? = null,
     val zone: ZoneId = ZoneOffset.UTC,
     val stages: List<SleepStage> = emptyList(),
+    val sleepingHeartRate: SleepingHeartRate? = null,
 ) {
     /** Time in bed: from the start of the sleep record to its end. */
     val inBedMillis: Long get() = Duration.between(start, end).toMillis()
@@ -107,6 +109,7 @@ object Nights {
                     continuity = continuity(sleep),
                     zone = sleep.zoneOffset ?: zone,
                     stages = sleep.stages.sortedBy { it.start },
+                    sleepingHeartRate = SleepingHeartRate.of(sleep.heartRate),
                 )
             }
             .sortedBy { it.date }

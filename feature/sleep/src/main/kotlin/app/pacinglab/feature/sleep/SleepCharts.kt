@@ -1,21 +1,21 @@
 package app.pacinglab.feature.sleep
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextMeasurer
@@ -24,17 +24,17 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import app.pacinglab.core.analytics.recovery.Night
+import app.pacinglab.core.analytics.recovery.SleepingHeartRate
 import app.pacinglab.core.designsystem.theme.ChartColors
 import app.pacinglab.core.designsystem.theme.chartColors
 import app.pacinglab.core.model.SleepStageType
-import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-/** Rows of the hypnogram, top to bottom: the further down, the deeper the sleep. */
-internal val HYPNOGRAM_ROWS = listOf(SleepStageType.AWAKE, SleepStageType.REM, SleepStageType.LIGHT, SleepStageType.DEEP)
+/** Lanes of the stage chart, top to bottom: the further down, the deeper the sleep. */
+internal val STAGE_LANES = listOf(SleepStageType.AWAKE, SleepStageType.REM, SleepStageType.LIGHT, SleepStageType.DEEP)
 
 internal fun ChartColors.stage(type: SleepStageType): Color = when (type) {
     SleepStageType.DEEP -> deepSleep
@@ -43,7 +43,7 @@ internal fun ChartColors.stage(type: SleepStageType): Color = when (type) {
     else -> lightSleep
 }
 
-private fun SleepStageType.row(): Int = when (this) {
+private fun SleepStageType.lane(): Int = when (this) {
     SleepStageType.AWAKE, SleepStageType.OUT_OF_BED -> 0
     SleepStageType.REM -> 1
     SleepStageType.DEEP -> 3
@@ -51,157 +51,211 @@ private fun SleepStageType.row(): Int = when (this) {
 }
 
 /**
- * The night's stages over time: one row per stage, awake at the top and deep sleep at the bottom, with
- * thin connectors where the stage changes and clock times along the bottom.
+ * The night's stages as one lane per stage, each labelled with its total, the blocks joined by thin
+ * lines where the stage changes. [laneLabels] are in the order of [STAGE_LANES].
  */
 @Composable
-internal fun Hypnogram(night: Night, rowLabels: List<String>, description: String, locale: Locale, modifier: Modifier = Modifier) {
+internal fun StageLanes(night: Night, laneLabels: List<String>, description: String, modifier: Modifier = Modifier) {
     val colors = chartColors()
-    val ink = MaterialTheme.colorScheme.onSurfaceVariant
-    val style = MaterialTheme.typography.labelSmall.copy(color = ink)
+    val track = MaterialTheme.colorScheme.surfaceVariant
+    val labelStyle = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.onSurface)
     val measurer = rememberTextMeasurer()
-    val time = remember(locale) { DateTimeFormatter.ofPattern("HH:mm", locale) }
-    Canvas(modifier.fillMaxWidth().height(HYPNOGRAM_HEIGHT).semantics { contentDescription = description }) {
-        val labelWidth = rowLabels.maxOf { measurer.measure(it, style).size.width } + 8.dp.toPx()
-        val axis = 18.dp.toPx()
-        val plotWidth = size.width - labelWidth
-        val rowHeight = (size.height - axis) / HYPNOGRAM_ROWS.size
+    Canvas(modifier.fillMaxWidth().height(LANE_HEIGHT * STAGE_LANES.size).semantics { contentDescription = description }) {
+        val laneHeight = LANE_HEIGHT.toPx()
+        val label = 20.dp.toPx()
+        val trackHeight = laneHeight - label - 8.dp.toPx()
         val start = night.start.toEpochMilli()
-        val span = (night.end.toEpochMilli() - start).coerceAtLeast(1)
-        fun x(t: Instant) = labelWidth + (t.toEpochMilli() - start).toFloat() / span * plotWidth
+        val span = (night.end.toEpochMilli() - start).coerceAtLeast(1).toFloat()
+        fun x(t: Instant) = (t.toEpochMilli() - start) / span * size.width
+        fun trackTop(lane: Int) = lane * laneHeight + label
 
-        rowLabels.forEachIndexed { i, label ->
-            val layout = measurer.measure(label, style)
-            drawText(layout, topLeft = Offset(0f, i * rowHeight + (rowHeight - layout.size.height) / 2))
-            drawLine(colors.grid, Offset(labelWidth, (i + 1) * rowHeight), Offset(size.width, (i + 1) * rowHeight), 1.dp.toPx())
+        laneLabels.forEachIndexed { lane, text ->
+            drawText(measurer, text, Offset(0f, lane * laneHeight), labelStyle)
+            drawRoundRect(track, Offset(0f, trackTop(lane)), Size(size.width, trackHeight), CornerRadius(trackHeight / 2))
         }
-        val barHeight = rowHeight * 0.62f
-        var previousRow: Int? = null
+        var previous: Int? = null
         for (stage in night.stages) {
-            val row = stage.type.row()
+            val lane = stage.type.lane()
             val left = x(stage.start)
-            val right = maxOf(x(stage.end), left + 1.dp.toPx())
-            val top = row * rowHeight + (rowHeight - barHeight) / 2
-            previousRow?.takeIf { it != row }?.let { from ->
+            val right = maxOf(x(stage.end), left + 2.dp.toPx())
+            previous?.takeIf { it != lane }?.let { from ->
+                val upper = minOf(from, lane)
+                val lower = maxOf(from, lane)
                 drawLine(
-                    colors.muted.copy(alpha = 0.6f),
-                    Offset(left, from * rowHeight + rowHeight / 2),
-                    Offset(left, row * rowHeight + rowHeight / 2),
+                    colors.muted.copy(alpha = 0.5f),
+                    Offset(left, trackTop(upper) + trackHeight / 2),
+                    Offset(left, trackTop(lower) + trackHeight / 2),
                     1.dp.toPx(),
                 )
             }
-            drawRoundRect(colors.stage(stage.type), Offset(left, top), Size(right - left, barHeight), CornerRadius(2.dp.toPx()))
-            previousRow = row
-        }
-
-        // Start, end and whole hours in between, skipping labels that would collide.
-        val labels = buildList {
-            add(night.start)
-            var hour = night.start.atZone(night.zone).withMinute(0).withSecond(0).withNano(0).plusHours(1).toInstant()
-            while (hour < night.end.minus(Duration.ofMinutes(40))) {
-                add(hour)
-                hour = hour.plus(Duration.ofHours(1))
-            }
-            add(night.end)
-        }
-        var free = 0f
-        labels.forEachIndexed { i, t ->
-            val text = time.format(t.atZone(night.zone))
-            val layout = measurer.measure(text, style)
-            val center = x(t)
-            val left = when (i) {
-                0 -> labelWidth
-                labels.lastIndex -> size.width - layout.size.width
-                else -> center - layout.size.width / 2
-            }
-            if (left < free ||
-                (i != labels.lastIndex && left + layout.size.width > size.width - layout.size.width - 8.dp.toPx())
-            ) {
-                return@forEachIndexed
-            }
-            drawText(layout, topLeft = Offset(left, size.height - layout.size.height))
-            free = left + layout.size.width + 8.dp.toPx()
+            drawRoundRect(
+                color = colors.stage(stage.type),
+                topLeft = Offset(left, trackTop(lane)),
+                size = Size(right - left, trackHeight),
+                cornerRadius = CornerRadius(minOf(trackHeight / 2, (right - left) / 2)),
+            )
+            previous = lane
         }
     }
 }
 
 /**
- * Recent nights as bars from falling asleep to waking on a shared clock axis, newest at the bottom.
- * Lined-up bars mean a regular rhythm. [selected] is drawn in full colour; tapping a row selects it.
+ * Where a value falls on a track: the healthy range as a tinted band, the value as a marker. Values
+ * beyond the track are drawn at its end.
  */
 @Composable
-internal fun SleepSchedule(
-    nights: List<Night>,
-    selected: LocalDate,
-    onSelect: (LocalDate) -> Unit,
+internal fun RangeBar(
+    value: Double,
+    range: ClosedFloatingPointRange<Double>,
+    track: ClosedFloatingPointRange<Double>,
+    modifier: Modifier = Modifier,
+) {
+    val colors = chartColors()
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+    val ring = MaterialTheme.colorScheme.surfaceContainerLow
+    val ink = MaterialTheme.colorScheme.onSurface
+    Canvas(modifier.fillMaxWidth().height(20.dp)) {
+        val height = 10.dp.toPx()
+        val top = (size.height - height) / 2
+        fun x(v: Double) =
+            ((v.coerceIn(track.start, track.endInclusive) - track.start) / (track.endInclusive - track.start) * size.width).toFloat()
+        drawRoundRect(trackColor, Offset(0f, top), Size(size.width, height), CornerRadius(height / 2))
+        drawRoundRect(
+            colors.positive.copy(alpha = 0.4f),
+            Offset(x(range.start), top),
+            Size(x(range.endInclusive) - x(range.start), height),
+            CornerRadius(height / 2),
+        )
+        val center = Offset(x(value), size.height / 2)
+        drawCircle(ring, 8.dp.toPx(), center)
+        drawCircle(ink, 6.dp.toPx(), center)
+    }
+}
+
+/**
+ * Heart rate through the night as five-minute averages, with the night's resting heart rate as a
+ * reference line and the lowest stretch marked.
+ */
+@Composable
+internal fun SleepingHeartRateChart(
+    night: Night,
+    sleeping: SleepingHeartRate,
+    restingLabel: String?,
     description: String,
     locale: Locale,
     modifier: Modifier = Modifier,
 ) {
     val colors = chartColors()
+    val line = colors.series[1]
+    val ink = MaterialTheme.colorScheme.onSurfaceVariant
+    val ring = MaterialTheme.colorScheme.surfaceContainerLow
+    val style = MaterialTheme.typography.labelSmall.copy(color = ink)
+    val measurer = rememberTextMeasurer()
+    val time = remember(locale) { DateTimeFormatter.ofPattern("HH:mm", locale) }
+    Canvas(modifier.fillMaxWidth().height(150.dp).semantics { contentDescription = description }) {
+        val axis = 18.dp.toPx()
+        val plotHeight = size.height - axis
+        val resting = night.restingHr
+        val values = sleeping.curve.map { it.second } + listOfNotNull(resting)
+        val low = values.min() - 3
+        val high = values.max() + 3
+        val start = night.start.toEpochMilli()
+        val span = (night.end.toEpochMilli() - start).coerceAtLeast(1).toFloat()
+        fun x(t: Instant) = (t.toEpochMilli() - start) / span * size.width
+        fun y(bpm: Double) = ((high - bpm) / (high - low) * plotHeight).toFloat()
+
+        resting?.let {
+            drawLine(colors.baseline, Offset(0f, y(it)), Offset(size.width, y(it)), 1.dp.toPx())
+            restingLabel?.let { text ->
+                val layout = measurer.measure(text, style)
+                drawText(
+                    layout,
+                    topLeft = Offset(size.width - layout.size.width, (y(it) - layout.size.height - 2.dp.toPx()).coerceAtLeast(0f)),
+                )
+            }
+        }
+        val path = Path()
+        sleeping.curve.forEachIndexed { i, (t, bpm) -> if (i == 0) path.moveTo(x(t), y(bpm)) else path.lineTo(x(t), y(bpm)) }
+        drawPath(path, line, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+        val (lowestAt, lowestBpm) = sleeping.curve.minBy { it.second }
+        drawCircle(ring, 5.dp.toPx(), Offset(x(lowestAt), y(lowestBpm)))
+        drawCircle(line, 3.5.dp.toPx(), Offset(x(lowestAt), y(lowestBpm)))
+        clockLabels(measurer, night, time, style, ::x)
+    }
+}
+
+/** Bedtime at the left, the wake time at the right and every second hour between, without collisions. */
+private fun DrawScope.clockLabels(measurer: TextMeasurer, night: Night, time: DateTimeFormatter, style: TextStyle, x: (Instant) -> Float) {
+    val start = measurer.measure(time.format(night.start.atZone(night.zone)), style)
+    val end = measurer.measure(time.format(night.end.atZone(night.zone)), style)
+    drawText(start, topLeft = Offset(0f, size.height - start.size.height))
+    drawText(end, topLeft = Offset(size.width - end.size.width, size.height - end.size.height))
+    var free = start.size.width + 8.dp.toPx()
+    val limit = size.width - end.size.width - 8.dp.toPx()
+    var hour = night.start.atZone(night.zone).withMinute(0).withSecond(0).withNano(0).plusHours(2).toInstant()
+    while (hour < night.end) {
+        val layout = measurer.measure(time.format(hour.atZone(night.zone)), style)
+        val left = x(hour) - layout.size.width / 2
+        if (left >= free && left + layout.size.width <= limit) {
+            drawText(layout, topLeft = Offset(left, size.height - layout.size.height))
+            free = left + layout.size.width + 8.dp.toPx()
+        }
+        hour = hour.plusSeconds(2 * 3_600L)
+    }
+}
+
+/**
+ * Recent nights as bars from going to bed to getting up on a shared clock axis, one row per night,
+ * the selected night in full colour. Lined-up bars mean a regular rhythm.
+ */
+@Composable
+internal fun SleepWindows(nights: List<Night>, selected: LocalDate, description: String, locale: Locale, modifier: Modifier = Modifier) {
+    val colors = chartColors()
     val ink = MaterialTheme.colorScheme.onSurfaceVariant
     val style = MaterialTheme.typography.labelSmall.copy(color = ink)
-    val selectedStyle = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurface)
     val measurer = rememberTextMeasurer()
     val day = remember(locale) { DateTimeFormatter.ofPattern("EEE d", locale) }
-    val select by rememberUpdatedState(onSelect)
-    val rowHeight = 22.dp
+    val rowHeight = 18.dp
 
     // Clock minutes counted from noon, so that a night runs left to right without wrapping.
-    fun minuteFromNoon(t: Instant, night: Night): Int {
-        val local = t.atZone(night.zone).toLocalTime().toSecondOfDay() / 60
-        return (local - NOON + DAY) % DAY
-    }
-    val from = (nights.minOfOrNull { minuteFromNoon(it.start, it) } ?: 0) / 60 * 60
-    val to = ((nights.maxOfOrNull { minuteFromNoon(it.end, it) } ?: DAY) + 59) / 60 * 60
-    Canvas(
-        modifier
-            .fillMaxWidth()
-            .height(rowHeight * nights.size + 20.dp)
-            .semantics { contentDescription = description }
-            .pointerInput(nights) {
-                detectTapGestures { offset ->
-                    val index = (offset.y / rowHeight.toPx()).toInt()
-                    nights.getOrNull(index)?.let { select(it.date) }
-                }
-            },
-    ) {
-        val labelWidth = 52.dp.toPx()
+    fun fromNoon(t: Instant, night: Night): Int = (t.atZone(night.zone).toLocalTime().toSecondOfDay() / 60 - NOON + DAY) % DAY
+    val from = (nights.minOfOrNull { fromNoon(it.start, it) } ?: 0) / 60 * 60
+    val to = ((nights.maxOfOrNull { fromNoon(it.end, it) } ?: DAY) + 59) / 60 * 60
+    Canvas(modifier.fillMaxWidth().height(rowHeight * nights.size + 18.dp).semantics { contentDescription = description }) {
+        val labelWidth = 48.dp.toPx()
         val plotWidth = size.width - labelWidth
         val span = (to - from).coerceAtLeast(60).toFloat()
         fun x(minute: Int) = labelWidth + (minute - from) / span * plotWidth
-        // Hour grid every two hours.
         var hour = from
         while (hour <= to) {
             drawLine(colors.grid, Offset(x(hour), 0f), Offset(x(hour), rowHeight.toPx() * nights.size), 1.dp.toPx())
-            val clock = ((hour + NOON) % DAY) / 60
-            axisLabel(measurer, "%02d".format(Locale.ROOT, clock), x(hour), size.height, style)
+            val layout = measurer.measure("%02d".format(Locale.ROOT, ((hour + NOON) % DAY) / 60), style)
+            drawText(
+                layout,
+                topLeft = Offset(
+                    (x(hour) - layout.size.width / 2).coerceIn(0f, size.width - layout.size.width),
+                    size.height - layout.size.height,
+                ),
+            )
             hour += 120
         }
         nights.forEachIndexed { i, night ->
-            val top = i * rowHeight.toPx() + rowHeight.toPx() * 0.2f
+            val top = i * rowHeight.toPx()
+            val label = measurer.measure(day.format(night.date), style)
+            drawText(label, topLeft = Offset(0f, top + (rowHeight.toPx() - label.size.height) / 2))
+            val left = x(fromNoon(night.start, night))
+            val right = x(fromNoon(night.end, night)).coerceAtLeast(left + 2.dp.toPx())
             val height = rowHeight.toPx() * 0.6f
-            val isSelected = night.date == selected
-            val label = measurer.measure(day.format(night.date), if (isSelected) selectedStyle else style)
-            drawText(label, topLeft = Offset(0f, i * rowHeight.toPx() + (rowHeight.toPx() - label.size.height) / 2))
-            val left = x(minuteFromNoon(night.start, night))
-            val right = x(minuteFromNoon(night.end, night)).coerceAtLeast(left + 2.dp.toPx())
             drawRoundRect(
-                color = if (isSelected) colors.series[0] else colors.muted.copy(alpha = 0.5f),
-                topLeft = Offset(left, top),
+                color = if (night.date == selected) colors.series[0] else colors.muted.copy(alpha = 0.5f),
+                topLeft = Offset(left, top + (rowHeight.toPx() - height) / 2),
                 size = Size(right - left, height),
-                cornerRadius = CornerRadius(4.dp.toPx()),
+                cornerRadius = CornerRadius(height / 2),
             )
         }
     }
 }
 
-private fun DrawScope.axisLabel(measurer: TextMeasurer, text: String, center: Float, bottom: Float, style: TextStyle) {
-    val layout = measurer.measure(text, style)
-    val left = (center - layout.size.width / 2).coerceIn(0f, size.width - layout.size.width)
-    drawText(layout, topLeft = Offset(left, bottom - layout.size.height))
-}
-
-private val HYPNOGRAM_HEIGHT = 150.dp
+private val LANE_HEIGHT = 50.dp
 private const val NOON = 12 * 60
 private const val DAY = 24 * 60

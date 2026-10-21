@@ -6,10 +6,8 @@ import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.data.repository.NightRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
@@ -28,9 +26,8 @@ sealed interface SleepUiState {
 
 @HiltViewModel
 class SleepViewModel @Inject constructor(nights: NightRepository) : ViewModel() {
-    val state: StateFlow<SleepUiState> = nights.observeNights()
-        .map { all -> SleepUiState.Loaded(all, SleepScore.all(all), all.associate { it.date to SleepScore.need(all, it.date) }) }
-        .flowOn(Dispatchers.Default)
+    val state: StateFlow<SleepUiState> = nights.observeSleep()
+        .map { history -> SleepUiState.Loaded(history.nights, history.scores, history.needs) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), SleepUiState.Loading)
 
     private companion object {

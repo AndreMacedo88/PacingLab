@@ -9,6 +9,7 @@ import app.pacinglab.core.analytics.load.WeekSummary
 import app.pacinglab.core.analytics.load.WorkoutLoad
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.Readiness
+import app.pacinglab.core.analytics.recovery.SleepHistory
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.analytics.workout.TrainingSession
 import app.pacinglab.core.data.repository.NightRepository
@@ -82,21 +83,23 @@ class TodayViewModel @Inject constructor(
     private val clock: Clock,
 ) : ViewModel() {
     val state: StateFlow<TodayUiState> = combine(
-        nights.observeNights(),
+        nights.observeSleep(),
         trainingLoad.observeWorkoutLoads(),
         workouts.observeSessions(),
         trainingLoad.anchors,
-    ) { allNights, loads, sessions, anchors -> Inputs(allNights, loads, sessions, anchors.at(LocalDate.now(clock)) != null) }
+    ) { sleep, loads, sessions, anchors -> Inputs(sleep, loads, sessions, anchors.at(LocalDate.now(clock)) != null) }
         .mapLatest { build(it) }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TodayUiState.Loading)
 
     private class Inputs(
-        val nights: List<Night>,
+        val sleep: SleepHistory,
         val loads: List<WorkoutLoad>,
         val sessions: List<TrainingSession>,
         val heartRateValuesSet: Boolean,
-    )
+    ) {
+        val nights: List<Night> get() = sleep.nights
+    }
 
     private suspend fun build(inputs: Inputs): TodayUiState.Loaded {
         val today = LocalDate.now(clock)
@@ -105,10 +108,9 @@ class TodayViewModel @Inject constructor(
         val monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         return TodayUiState.Loaded(
             today = today,
-            readiness = Readiness.of(inputs.nights, form.lastOrNull()?.takeIf { it.date == today }, today),
+            readiness = Readiness.of(inputs.nights, form.lastOrNull()?.takeIf { it.date == today }, today, inputs.sleep.scores),
             nights = inputs.nights.filter { it.date > today.minusDays(NIGHT_DAYS.toLong()) },
-            sleepScores = SleepScore.all(inputs.nights.filter { it.date > today.minusDays(NIGHT_DAYS + SCORE_HISTORY_DAYS) })
-                .filterKeys { it > today.minusDays(NIGHT_DAYS.toLong()) },
+            sleepScores = inputs.sleep.scores.filterKeys { it > today.minusDays(NIGHT_DAYS.toLong()) },
             form = form.takeLast(FORM_DAYS),
             week = TrainingLoads.weeks(inputs.loads, until = today, count = 1).firstOrNull(),
             weekLoads = List(7) { daily[monday.plusDays(it.toLong())] ?: 0.0 },
@@ -148,9 +150,6 @@ class TodayViewModel @Inject constructor(
     companion object {
         const val NIGHT_DAYS = 14
         const val FORM_DAYS = 42
-
-        /** Earlier nights the sleep scores need for need and regularity. */
-        private const val SCORE_HISTORY_DAYS = 30L
         private const val STOP_TIMEOUT_MILLIS = 5_000L
     }
 }

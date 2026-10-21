@@ -58,11 +58,34 @@ class SleepScoreTest {
     private fun usualWeek(last: LocalDate) = (7 downTo 1).map { night(last.minusDays(it.toLong())) }
 
     @Test
-    fun `a night meeting every criterion scores 100`() {
-        val score = SleepScore.of(night(day), needMillis = 7 * hour, earlier = usualWeek(day))
+    fun `only an excellent night scores 100`() {
+        val excellent = night(day, latency = 8, waso = 4, awakenings = 0)
+
+        val score = SleepScore.of(excellent, needMillis = 7 * hour, earlier = usualWeek(day))
 
         assertThat(score.score).isEqualTo(100)
         assertThat(score.rating).isEqualTo(SleepRating.GOOD)
+    }
+
+    @Test
+    fun `a night just meeting every threshold scores about 80`() {
+        // Efficiency 85 %, 20 min awake after falling asleep, 30 min to fall asleep, one long awakening,
+        // asleep exactly the need and the midpoint 45 min from usual (35 min later bedtime plus 20 min
+        // longer to fall asleep than on the usual nights).
+        val inBed = 8.0
+        val adequate = night(day, inBed = inBed, latency = 30, waso = 42, awakenings = 1, bedtimeShiftMinutes = 35)
+            .let {
+                it.copy(
+                    continuity = it.continuity!!.copy(wakeAfterOnsetMillis = 20 * 60_000L),
+                    asleepMillis = (inBed * 0.85 * hour).toLong(),
+                )
+            }
+
+        val score = SleepScore.of(adequate, needMillis = adequate.asleepMillis, earlier = usualWeek(day))
+
+        assertThat(score.continuity!!).isCloseTo(0.6, 1e-9)
+        assertThat(score.regularity!!).isCloseTo(0.6, 1e-9)
+        assertThat(score.score).isBetween(78, 92)
     }
 
     @Test
@@ -77,11 +100,17 @@ class SleepScoreTest {
     }
 
     @Test
-    fun `each criterion scales linearly between good and poor`() {
-        assertThat(SleepScore.fraction(0.85, good = 0.85, bad = 0.74)).isEqualTo(1.0)
-        assertThat(SleepScore.fraction(0.795, good = 0.85, bad = 0.74)).isCloseTo(0.5, 1e-9)
-        assertThat(SleepScore.fraction(35.5, good = 20.0, bad = 51.0)).isCloseTo(0.5, 1e-9)
-        assertThat(SleepScore.fraction(70.0, good = 20.0, bad = 51.0)).isEqualTo(0.0)
+    fun `measures are graded around their threshold`() {
+        // Higher is better: efficiency.
+        assertThat(SleepScore.graded(0.97, best = 0.95, threshold = 0.85, worst = 0.75)).isEqualTo(1.0)
+        assertThat(SleepScore.graded(0.90, best = 0.95, threshold = 0.85, worst = 0.75)).isCloseTo(0.8, 1e-9)
+        assertThat(SleepScore.graded(0.85, best = 0.95, threshold = 0.85, worst = 0.75)).isCloseTo(0.6, 1e-9)
+        assertThat(SleepScore.graded(0.80, best = 0.95, threshold = 0.85, worst = 0.75)).isCloseTo(0.3, 1e-9)
+        assertThat(SleepScore.graded(0.70, best = 0.95, threshold = 0.85, worst = 0.75)).isEqualTo(0.0)
+        // Lower is better: minutes awake after falling asleep.
+        assertThat(SleepScore.graded(11.0, best = 5.0, threshold = 20.0, worst = 50.0)).isCloseTo(0.84, 1e-9)
+        assertThat(SleepScore.graded(35.0, best = 5.0, threshold = 20.0, worst = 50.0)).isCloseTo(0.3, 1e-9)
+        assertThat(SleepScore.graded(60.0, best = 5.0, threshold = 20.0, worst = 50.0)).isEqualTo(0.0)
     }
 
     @Test
@@ -97,9 +126,18 @@ class SleepScoreTest {
 
     @Test
     fun `stage shares do not change the score`() {
-        val lowRem = night(day, deep = 0.08, rem = 0.10)
+        val usual = SleepScore.of(night(day), needMillis = 7 * hour, earlier = usualWeek(day)).score
 
-        assertThat(SleepScore.of(lowRem, needMillis = 7 * hour, earlier = usualWeek(day)).score).isEqualTo(100)
+        assertThat(
+            SleepScore.of(night(day, deep = 0.08, rem = 0.10), needMillis = 7 * hour, earlier = usualWeek(day)).score,
+        ).isEqualTo(usual)
+    }
+
+    @Test
+    fun `regularity ignores nights more than two weeks back`() {
+        val old = (30 downTo 24).map { night(day.minusDays(it.toLong()), bedtimeShiftMinutes = 180) }
+
+        assertThat(SleepScore.of(night(day), needMillis = 7 * hour, earlier = old).regularity).isNull()
     }
 
     @Test

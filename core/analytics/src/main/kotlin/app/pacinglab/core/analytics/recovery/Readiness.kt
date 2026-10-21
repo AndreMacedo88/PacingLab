@@ -91,9 +91,10 @@ data class Readiness(
 
         /**
          * Readiness for [today] from [nights] (any order, older nights are ignored) and the fitness model
-         * day for [today], if there is one.
+         * day for [today], if there is one. [sleepScores] passes scores already computed elsewhere, so that
+         * readiness and the sleep screens agree; without them they are computed here.
          */
-        fun of(nights: List<Night>, form: FormDay?, today: LocalDate): Readiness {
+        fun of(nights: List<Night>, form: FormDay?, today: LocalDate, sleepScores: Map<LocalDate, SleepScore>? = null): Readiness {
             val recent = currentStretch(nights.filter { !it.date.isAfter(today) }.sortedBy { it.date })
             val lastNight = recent.lastOrNull()?.takeIf { it.date == today }
             val hrvNights = recent.filter { it.hrvMs != null && it.date > today.minusDays(HRV_WINDOW_DAYS.toLong()) }
@@ -101,7 +102,7 @@ data class Readiness(
 
             val hrv = hrvStatus(hrvNights, lastNight, today)
             val restingHr = restingHrStatus(shortWindow, lastNight)
-            val sleep = sleepStatus(shortWindow, lastNight, today)
+            val sleep = sleepStatus(shortWindow, lastNight, today, sleepScores)
             val training = form?.let(::trainingStatus)
             val breathing = breathingElevated(shortWindow, lastNight)
 
@@ -188,9 +189,14 @@ data class Readiness(
             return RestingHrStatus(tonight, usual, standing, clampScore(70 - 15 * position))
         }
 
-        private fun sleepStatus(nights: List<Night>, lastNight: Night?, today: LocalDate): SleepStatus? {
+        private fun sleepStatus(
+            nights: List<Night>,
+            lastNight: Night?,
+            today: LocalDate,
+            known: Map<LocalDate, SleepScore>?,
+        ): SleepStatus? {
             val tonight = lastNight ?: return null
-            val scores = SleepScore.all(nights)
+            val scores = known?.filterKeys { date -> nights.any { it.date == date } } ?: SleepScore.all(nights)
             val last = scores.getValue(tonight.date)
             val threeNights = scores.filterKeys { it > today.minusDays(3) }.values.map { it.score }
             val threeNightScore = threeNights.average().roundToInt()
