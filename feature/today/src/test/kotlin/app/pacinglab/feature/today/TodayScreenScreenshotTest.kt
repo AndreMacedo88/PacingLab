@@ -1,5 +1,6 @@
 package app.pacinglab.feature.today
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -11,13 +12,16 @@ import app.pacinglab.core.analytics.load.WeekStrain
 import app.pacinglab.core.analytics.load.WeekSummary
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.Readiness
+import app.pacinglab.core.designsystem.component.InfoDialog
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.SleepStageType
 import app.pacinglab.core.model.Sport
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -147,6 +151,18 @@ class TodayScreenScreenshotTest {
     @Test
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     fun withoutHeartRateValues() = capture(loaded(nights(6)).copy(heartRateValuesSet = false))
+
+    @OptIn(ExperimentalRoborazziApi::class)
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun readinessExplanation() {
+        compose.setContent {
+            PacingLabTheme {
+                InfoDialog(title = stringResource(R.string.readiness_title), text = stringResource(R.string.readiness_info), onDismiss = {})
+            }
+        }
+        captureScreenRoboImage()
+    }
 
     @Test
     fun theLastWorkoutOpensItsSession() {
