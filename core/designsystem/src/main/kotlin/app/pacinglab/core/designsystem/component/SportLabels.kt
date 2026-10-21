@@ -1,13 +1,14 @@
-package app.pacinglab.feature.workouts.list
+package app.pacinglab.core.designsystem.component
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import app.pacinglab.core.designsystem.R
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.model.Sport
-import app.pacinglab.feature.workouts.R
 
+/** Display name of the sport. */
 @StringRes
-internal fun Sport.label(): Int = when (this) {
+fun Sport.label(): Int = when (this) {
     Sport.RUN -> R.string.sport_run
     Sport.WALK -> R.string.sport_walk
     Sport.RIDE -> R.string.sport_ride
@@ -16,7 +17,7 @@ internal fun Sport.label(): Int = when (this) {
 }
 
 @DrawableRes
-internal fun Sport.icon(): Int = when (this) {
+fun Sport.icon(): Int = when (this) {
     Sport.RUN -> PacingLabIcons.Run
     Sport.WALK -> PacingLabIcons.Walk
     Sport.RIDE -> PacingLabIcons.Ride

@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.pacinglab.core.designsystem.component.label
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.tabularNumbers
@@ -48,7 +49,6 @@ import app.pacinglab.core.maps.RouteMap
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Sport
 import app.pacinglab.feature.workouts.R
-import app.pacinglab.feature.workouts.list.label
 import java.text.NumberFormat
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter

@@ -22,6 +22,11 @@ class ChartColors(
     val muted: Color,
     val grid: Color,
     val baseline: Color,
+    /** Sleep stages; validated as neighbours in the order deep, REM, light, awake, so draw them in that order. */
+    val deepSleep: Color,
+    val remSleep: Color,
+    val lightSleep: Color,
+    val awake: Color,
 ) {
     companion object {
         val Light = ChartColors(
@@ -31,6 +36,10 @@ class ChartColors(
             muted = Color(0xFF898781),
             grid = Color(0xFFE1E0D9),
             baseline = Color(0xFFC3C2B7),
+            deepSleep = Color(0xFF6250D6),
+            remSleep = Color(0xFF1BAF7A),
+            lightSleep = Color(0xFF2A78D6),
+            awake = Color(0xFFEB6834),
         )
 
         val Dark = ChartColors(
@@ -40,8 +49,23 @@ class ChartColors(
             muted = Color(0xFF898781),
             grid = Color(0xFF2C2C2A),
             baseline = Color(0xFF383835),
+            deepSleep = Color(0xFF9085E9),
+            remSleep = Color(0xFF199E70),
+            lightSleep = Color(0xFF3987E5),
+            awake = Color(0xFFD95926),
         )
     }
+}
+
+/**
+ * Colours for states such as "ready" or "take it easy". They are fixed across themes and always come
+ * with an icon and a label: colour never carries the state alone.
+ */
+object StatusColors {
+    val Good = Color(0xFF0CA30C)
+    val Warning = Color(0xFFFAB219)
+    val Serious = Color(0xFFEC835A)
+    val Critical = Color(0xFFD03B3B)
 }
 
 /** Chart colours for the current theme. */

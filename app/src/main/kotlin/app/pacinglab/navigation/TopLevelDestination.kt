@@ -6,12 +6,9 @@ import androidx.navigation3.runtime.NavKey
 import app.pacinglab.R
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.feature.settings.navigation.SettingsKey
+import app.pacinglab.feature.today.navigation.TodayKey
 import app.pacinglab.feature.trends.navigation.TrendsKey
 import app.pacinglab.feature.workouts.navigation.WorkoutsKey
-import kotlinx.serialization.Serializable
-
-@Serializable
-data object TodayKey : NavKey
 
 /** The destinations in the navigation bar, in display order. */
 enum class TopLevelDestination(

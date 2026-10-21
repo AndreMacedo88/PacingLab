@@ -26,9 +26,12 @@ import app.pacinglab.feature.settings.navigation.DataSourcesKey
 import app.pacinglab.feature.settings.navigation.PhysiologyKey
 import app.pacinglab.feature.settings.navigation.SettingsKey
 import app.pacinglab.feature.settings.navigation.settingsEntries
+import app.pacinglab.feature.today.navigation.TodayKey
+import app.pacinglab.feature.today.navigation.todayEntries
+import app.pacinglab.feature.trends.navigation.TrendsKey
 import app.pacinglab.feature.trends.navigation.trendsEntries
+import app.pacinglab.feature.workouts.navigation.SessionKey
 import app.pacinglab.feature.workouts.navigation.workoutsEntries
-import app.pacinglab.navigation.TodayKey
 import app.pacinglab.navigation.TopLevelDestination
 
 /**
@@ -80,13 +83,11 @@ fun PacingLabApp(modifier: Modifier = Modifier) {
                 rememberViewModelStoreNavEntryDecorator(),
             ),
             entryProvider = entryProvider {
-                entry<TodayKey> {
-                    PlaceholderScreen(
-                        title = stringResource(R.string.destination_today),
-                        icon = PacingLabIcons.TodaySelected,
-                        message = stringResource(R.string.placeholder_today),
-                    )
-                }
+                todayEntries(
+                    onOpenSession = { backStack.add(SessionKey(it)) },
+                    onOpenTrends = { backStack.replaceWith(TrendsKey) },
+                    onOpenPhysiology = { backStack.add(PhysiologyKey) },
+                )
                 workoutsEntries(
                     navigateTo = { backStack.add(it) },
                     navigateBack = { backStack.removeLastOrNull() },

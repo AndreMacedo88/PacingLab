@@ -222,7 +222,8 @@ data class Readiness(
 
         private fun clampScore(value: Double): Int = value.coerceIn(0.0, 100.0).roundToInt()
 
-        private const val MIN_SHORT_BASELINE = 7
+        /** Nights before resting heart rate, sleep and breathing rate have a usual value. */
+        const val MIN_SHORT_BASELINE = 7
         private const val MIN_LN_SD = 0.05
         private const val RESTING_HR_MARGIN = 3.0
         private const val BREATHING_MARGIN = 1.0

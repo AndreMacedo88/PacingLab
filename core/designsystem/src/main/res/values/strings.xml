@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="sport_run">Run</string>
+    <string name="sport_walk">Walk</string>
+    <string name="sport_ride">Ride</string>
+    <string name="sport_strength">Strength</string>
+    <string name="sport_other">Workout</string>
     <string name="info_about">About %1$s</string>
     <string name="info_close">Close</string>
     <string name="zone_number">Z%1$d</string>

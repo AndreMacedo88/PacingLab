@@ -40,6 +40,7 @@ dependencies {
     implementation(projects.core.model)
     implementation(projects.core.data)
     implementation(projects.feature.settings)
+    implementation(projects.feature.today)
     implementation(projects.feature.trends)
     implementation(projects.feature.workouts)
 

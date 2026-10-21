@@ -11,11 +11,6 @@
     <string name="workouts_try_again">Try again</string>
     <string name="workouts_paused">Health Connect asked PacingLab to slow down. Syncing continues in a minute.</string>
 
-    <string name="sport_run">Run</string>
-    <string name="sport_walk">Walk</string>
-    <string name="sport_ride">Ride</string>
-    <string name="sport_strength">Strength</string>
-    <string name="sport_other">Workout</string>
 
     <string name="unit_km">%1$s km</string>
     <string name="unit_pace">%1$s /km</string>
