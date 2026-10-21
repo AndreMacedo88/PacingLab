@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="zone_number">Z%1$d</string>
     <string name="zone_lthr_recovery">Recovery</string>
     <string name="zone_lthr_aerobic">Aerobic</string>
@@ -11,8 +11,8 @@
     <string name="zone_hrr_tempo">Tempo</string>
     <string name="zone_hrr_threshold">Threshold</string>
     <string name="zone_hrr_vo2max">VO2max</string>
-    <string name="zone_polarized_low">Below VT1</string>
-    <string name="zone_polarized_middle">VT1 to VT2</string>
+    <string name="zone_polarized_low" tools:ignore="Typos">Below VT1</string>
+    <string name="zone_polarized_middle" tools:ignore="Typos">VT1 to VT2</string>
     <string name="zone_polarized_high">Above VT2</string>
     <string name="zone_range_below">below %1$d bpm</string>
     <string name="zone_range_between">%1$d–%2$d bpm</string>

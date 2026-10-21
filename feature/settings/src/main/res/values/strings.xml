@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="settings_title">Settings</string>
     <string name="settings_section_data">Data</string>
     <string name="settings_data_sources_summary">Health Connect access and data diagnostics</string>
@@ -22,7 +22,7 @@
     <string name="physiology_zones_five">5 zones</string>
     <string name="physiology_zones_three">3 zones</string>
     <string name="physiology_zones_five_caption">Joe Friel\'s running zones, as a share of threshold heart rate.</string>
-    <string name="physiology_zones_three_caption" formatted="false">Polarised model: the first ventilatory threshold (VT1) is placed at 90 % of threshold heart rate, the second (VT2) at threshold heart rate.</string>
+    <string name="physiology_zones_three_caption" tools:ignore="Typos" formatted="false">Polarised model: the first ventilatory threshold (VT1) is placed at 90 % of threshold heart rate, the second (VT2) at threshold heart rate.</string>
     <string name="physiology_history">History</string>
     <string name="physiology_from">From %1$s</string>
     <string name="physiology_entry_max">Max %1$d</string>

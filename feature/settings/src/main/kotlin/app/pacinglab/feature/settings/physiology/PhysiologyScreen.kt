@@ -32,7 +32,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -79,7 +79,7 @@ fun PhysiologyScreen(
     onDelete: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var editor by rememberSaveable { mutableStateOf(EDITOR_CLOSED) }
+    var editor by rememberSaveable { mutableLongStateOf(EDITOR_CLOSED) }
     val loaded = state as? PhysiologyUiState.Loaded
     Scaffold(
         modifier = modifier,
