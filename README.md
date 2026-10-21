@@ -17,14 +17,20 @@ Early development, used daily by its author. What works today:
 - Interval sessions split into reps and recoveries from the watch's speed data, with pace, distance
   and heart rate for each
 - Heart rate zones from your own maximum, threshold and resting heart rate, kept with the dates they
-  apply from, and time in zones per session
+  apply from, and time in zones per session; left empty, the maximum is estimated from your workouts
+  and the resting heart rate measured during sleep
 - Route maps from OpenStreetMap data (OpenFreeMap tiles, no account needed)
 - Training load (Banister TRIMP, a stress score where an hour at threshold scores 100, Edwards
   TRIMP), fitness, fatigue and form, and weekly training with intensity distribution
 - Nightly HRV, resting heart rate, breathing rate and sleep, and a readiness score that compares
   them with your own baselines
+- A sleep score built on the dimensions of sleep health (duration, continuity, regularity, timing)
+  and a sleep screen with stages, overnight values, schedule and trends
 
-Planned: VO2max trend, sleep details, heart rate charts, HRmax and threshold estimates from your data.
+Planned: VO2max trend, heart rate charts, threshold heart rate from your data.
+
+The [project site](https://andremacedo88.github.io/PacingLab/) has the
+[privacy policy](https://andremacedo88.github.io/PacingLab/privacy.html).
 
 ## Requirements
 
