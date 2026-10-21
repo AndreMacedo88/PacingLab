@@ -23,6 +23,7 @@ import androidx.navigation3.ui.NavDisplay
 import app.pacinglab.R
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.feature.settings.navigation.DataSourcesKey
+import app.pacinglab.feature.settings.navigation.PhysiologyKey
 import app.pacinglab.feature.settings.navigation.SettingsKey
 import app.pacinglab.feature.settings.navigation.settingsEntries
 import app.pacinglab.feature.workouts.navigation.workoutsEntries
@@ -93,6 +94,7 @@ fun PacingLabApp(modifier: Modifier = Modifier) {
                         backStack.replaceWith(SettingsKey)
                         backStack.add(DataSourcesKey)
                     },
+                    openPhysiology = { backStack.add(PhysiologyKey) },
                 )
                 entry<TrendsKey> {
                     PlaceholderScreen(

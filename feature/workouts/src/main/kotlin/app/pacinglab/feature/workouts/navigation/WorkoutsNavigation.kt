@@ -12,11 +12,16 @@ data object WorkoutsKey : NavKey
 @Serializable
 data class SessionKey(val sessionId: String) : NavKey
 
-fun EntryProviderScope<NavKey>.workoutsEntries(navigateTo: (NavKey) -> Unit, navigateBack: () -> Unit, openDataSources: () -> Unit) {
+fun EntryProviderScope<NavKey>.workoutsEntries(
+    navigateTo: (NavKey) -> Unit,
+    navigateBack: () -> Unit,
+    openDataSources: () -> Unit,
+    openPhysiology: () -> Unit,
+) {
     entry<WorkoutsKey> {
         WorkoutsRoute(onOpenSession = { navigateTo(SessionKey(it)) }, onOpenDataSources = openDataSources)
     }
     entry<SessionKey> { key ->
-        SessionRoute(sessionId = key.sessionId, onBack = navigateBack)
+        SessionRoute(sessionId = key.sessionId, onBack = navigateBack, onOpenPhysiology = openPhysiology)
     }
 }

@@ -23,7 +23,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -46,16 +49,28 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Composable
-fun SessionRoute(sessionId: String, onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun SessionRoute(sessionId: String, onBack: () -> Unit, onOpenPhysiology: () -> Unit, modifier: Modifier = Modifier) {
     val viewModel = hiltViewModel<SessionViewModel, SessionViewModel.Factory>(key = sessionId) { it.create(sessionId) }
     val state by viewModel.state.collectAsStateWithLifecycle()
-    SessionScreen(state = state, onBack = onBack, modifier = modifier)
+    SessionScreen(state = state, onBack = onBack, onOpenPhysiology = onOpenPhysiology, modifier = modifier)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SessionScreen(state: SessionUiState, onBack: () -> Unit, modifier: Modifier = Modifier, zoneId: ZoneId = ZoneId.systemDefault()) {
+fun SessionScreen(
+    state: SessionUiState,
+    onBack: () -> Unit,
+    onOpenPhysiology: () -> Unit,
+    modifier: Modifier = Modifier,
+    zoneId: ZoneId = ZoneId.systemDefault(),
+) {
     val locale = LocalConfiguration.current.locales[0]
+    var showSpeed by rememberSaveable { mutableStateOf(false) }
+    val toggle = SpeedToggle(
+        showSpeed = showSpeed,
+        label = stringResource(if (showSpeed) R.string.show_pace else R.string.show_speed),
+        onToggle = { showSpeed = !showSpeed },
+    )
     val title = (state as? SessionUiState.Loaded)?.session?.let { session ->
         session.titles.joinToString(" + ").ifEmpty { stringResource(session.sport.label()) }
     } ?: stringResource(R.string.session_title)
@@ -89,7 +104,11 @@ fun SessionScreen(state: SessionUiState, onBack: () -> Unit, modifier: Modifier 
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item { Header(state.session, locale, zoneId) }
-                item { Metrics(state.session, locale) }
+                item { Metrics(state.session, toggle, locale) }
+                if (state.analysis.isIntervalSession) {
+                    item { IntervalsCard(state.analysis, toggle, locale) }
+                }
+                item { ZonesCard(state.analysis.zones, onOpenPhysiology) }
                 item {
                     Text(
                         text = stringResource(R.string.session_parts_heading),
@@ -115,7 +134,7 @@ private fun Header(session: SessionItem, locale: Locale, zoneId: ZoneId, modifie
 }
 
 @Composable
-private fun Metrics(session: SessionItem, locale: Locale, modifier: Modifier = Modifier) {
+private fun Metrics(session: SessionItem, toggle: SpeedToggle, locale: Locale, modifier: Modifier = Modifier) {
     FlowRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -126,8 +145,13 @@ private fun Metrics(session: SessionItem, locale: Locale, modifier: Modifier = M
         }
         Metric(stringResource(R.string.metric_duration), Formats.duration(session.movingMillis), null)
         if (session.sport == Sport.RUN || session.sport == Sport.WALK) {
-            session.distanceMeters?.let { Formats.pacePerKm(session.movingMillis, it) }?.let {
-                Metric(stringResource(R.string.metric_pace), it, "/km")
+            paceText(session.movingMillis, session.distanceMeters, toggle.showSpeed, locale)?.let {
+                Metric(
+                    label = stringResource(if (toggle.showSpeed) R.string.metric_speed else R.string.metric_pace),
+                    value = it,
+                    unit = null,
+                    modifier = Modifier.speedToggle(toggle),
+                )
             }
         }
         session.averageHr?.let { Metric(stringResource(R.string.metric_avg_hr), it.toString(), "bpm") }

@@ -31,11 +31,44 @@
     <string name="part_time_range">%1$s – %2$s</string>
     <string name="part_streams">HR %1$s · speed %2$s · GPS %3$s</string>
     <string name="part_none">none</string>
+    <string name="unit_speed">%1$s km/h</string>
+    <string name="metric_speed">Average speed</string>
+    <string name="show_speed">Show speed in km/h</string>
+    <string name="show_pace">Show pace per kilometre</string>
+
+    <string name="intervals_title">Intervals</string>
+    <string name="intervals_found">Found from your speed: the watch does not mark reps.</string>
+    <string name="intervals_running">Running</string>
+    <string name="intervals_recovery">Recovery</string>
+    <string name="intervals_easy">Warm-up and cool-down</string>
+    <string name="intervals_header_rep">Rep</string>
+    <string name="intervals_header_time">Time</string>
+    <string name="intervals_header_distance">km</string>
+    <string name="intervals_header_pace">/km</string>
+    <string name="intervals_header_speed">km/h</string>
+    <string name="intervals_header_hr">HR avg/max</string>
+    <string name="intervals_recovery_row">rec</string>
+    <string name="intervals_hr">%1$d bpm average</string>
+    <string name="intervals_hr_pair">%1$d/%2$d</string>
+    <string name="intervals_line">%1$s km · %2$s</string>
+
+    <string name="zones_title">Time in zones</string>
+    <string name="zones_five">5 zones</string>
+    <string name="zones_three">3 zones</string>
+    <string name="zones_missing">Set your maximum heart rate to see time in each zone.</string>
+    <string name="zones_set_up">Set heart rate values</string>
+    <string name="zones_no_heart_rate">No heart rate was recorded in this session.</string>
+    <string name="zones_share">%1$d %%</string>
+
     <string name="session_not_found">This session no longer exists. It may have been deleted in Health Connect.</string>
 
     <plurals name="session_parts">
         <item quantity="one">%1$d part</item>
         <item quantity="other">%1$d parts</item>
+    </plurals>
+    <plurals name="intervals_reps">
+        <item quantity="one">%1$d rep</item>
+        <item quantity="other">%1$d reps</item>
     </plurals>
     <plurals name="part_laps">
         <item quantity="one">%1$d lap</item>

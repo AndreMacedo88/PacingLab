@@ -33,6 +33,12 @@ object Formats {
         return String.format(Locale.ROOT, "%d:%02d", rounded / 60, rounded % 60)
     }
 
+    /** Average speed in km/h with one decimal, or null when pace would be meaningless too. */
+    fun speedKmh(durationMillis: Long, meters: Double, locale: Locale): String? {
+        if (pacePerKm(durationMillis, meters) == null) return null
+        return String.format(locale, "%.1f", meters / 1000.0 / (durationMillis / 3_600_000.0))
+    }
+
     private const val MIN_PACE_DISTANCE = 100.0
 
     /** Slower than an hour per kilometre is standing still, not a pace. */

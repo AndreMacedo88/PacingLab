@@ -31,4 +31,11 @@ class FormatsTest {
         assertThat(Formats.pacePerKm(60_000, 50.0)).isNull()
         assertThat(Formats.pacePerKm(3 * 3_600_000L, 1_000.0)).isNull()
     }
+
+    @Test
+    fun `speed is kilometres per hour with one decimal in the locale`() {
+        assertThat(Formats.speedKmh(durationMillis = 30 * 60_000L, meters = 7_200.0, Locale.UK)).isEqualTo("14.4")
+        assertThat(Formats.speedKmh(durationMillis = 30 * 60_000L, meters = 7_200.0, Locale.forLanguageTag("da-DK"))).isEqualTo("14,4")
+        assertThat(Formats.speedKmh(3 * 3_600_000L, 1_000.0, Locale.UK)).isNull()
+    }
 }
