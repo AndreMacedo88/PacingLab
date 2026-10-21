@@ -13,6 +13,10 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         manifestPlaceholders["appLabel"] = "PacingLab"
+        // MapLibre ships native code for four ABIs; the S25 needs arm64, the emulator x86_64.
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
     }
 
     buildTypes {
@@ -32,6 +36,7 @@ android {
 dependencies {
     implementation(projects.core.designsystem)
     implementation(projects.core.healthconnect)
+    implementation(projects.core.maps)
     implementation(projects.core.model)
     implementation(projects.core.data)
     implementation(projects.feature.settings)

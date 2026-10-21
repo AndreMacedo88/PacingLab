@@ -24,11 +24,13 @@ spotless {
     val composeRules = "io.nlopez.compose.rules:ktlint:${libs.versions.composeRules.get()}"
     // Kotlin's official coding conventions. Spotless does not pick the style up from .editorconfig.
     val ktlintStyle = mapOf("ktlint_code_style" to "intellij_idea")
+    // The map renderer is app-wide infrastructure, like the theme, so it may travel as a CompositionLocal.
+    val composeStyle = ktlintStyle + ("compose_allowed_composition_locals" to "LocalMapSnapshots")
     kotlin {
         target(sources("**/*.kt"))
         ktlint(ktlintVersion)
             .setEditorConfigPath(rootProject.file(".editorconfig"))
-            .editorConfigOverride(ktlintStyle)
+            .editorConfigOverride(composeStyle)
             .customRuleSets(listOf(composeRules))
     }
     kotlinGradle {

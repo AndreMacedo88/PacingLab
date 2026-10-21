@@ -3,10 +3,13 @@ package app.pacinglab.feature.workouts.detail
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import app.pacinglab.core.analytics.intervals.PhaseKind
 import app.pacinglab.core.analytics.session.PhaseSummary
@@ -15,6 +18,8 @@ import app.pacinglab.core.analytics.zones.ZoneDistribution
 import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.model.HeartRateAnchors
+import app.pacinglab.core.model.RecordingMethod
+import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.Sport
 import app.pacinglab.core.model.ZoneModel
 import app.pacinglab.feature.workouts.list.SessionItem
@@ -28,6 +33,8 @@ import org.robolectric.annotation.GraphicsMode
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.Locale
+import kotlin.math.cos
+import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -78,23 +85,83 @@ class SessionScreenScreenshotTest {
         ZoneDistribution(three, longArrayOf(20 * 60_000L, 11 * 60_000L, 5 * 60_000L)),
     )
 
-    private val parts = listOf(
-        PartItem("p1", "Run", "running", Sport.RUN, start, start.plusSeconds(360), cest, 360, 360, 360, 2),
-        PartItem(
-            "p2", "Interval workout", "boot_camp", Sport.RUN,
-            start.plusSeconds(
-                420,
+    /** A 1.2 km warm-up out and back along a park path. */
+    private val warmUpRoute: Route = run {
+        val n = 120
+        val latitudes = DoubleArray(n) { i -> 55.6800 + 0.0045 * sin(Math.PI * i / (n - 1)) + 0.0004 * sin(6 * Math.PI * i / (n - 1)) }
+        val longitudes = DoubleArray(n) { i -> 12.5700 + 0.0060 * (1 - cos(2 * Math.PI * i / (n - 1))) / 2 }
+        Route(LongArray(n) { it * 3_000L }, latitudes, longitudes, DoubleArray(n) { Double.NaN }, DoubleArray(n) { Double.NaN })
+    }
+
+    private val analysis = SessionAnalysis(phases, zones)
+
+    private val warmUp = DetailScope(
+        title = "Run",
+        sport = Sport.RUN,
+        start = start,
+        end = start.plusSeconds(360),
+        zoneOffset = cest,
+        movingMillis = 360_000L,
+        distanceMeters = 1_190.0,
+        averageHr = 139,
+        maxHr = 151,
+        routes = listOf(warmUpRoute),
+        routeOnlyFrom = emptyList(),
+        analysis = SessionAnalysis(
+            phases = emptyList(),
+            zones = listOf(
+                ZoneDistribution(five, longArrayOf(4 * 60_000L, 2 * 60_000L, 0, 0, 0)),
+                ZoneDistribution(three, longArrayOf(6 * 60_000L, 0, 0)),
             ),
-            start.plusSeconds(2_580), cest, 1_090, 2_150, 0, 0,
         ),
+        recording = RecordingItem("com.fitbit.FitbitMobile", RecordingMethod.ACTIVE, "running", 193, 348, 349, 2),
     )
 
-    @Test
-    fun intervals() = capture(SessionUiState.Loaded(session, parts, SessionAnalysis(phases, zones), zonesAvailable = true))
+    private val intervalWorkout = warmUp.copy(
+        title = "Interval workout",
+        start = start.plusSeconds(420),
+        end = start.plusSeconds(2_580),
+        movingMillis = 2_160_000L,
+        distanceMeters = 5_650.0,
+        averageHr = 162,
+        maxHr = 181,
+        routes = emptyList(),
+        analysis = SessionAnalysis(
+            phases.drop(1),
+            listOf(
+                ZoneDistribution(five, longArrayOf(5 * 60_000L, 3 * 60_000L, 6 * 60_000L, 11 * 60_000L, 5 * 60_000L)),
+                ZoneDistribution(three, longArrayOf(14 * 60_000L, 11 * 60_000L, 5 * 60_000L)),
+            ),
+        ),
+        recording = RecordingItem("com.fitbit.FitbitMobile", RecordingMethod.ACTIVE, "boot_camp", 994, 1_799, 0, 0),
+    )
+
+    private val whole = warmUp.copy(
+        title = null,
+        end = intervalWorkout.end,
+        movingMillis = session.movingMillis,
+        distanceMeters = session.distanceMeters,
+        averageHr = session.averageHr,
+        maxHr = session.maxHr,
+        routeOnlyFrom = listOf("Run"),
+        analysis = analysis,
+        recording = null,
+    )
+
+    private val loaded = SessionUiState.Loaded(session, listOf(whole, warmUp, intervalWorkout), zonesAvailable = true)
 
     @Test
-    fun intervalsDark() =
-        capture(SessionUiState.Loaded(session, parts, SessionAnalysis(phases, zones), zonesAvailable = true), darkTheme = true)
+    fun intervals() = capture(loaded)
+
+    @Test
+    fun intervalsDark() = capture(loaded, darkTheme = true)
+
+    @Test
+    @Config(qualifiers = "w384dp-h1400dp-xxhdpi")
+    fun warmUpPart() = capture(loaded, scope = 1)
+
+    @Test
+    fun intervalWorkoutPart() = capture(loaded, scope = 2)
 
     @Test
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
@@ -119,7 +186,7 @@ class SessionScreenScreenshotTest {
         compose.setContent {
             PacingLabTheme {
                 SessionScreen(
-                    state = SessionUiState.Loaded(session, parts, SessionAnalysis(phases, zones), zonesAvailable = true),
+                    state = loaded,
                     onBack = {},
                     onOpenPhysiology = {},
                     zoneId = ZoneOffset.UTC,
@@ -137,20 +204,46 @@ class SessionScreenScreenshotTest {
     }
 
     @Test
+    fun tappingARecordedPartShowsOnlyThatPart() {
+        compose.setContent {
+            PacingLabTheme {
+                SessionScreen(state = loaded, onBack = {}, onOpenPhysiology = {}, zoneId = ZoneOffset.UTC)
+            }
+        }
+        compose.onNodeWithText("Recorded with Fitbit", substring = true).assertDoesNotExist()
+
+        compose.onNodeWithText("Recorded parts").performScrollTo()
+        compose.onAllNodesWithText("Interval workout")[1].performScrollTo().performClick()
+
+        compose.onNodeWithText("Recorded with Fitbit", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("No GPS", substring = true).assertExists()
+        compose.onNodeWithText("Recorded parts").assertDoesNotExist()
+        compose.onNodeWithText("5.65 km").assertExists()
+    }
+
+    @Test
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     fun steadyRunWithoutZones() = capture(
         SessionUiState.Loaded(
             session.copy(titles = listOf("Run"), parts = 1, distanceMeters = 8_120.0, movingMillis = 41 * 60_000L),
-            parts.take(1),
-            SessionAnalysis(phases = emptyList(), zones = emptyList()),
+            listOf(
+                warmUp.copy(
+                    end = start.plusSeconds(41 * 60L),
+                    movingMillis = 41 * 60_000L,
+                    distanceMeters = 8_120.0,
+                    averageHr = 148,
+                    maxHr = 163,
+                    analysis = SessionAnalysis(phases = emptyList(), zones = emptyList()),
+                ),
+            ),
             zonesAvailable = false,
         ),
     )
 
-    private fun capture(state: SessionUiState, darkTheme: Boolean = false) {
+    private fun capture(state: SessionUiState, darkTheme: Boolean = false, scope: Int = 0) {
         compose.setContent {
             PacingLabTheme(darkTheme = darkTheme) {
-                SessionScreen(state = state, onBack = {}, onOpenPhysiology = {}, zoneId = ZoneOffset.UTC)
+                SessionScreen(state = state, onBack = {}, onOpenPhysiology = {}, zoneId = ZoneOffset.UTC, initialScope = scope)
             }
         }
         compose.onRoot().captureRoboImage()

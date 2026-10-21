@@ -17,6 +17,8 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                 checkDependencies = true
                 abortOnError = true
                 warningsAsErrors = false
+                // Timber only arrives as a MapLibre dependency; PacingLab logs with android.util.Log.
+                disable += "LogNotTimber"
             }
         }
     }

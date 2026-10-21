@@ -28,9 +28,21 @@
     <string name="metric_avg_hr">Average HR</string>
     <string name="metric_max_hr">Max HR</string>
     <string name="session_parts_heading">Recorded parts</string>
-    <string name="part_time_range">%1$s – %2$s</string>
+    <string name="session_when">%1$s, %2$s–%3$s</string>
+    <string name="scope_whole_session">Whole session</string>
+    <string name="part_time_range">%1$s–%2$s</string>
     <string name="part_streams">HR %1$s · speed %2$s · GPS %3$s</string>
     <string name="part_none">none</string>
+    <string name="map_description">Map of the route</string>
+    <string name="map_only_from">GPS recorded during %1$s only.</string>
+    <string name="recording_heading">Recording</string>
+    <string name="recording_active">Recorded with %1$s</string>
+    <string name="recording_automatic">Detected automatically by %1$s</string>
+    <string name="recording_manual">Entered by hand in %1$s</string>
+    <string name="recording_unknown">From %1$s</string>
+    <string name="recording_no_gps_intervals">No GPS: the watch records none in interval mode.</string>
+    <string name="origin_fitbit">Fitbit</string>
+    <string name="origin_google_fit">Google Fit</string>
     <string name="unit_speed">%1$s km/h</string>
     <string name="metric_speed">Average speed</string>
     <string name="show_speed">Show speed in km/h</string>
@@ -50,7 +62,6 @@
     <string name="intervals_recovery_row">rec</string>
     <string name="intervals_hr">%1$d bpm average</string>
     <string name="intervals_hr_pair">%1$d/%2$d</string>
-    <string name="intervals_line">%1$s km · %2$s</string>
 
     <string name="zones_title">Time in zones</string>
     <string name="zones_five">5 zones</string>

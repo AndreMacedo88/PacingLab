@@ -82,7 +82,7 @@ kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutine
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 
-maplibre-android = { module = "org.maplibre.gl:android-sdk", version.ref = "maplibre" }
+maplibre-android = { module = "org.maplibre.gl:android-sdk-opengl", version.ref = "maplibre" }
 
 junit4 = { module = "junit:junit", version.ref = "junit4" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
