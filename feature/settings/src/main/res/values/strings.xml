@@ -17,7 +17,6 @@
     <string name="physiology_bpm">%1$d bpm</string>
     <string name="physiology_bpm_unit">bpm</string>
     <string name="physiology_estimated" formatted="false">Estimate: 90 % of max</string>
-    <string name="physiology_not_set">Not set</string>
     <string name="physiology_zones">Zones</string>
     <string name="physiology_zones_five">5 zones</string>
     <string name="physiology_zones_three">3 zones</string>
@@ -37,7 +36,11 @@
     <string name="physiology_editor_change_date">Change date</string>
     <string name="physiology_editor_max_hint">The highest heart rate you have reached, for example at the end of a maximal test or a race.</string>
     <string name="physiology_editor_threshold_hint">Optional. Leave empty to use %1$d bpm, 90 %% of max.</string>
-    <string name="physiology_editor_resting_hint">Optional.</string>
+    <string name="physiology_editor_resting_hint">Optional. Leave empty to use what your watch measures during sleep.</string>
+    <string name="physiology_editor_resting_measured">Optional. Leave empty to use what your watch measures during sleep, now %1$d bpm.</string>
+    <string name="physiology_resting_own">Set by you</string>
+    <string name="physiology_resting_measured">Measured in sleep</string>
+    <string name="physiology_resting_not_measured">Not measured yet</string>
     <string name="physiology_editor_replaces">Replaces the values already set for this day.</string>
     <string name="physiology_error_max">Enter a value from 120 to 240.</string>
     <string name="physiology_error_threshold">Enter a value from 80 to %1$d.</string>

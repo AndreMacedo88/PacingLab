@@ -40,7 +40,8 @@ import java.time.format.FormatStyle
 
 /**
  * Dialog for a new entry or for editing [editing]. A new entry starts from [template] (the values in
- * force today) and today's date, so a change usually means editing one number.
+ * force today) and today's date, so a change usually means editing one number. Resting heart rate is
+ * best left empty: then the value measured during sleep ([measuredRestingHr]) is used and follows changes.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +49,7 @@ internal fun PhysiologyEditor(
     editing: PhysiologyEntry?,
     template: PhysiologyEntry?,
     today: LocalDate,
+    measuredRestingHr: Int?,
     takenDates: Set<LocalDate>,
     onDismiss: () -> Unit,
     onSave: (PhysiologyEntry) -> Unit,
@@ -116,9 +118,11 @@ internal fun PhysiologyEditor(
                     value = restingText,
                     onValueChange = { restingText = it },
                     label = stringResource(R.string.physiology_resting_hr),
-                    supporting = stringResource(
-                        if (input.restingError) R.string.physiology_error_resting else R.string.physiology_editor_resting_hint,
-                    ),
+                    supporting = when {
+                        input.restingError -> stringResource(R.string.physiology_error_resting)
+                        measuredRestingHr != null -> stringResource(R.string.physiology_editor_resting_measured, measuredRestingHr)
+                        else -> stringResource(R.string.physiology_editor_resting_hint)
+                    },
                     isError = input.restingError,
                 )
             }

@@ -32,7 +32,11 @@ class PhysiologyScreenScreenshotTest {
 
     @Test
     @Config(qualifiers = TALL_PHONE)
-    fun estimatedThreshold() = capture(PhysiologyUiState.Loaded(listOf(first), current(first), today))
+    fun estimatedThreshold() =
+        capture(PhysiologyUiState.Loaded(listOf(first), current(first, measuredRestingHr = 58), today, measuredRestingHr = 58))
+
+    @Test
+    fun beforeAnyNightIsRecorded() = capture(PhysiologyUiState.Loaded(listOf(first), current(first), today))
 
     @Test
     @Config(qualifiers = TALL_PHONE)
@@ -50,6 +54,7 @@ class PhysiologyScreenScreenshotTest {
                     editing = null,
                     template = first,
                     today = today,
+                    measuredRestingHr = 58,
                     takenDates = setOf(first.effectiveFrom),
                     onDismiss = {},
                     onSave = {},

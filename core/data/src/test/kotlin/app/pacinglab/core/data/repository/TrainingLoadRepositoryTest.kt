@@ -16,6 +16,7 @@ import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
 import app.pacinglab.core.model.PhysiologyEntry
 import app.pacinglab.core.model.RecordingMethod
+import app.pacinglab.core.model.SleepSession
 import app.pacinglab.core.model.Sport
 import app.pacinglab.core.model.Workout
 import app.pacinglab.core.model.WorkoutStreams
@@ -59,7 +60,8 @@ class TrainingLoadRepositoryTest {
         workouts = WorkoutStore(database)
         physiology = PhysiologyStore(database)
         measurements = MeasurementStore(database)
-        repository = TrainingLoadRepository(workouts, physiology, measurements, Clock.fixed(now, cest))
+        val clock = Clock.fixed(now, cest)
+        repository = TrainingLoadRepository(workouts, physiology, NightRepository(measurements, clock), clock)
     }
 
     @After
@@ -87,9 +89,22 @@ class TrainingLoadRepositoryTest {
     }
 
     @Test
-    fun `measured resting heart rate stands in for one the athlete has not set`() = runTest {
+    fun `resting heart rate measured during sleep stands in for one the athlete has not set`() = runTest {
         physiology.save(PhysiologyEntry(today.minusDays(30), maxHr = 186))
-        measurements.saveMeasurements(listOf(rhr("r1", "2026-10-19T06:00:00Z", 52.0), rhr("r2", "2026-10-20T06:00:00Z", 54.0)))
+        measurements.saveSleep(
+            listOf(
+                sleep("s1", "2026-10-18T21:00:00Z", "2026-10-19T05:00:00Z"),
+                sleep("s2", "2026-10-19T21:00:00Z", "2026-10-20T05:00:00Z"),
+            ),
+        )
+        measurements.saveMeasurements(
+            listOf(
+                rhr("r1", "2026-10-19T05:00:00Z", 52.0),
+                rhr("r2", "2026-10-20T05:00:00Z", 54.0),
+                // Derived from daytime wear: ignored.
+                rhr("r3", "2026-10-16T22:00:00Z", 78.0),
+            ),
+        )
         save(workout("run", start = "2026-10-20T16:31:00Z", minutes = 30), bpm = 165)
 
         val load = repository.observeWorkoutLoads().first().single()
@@ -161,6 +176,9 @@ class TrainingLoadRepositoryTest {
             recordingMethod = method,
         )
     }
+
+    private fun sleep(id: String, start: String, end: String) =
+        SleepSession(id, Instant.parse(start), Instant.parse(end), cest, FITBIT, emptyList())
 
     private fun rhr(id: String, time: String, bpm: Double) = Measurement(
         sourceRecordId = id,

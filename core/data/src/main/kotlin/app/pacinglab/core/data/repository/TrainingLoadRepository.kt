@@ -11,11 +11,9 @@ import app.pacinglab.core.analytics.workout.TrainingSessions
 import app.pacinglab.core.analytics.zones.TimeInZones
 import app.pacinglab.core.analytics.zones.ZoneDistribution
 import app.pacinglab.core.analytics.zones.Zones
-import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
 import app.pacinglab.core.database.store.WorkoutStore
 import app.pacinglab.core.model.HeartRateAnchors
-import app.pacinglab.core.model.MeasurementKind
 import app.pacinglab.core.model.Workout
 import app.pacinglab.core.model.ZoneModel
 import kotlinx.coroutines.Dispatchers
@@ -39,7 +37,7 @@ import javax.inject.Singleton
 class TrainingLoadRepository @Inject constructor(
     private val workouts: WorkoutStore,
     physiology: PhysiologyStore,
-    measurements: MeasurementStore,
+    nights: NightRepository,
     private val clock: Clock,
 ) {
     private class Cached(val scores: LoadScores?, val intensity: ZoneDistribution?)
@@ -49,12 +47,12 @@ class TrainingLoadRepository @Inject constructor(
     /** Scores survive recomposition and syncs; a workout is only recalculated when it or its anchors change. */
     private val cache = ConcurrentHashMap<CacheKey, Cached>()
 
-    /** Heart rate anchors for any day: the athlete's values, completed with the measured resting heart rate. */
-    val anchors: Flow<AnchorTimeline> = combine(
-        physiology.observe(),
-        measurements.observeMeasurements(MeasurementKind.RESTING_HEART_RATE, Instant.EPOCH, FAR_FUTURE),
-    ) { history, resting ->
-        AnchorTimeline(history, resting.associate { (it.time.atZone(it.zoneOffset ?: clock.zone).toLocalDate()) to it.value })
+    /**
+     * Heart rate anchors for any day: the athlete's values, completed with the resting heart rate measured
+     * during sleep (daytime estimates run 10 to 20 bpm higher and are not used).
+     */
+    val anchors: Flow<AnchorTimeline> = combine(physiology.observe(), nights.observeNights()) { history, nightly ->
+        AnchorTimeline(history, nightly.mapNotNull { night -> night.restingHr?.let { night.date to it } }.toMap())
     }
 
     /**
@@ -86,9 +84,5 @@ class TrainingLoadRepository @Inject constructor(
         val heartRate = workouts.heartRate(workout.id)
         if (heartRate.isEmpty()) return Cached(null, null)
         return Cached(HeartRateLoad.of(heartRate, anchors), TimeInZones.compute(heartRate, Zones.of(ZoneModel.POLARIZED_THREE, anchors)))
-    }
-
-    private companion object {
-        val FAR_FUTURE: Instant = Instant.parse("2200-01-01T00:00:00Z")
     }
 }

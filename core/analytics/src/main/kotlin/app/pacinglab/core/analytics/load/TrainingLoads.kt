@@ -11,7 +11,9 @@ import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
+import kotlin.math.abs
 
 /**
  * A workout's share of training load.
@@ -106,9 +108,9 @@ object TrainingLoads {
 
 /**
  * Heart rate anchors for any day: the athlete's own values in force on that day, with the resting heart
- * rate the watch measured when the athlete has not set one.
+ * rate measured during sleep unless the athlete has set one.
  *
- * @param measuredResting daily resting heart rate as measured, any order.
+ * @param measuredResting nightly resting heart rate by the date of the morning, any order.
  */
 class AnchorTimeline(private val history: PhysiologyHistory, measuredResting: Map<LocalDate, Double>) {
     private val resting = measuredResting.toSortedMap()
@@ -117,7 +119,7 @@ class AnchorTimeline(private val history: PhysiologyHistory, measuredResting: Ma
         val entry = history.at(date) ?: return null
         val anchors = ThresholdEstimates.anchors(entry)
         if (anchors.restingHr != null) return anchors
-        val measured = restingBaseline(date) ?: return anchors
+        val measured = measuredRestingAt(date) ?: return anchors
         return if (measured in HeartRateAnchors.RESTING_HR_RANGE &&
             measured < anchors.thresholdHr
         ) {
@@ -127,10 +129,24 @@ class AnchorTimeline(private val history: PhysiologyHistory, measuredResting: Ma
         }
     }
 
-    /** Median of the measured values in the [BASELINE_DAYS] days up to [date]; null without any. */
-    internal fun restingBaseline(date: LocalDate): Int? {
-        val values = resting.subMap(date.minusDays(BASELINE_DAYS - 1L), date.plusDays(1)).values.sorted()
-        if (values.isEmpty()) return null
+    /**
+     * Median of the measured values in the [BASELINE_DAYS] days up to [date]. Without any there, the
+     * nearest [BASELINE_DAYS] days with measurements stand in: resting heart rate changes slowly, and
+     * workouts from before the watch was worn at night still need a value. Null without measurements.
+     */
+    fun measuredRestingAt(date: LocalDate): Int? {
+        if (resting.isEmpty()) return null
+        val window = resting.subMap(date.minusDays(BASELINE_DAYS - 1L), date.plusDays(1)).values.ifEmpty {
+            val before = resting.headMap(date).keys.lastOrNull()
+            val after = resting.tailMap(date).keys.firstOrNull()
+            val nearest = listOfNotNull(before, after).minBy { abs(ChronoUnit.DAYS.between(it, date)) }
+            if (nearest < date) {
+                resting.subMap(nearest.minusDays(BASELINE_DAYS - 1L), nearest.plusDays(1)).values
+            } else {
+                resting.subMap(nearest, nearest.plusDays(BASELINE_DAYS.toLong())).values
+            }
+        }
+        val values = window.sorted()
         val middle = values.size / 2
         val median = if (values.size % 2 == 1) values[middle] else (values[middle - 1] + values[middle]) / 2
         return Math.round(median).toInt()

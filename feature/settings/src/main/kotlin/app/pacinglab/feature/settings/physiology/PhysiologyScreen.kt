@@ -123,6 +123,7 @@ fun PhysiologyScreen(
             editing = editing,
             template = editing ?: loaded.current?.entry,
             today = loaded.today,
+            measuredRestingHr = loaded.measuredRestingHr,
             takenDates = loaded.entries.map { it.effectiveFrom }.toSet() - setOfNotNull(editing?.effectiveFrom),
             onDismiss = { editor = EDITOR_CLOSED },
             onSave = { entry ->
@@ -203,9 +204,14 @@ private fun CurrentCard(current: CurrentPhysiology, modifier: Modifier = Modifie
                 )
                 Value(
                     label = stringResource(R.string.physiology_resting_hr),
-                    value = current.anchors.restingHr?.let { stringResource(R.string.physiology_bpm, it) }
-                        ?: stringResource(R.string.physiology_not_set),
-                    note = null,
+                    value = current.anchors.restingHr?.let { stringResource(R.string.physiology_bpm, it) } ?: DASH,
+                    note = stringResource(
+                        when {
+                            current.restingSetByAthlete -> R.string.physiology_resting_own
+                            current.anchors.restingHr != null -> R.string.physiology_resting_measured
+                            else -> R.string.physiology_resting_not_measured
+                        },
+                    ),
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -307,6 +313,8 @@ private fun HistoryItem(entry: PhysiologyEntry, locale: Locale, onClick: () -> U
         modifier = modifier.clip(MaterialTheme.shapes.medium).clickable(onClick = onClick),
     )
 }
+
+private const val DASH = "–"
 
 @Composable
 private fun SectionHeading(text: String, modifier: Modifier = Modifier) {

@@ -127,7 +127,21 @@ class TrainingLoadsTest {
         // 51, 52, 55, 60 -> 53.5, rounded half up.
         assertThat(timeline.at(day)!!.restingHr).isEqualTo(54)
         assertThat(timeline.at(day)!!.thresholdHr).isEqualTo(167)
-        assertThat(timeline.at(day.minusDays(60))!!.restingHr).isNull()
+        // Long before any measurement, the first 30 days of measurements stand in: 70 and 52.
+        assertThat(timeline.at(day.minusDays(60))!!.restingHr).isEqualTo(61)
+    }
+
+    @Test
+    fun `days far from any measurement use the nearest stretch of measurements`() {
+        val history = PhysiologyHistory(listOf(PhysiologyEntry(day, maxHr = 186)))
+        val measured = (0L until 6L).associate { day.plusDays(it) to 56.0 + it }
+        val timeline = AnchorTimeline(history, measured)
+
+        // A workout a year before the watch was first worn at night: median of 56..61.
+        assertThat(timeline.at(day.minusDays(365))!!.restingHr).isEqualTo(59)
+        // Long after the last night: the 30 days up to that night.
+        assertThat(timeline.measuredRestingAt(day.plusDays(200))).isEqualTo(59)
+        assertThat(AnchorTimeline(history, emptyMap()).measuredRestingAt(day)).isNull()
     }
 
     @Test
