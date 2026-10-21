@@ -5,6 +5,7 @@ import androidx.room3.Query
 import androidx.room3.Transaction
 import androidx.room3.Upsert
 import app.pacinglab.core.database.entity.MeasurementEntity
+import app.pacinglab.core.database.entity.PhysiologyEntity
 import app.pacinglab.core.database.entity.SleepSessionEntity
 import app.pacinglab.core.database.entity.SyncStateEntity
 import app.pacinglab.core.database.entity.WorkoutEntity
@@ -98,4 +99,23 @@ interface SyncStateDao {
 
     @Query("SELECT * FROM sync_state")
     fun observeAll(): Flow<List<SyncStateEntity>>
+}
+
+@Dao
+abstract class PhysiologyDao {
+    @Query("SELECT * FROM physiology ORDER BY effective_from")
+    abstract fun observeAll(): Flow<List<PhysiologyEntity>>
+
+    @Upsert
+    protected abstract suspend fun upsert(entry: PhysiologyEntity)
+
+    @Query("DELETE FROM physiology WHERE effective_from = :epochDay")
+    abstract suspend fun delete(epochDay: Long)
+
+    /** Saves [entry], removing the entry it replaces when its date was changed. */
+    @Transaction
+    open suspend fun replace(previousEpochDay: Long?, entry: PhysiologyEntity) {
+        if (previousEpochDay != null && previousEpochDay != entry.effectiveFromEpochDay) delete(previousEpochDay)
+        upsert(entry)
+    }
 }

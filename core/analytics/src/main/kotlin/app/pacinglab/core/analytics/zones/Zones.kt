@@ -41,8 +41,13 @@ object Zones {
 
     fun of(model: ZoneModel, anchors: HeartRateAnchors): ZoneSet = when (model) {
         ZoneModel.LTHR_FIVE -> build(model, LTHR_FIVE) { anchors.thresholdHr * it }
+
         ZoneModel.POLARIZED_THREE -> build(model, POLARIZED_THREE) { anchors.thresholdHr * it }
-        ZoneModel.HEART_RATE_RESERVE_FIVE -> build(model, HRR_FIVE) { anchors.restingHr + anchors.reserve * it }
+
+        ZoneModel.HEART_RATE_RESERVE_FIVE -> {
+            val resting = requireNotNull(anchors.restingHr) { "Heart rate reserve zones need a resting heart rate" }
+            build(model, HRR_FIVE) { resting + (anchors.maxHr - resting) * it }
+        }
     }
 
     private inline fun build(model: ZoneModel, spec: List<Pair<String, Double>>, bpmAt: (Double) -> Double): ZoneSet = ZoneSet(

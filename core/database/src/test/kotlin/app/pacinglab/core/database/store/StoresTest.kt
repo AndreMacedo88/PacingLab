@@ -10,6 +10,7 @@ import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Lap
 import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
+import app.pacinglab.core.model.PhysiologyEntry
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.SampleSeries
@@ -31,6 +32,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 
 @RunWith(RobolectricTestRunner::class)
@@ -40,6 +42,7 @@ class StoresTest {
     private lateinit var workouts: WorkoutStore
     private lateinit var measurements: MeasurementStore
     private lateinit var syncState: SyncStateStore
+    private lateinit var physiology: PhysiologyStore
 
     private val t0 = Instant.parse("2026-10-08T17:34:00Z")
 
@@ -52,6 +55,7 @@ class StoresTest {
         workouts = WorkoutStore(database)
         measurements = MeasurementStore(database)
         syncState = SyncStateStore(database)
+        physiology = PhysiologyStore(database)
     }
 
     @After
@@ -129,6 +133,31 @@ class StoresTest {
         assertThat(syncState.get("token.WORKOUTS")).isEqualTo("abc")
         syncState.remove("token.WORKOUTS")
         assertThat(syncState.get("token.WORKOUTS")).isNull()
+    }
+
+    @Test
+    fun `physiology entries are saved, moved to another date and deleted`() = runTest {
+        val first = PhysiologyEntry(LocalDate.of(2025, 8, 14), maxHr = 186)
+        val second = PhysiologyEntry(LocalDate.of(2026, 10, 1), maxHr = 186, thresholdHr = 170, restingHr = 52)
+        physiology.save(first)
+        physiology.save(second)
+        assertThat(physiology.observe().first().entries).containsExactly(first, second)
+
+        val moved = second.copy(effectiveFrom = LocalDate.of(2026, 10, 5))
+        physiology.save(moved, replacing = second.effectiveFrom)
+        assertThat(physiology.observe().first().entries).containsExactly(first, moved)
+
+        physiology.delete(first.effectiveFrom)
+        assertThat(physiology.observe().first().entries).containsExactly(moved)
+    }
+
+    @Test
+    fun `saving on a date that already has an entry overwrites it`() = runTest {
+        val day = LocalDate.of(2026, 10, 1)
+        physiology.save(PhysiologyEntry(day, maxHr = 184))
+        physiology.save(PhysiologyEntry(day, maxHr = 186))
+
+        assertThat(physiology.observe().first().entries.single().maxHr).isEqualTo(186)
     }
 
     private fun workout(id: String, minutesFromStart: Long): Workout {

@@ -21,6 +21,8 @@ object PacingLabIcons {
 
     @DrawableRes val SettingsSelected = R.drawable.ic_settings_filled
 
+    @DrawableRes val Add = R.drawable.ic_add
+
     @DrawableRes val ArrowBack = R.drawable.ic_arrow_back
 
     @DrawableRes val Bedtime = R.drawable.ic_bedtime
@@ -32,6 +34,8 @@ object PacingLabIcons {
     @DrawableRes val Database = R.drawable.ic_database
 
     @DrawableRes val Download = R.drawable.ic_download
+
+    @DrawableRes val Edit = R.drawable.ic_edit
 
     @DrawableRes val Error = R.drawable.ic_error
 

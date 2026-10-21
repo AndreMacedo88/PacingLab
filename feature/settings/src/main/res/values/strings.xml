@@ -3,6 +3,49 @@
     <string name="settings_title">Settings</string>
     <string name="settings_section_data">Data</string>
     <string name="settings_data_sources_summary">Health Connect access and data diagnostics</string>
+    <string name="settings_section_training">Training</string>
+    <string name="settings_physiology_summary">Max, threshold and resting heart rate, and your zones</string>
+
+    <string name="physiology_title">Heart rate and zones</string>
+    <string name="physiology_empty">Enter your maximum heart rate. PacingLab derives your training zones from it and keeps each change with the date it applies from, so older sessions are analysed with the values that held at the time.</string>
+    <string name="physiology_set_values">Set heart rate values</string>
+    <string name="physiology_add">New values</string>
+    <string name="physiology_current">Current values</string>
+    <string name="physiology_max_hr">Max HR</string>
+    <string name="physiology_threshold_hr">Threshold HR</string>
+    <string name="physiology_resting_hr">Resting HR</string>
+    <string name="physiology_bpm">%1$d bpm</string>
+    <string name="physiology_bpm_unit">bpm</string>
+    <string name="physiology_estimated" formatted="false">Estimate: 90 % of max</string>
+    <string name="physiology_not_set">Not set</string>
+    <string name="physiology_zones">Zones</string>
+    <string name="physiology_zones_five">5 zones</string>
+    <string name="physiology_zones_three">3 zones</string>
+    <string name="physiology_zones_five_caption">Joe Friel\'s running zones, as a share of threshold heart rate.</string>
+    <string name="physiology_zones_three_caption" formatted="false">Polarised model: the first ventilatory threshold (VT1) is placed at 90 % of threshold heart rate, the second (VT2) at threshold heart rate.</string>
+    <string name="physiology_history">History</string>
+    <string name="physiology_from">From %1$s</string>
+    <string name="physiology_entry_max">Max %1$d</string>
+    <string name="physiology_entry_threshold">threshold %1$d</string>
+    <string name="physiology_entry_threshold_estimated">threshold %1$d (estimate)</string>
+    <string name="physiology_entry_resting">resting %1$d</string>
+    <string name="physiology_edit">Edit</string>
+
+    <string name="physiology_editor_new">New heart rate values</string>
+    <string name="physiology_editor_edit">Edit heart rate values</string>
+    <string name="physiology_editor_from">Applies from %1$s</string>
+    <string name="physiology_editor_change_date">Change date</string>
+    <string name="physiology_editor_max_hint">The highest heart rate you have reached, for example at the end of a maximal test or a race.</string>
+    <string name="physiology_editor_threshold_hint">Optional. Leave empty to use %1$d bpm, 90 %% of max.</string>
+    <string name="physiology_editor_resting_hint">Optional.</string>
+    <string name="physiology_editor_replaces">Replaces the values already set for this day.</string>
+    <string name="physiology_error_max">Enter a value from 120 to 240.</string>
+    <string name="physiology_error_threshold">Enter a value from 80 to %1$d.</string>
+    <string name="physiology_error_resting">Enter a value from 25 to 120, below threshold.</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="ok">OK</string>
 
     <string name="data_sources_title">Data sources</string>
     <string name="navigate_back">Back</string>

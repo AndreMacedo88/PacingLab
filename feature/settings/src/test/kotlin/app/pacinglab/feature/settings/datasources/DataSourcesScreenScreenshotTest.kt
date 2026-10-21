@@ -6,6 +6,8 @@ import app.pacinglab.core.data.sync.SyncStatus
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.healthconnect.HealthConnectAvailability
 import app.pacinglab.core.healthconnect.probe.ProbeProgress
+import app.pacinglab.feature.settings.PHONE
+import app.pacinglab.feature.settings.TALL_PHONE
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Rule
 import org.junit.Test
@@ -74,9 +76,3 @@ class DataSourcesScreenScreenshotTest {
         compose.onRoot().captureRoboImage()
     }
 }
-
-/** Roughly a Galaxy S25 in its default display size. */
-private const val PHONE = "w384dp-h832dp-xxhdpi"
-
-/** Same width, tall enough to capture long scrolling content in one image. */
-private const val TALL_PHONE = "w384dp-h1800dp-xxhdpi"

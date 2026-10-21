@@ -1,7 +1,9 @@
 package app.pacinglab.core.analytics.zones
 
 import app.pacinglab.core.model.HeartRateAnchors
+import app.pacinglab.core.model.PhysiologyEntry
 import app.pacinglab.core.model.ZoneModel
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
@@ -12,6 +14,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
+import java.time.LocalDate
 
 class ZonesTest {
     private val anchors = HeartRateAnchors(maxHr = 190, thresholdHr = 170, restingHr = 50)
@@ -69,5 +72,19 @@ class ZonesTest {
     @Test
     fun `LTHR estimate from max heart rate is 90 percent rounded`() {
         assertThat(ThresholdEstimates.thresholdFromMax(193)).isEqualTo(174)
+    }
+
+    @Test
+    fun `anchors use the athlete's LTHR when set and the estimate otherwise`() {
+        val day = LocalDate.of(2026, 10, 21)
+
+        assertThat(ThresholdEstimates.anchors(PhysiologyEntry(day, maxHr = 186)).thresholdHr).isEqualTo(167)
+        assertThat(ThresholdEstimates.anchors(PhysiologyEntry(day, maxHr = 186, thresholdHr = 171)).thresholdHr).isEqualTo(171)
+    }
+
+    @Test
+    fun `heart rate reserve zones need a resting heart rate`() {
+        assertFailure { Zones.of(ZoneModel.HEART_RATE_RESERVE_FIVE, HeartRateAnchors(maxHr = 186, thresholdHr = 167)) }
+        Zones.of(ZoneModel.LTHR_FIVE, HeartRateAnchors(maxHr = 186, thresholdHr = 167))
     }
 }

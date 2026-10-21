@@ -75,3 +75,12 @@ class SleepSessionEntity(
 /** Small key-value store for sync bookkeeping (change tokens, backfill progress). */
 @Entity(tableName = "sync_state")
 data class SyncStateEntity(@PrimaryKey val key: String, val value: String)
+
+/** Heart rate values the athlete set, valid from a date (stored as epoch day) until the next entry. */
+@Entity(tableName = "physiology")
+class PhysiologyEntity(
+    @PrimaryKey @ColumnInfo(name = "effective_from") val effectiveFromEpochDay: Long,
+    @ColumnInfo(name = "max_hr") val maxHr: Int,
+    @ColumnInfo(name = "threshold_hr") val thresholdHr: Int?,
+    @ColumnInfo(name = "resting_hr") val restingHr: Int?,
+)

@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
+import app.pacinglab.core.database.store.PhysiologyStore
 import app.pacinglab.core.database.store.WorkoutStore
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Workout
@@ -13,6 +14,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNotNull
 import assertk.assertions.isTrue
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
 import org.junit.Test
@@ -54,6 +56,21 @@ class MigrationTest {
         assertThat(workout.summary.distanceMeters).isEqualTo(250.0)
         assertThat(workout.routePending).isTrue()
         assertThat(workout.recordingMethod).isEqualTo(RecordingMethod.UNKNOWN)
+    }
+
+    @Test
+    fun `version 3 databases gain an empty physiology table`() = runTest {
+        val file = databaseFile()
+        createFromSchema(file, version = 3)
+        insertWorkout(file, extraColumns = ", route_pending, recording_method", extraValues = ", 0, 'ACTIVE'")
+
+        val workout = openAndRead(file)
+        val database = Room.databaseBuilder(context, PacingLabDatabase::class.java, file.path).setDriver(AndroidSQLiteDriver()).build()
+        val history = PhysiologyStore(database).observe().first()
+        database.close()
+
+        assertThat(workout.recordingMethod).isEqualTo(RecordingMethod.ACTIVE)
+        assertThat(history.isEmpty()).isTrue()
     }
 
     private fun databaseFile(): File = context.getDatabasePath("migration-test.db").apply {

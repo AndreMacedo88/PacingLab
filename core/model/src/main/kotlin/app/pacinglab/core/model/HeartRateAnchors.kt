@@ -5,22 +5,24 @@ package app.pacinglab.core.model
  *
  * @property maxHr maximal heart rate, bpm.
  * @property thresholdHr lactate threshold heart rate (LTHR), bpm.
- * @property restingHr resting heart rate, bpm.
+ * @property restingHr resting heart rate, bpm; only models based on heart rate reserve need it.
  */
-data class HeartRateAnchors(val maxHr: Int, val thresholdHr: Int, val restingHr: Int) {
+data class HeartRateAnchors(val maxHr: Int, val thresholdHr: Int, val restingHr: Int? = null) {
     init {
         require(maxHr in MAX_HR_RANGE) { "maxHr $maxHr outside $MAX_HR_RANGE" }
-        require(restingHr in RESTING_HR_RANGE) { "restingHr $restingHr outside $RESTING_HR_RANGE" }
-        require(thresholdHr in (restingHr + 1) until maxHr) {
-            "thresholdHr $thresholdHr must lie between restingHr $restingHr and maxHr $maxHr"
+        restingHr?.let { require(it in RESTING_HR_RANGE) { "restingHr $it outside $RESTING_HR_RANGE" } }
+        val lowest = maxOf(MIN_THRESHOLD_HR, (restingHr ?: 0) + 1)
+        require(thresholdHr in lowest until maxHr) {
+            "thresholdHr $thresholdHr must lie between $lowest and maxHr $maxHr"
         }
     }
 
     /** Heart rate reserve (Karvonen): the span between resting and maximal heart rate. */
-    val reserve: Int get() = maxHr - restingHr
+    val reserve: Int? get() = restingHr?.let { maxHr - it }
 
     companion object {
         val MAX_HR_RANGE = 120..240
         val RESTING_HR_RANGE = 25..120
+        const val MIN_THRESHOLD_HR = 80
     }
 }
