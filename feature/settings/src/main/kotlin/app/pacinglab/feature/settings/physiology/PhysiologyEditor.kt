@@ -50,6 +50,7 @@ internal fun PhysiologyEditor(
     template: PhysiologyEntry?,
     today: LocalDate,
     measuredRestingHr: Int?,
+    estimatedMaxHr: Int?,
     takenDates: Set<LocalDate>,
     onDismiss: () -> Unit,
     onSave: (PhysiologyEntry) -> Unit,
@@ -65,7 +66,7 @@ internal fun PhysiologyEditor(
     var pickingDate by rememberSaveable { mutableStateOf(false) }
     val date = LocalDate.ofEpochDay(epochDay)
 
-    val input = EditorInput(maxText, thresholdText, restingText)
+    val input = EditorInput(maxText, thresholdText, restingText, estimatedMaxHr)
     val entry = input.toEntry(date)
 
     AlertDialog(
@@ -93,10 +94,10 @@ internal fun PhysiologyEditor(
                     value = maxText,
                     onValueChange = { maxText = it },
                     label = stringResource(R.string.physiology_max_hr),
-                    supporting = if (input.maxError) {
-                        stringResource(R.string.physiology_error_max)
-                    } else {
-                        stringResource(R.string.physiology_editor_max_hint)
+                    supporting = when {
+                        input.maxError -> stringResource(R.string.physiology_error_max)
+                        estimatedMaxHr != null -> stringResource(R.string.physiology_editor_max_estimated, estimatedMaxHr)
+                        else -> stringResource(R.string.physiology_editor_max_hint)
                     },
                     isError = input.maxError,
                 )
@@ -105,10 +106,16 @@ internal fun PhysiologyEditor(
                     onValueChange = { thresholdText = it },
                     label = stringResource(R.string.physiology_threshold_hr),
                     supporting = when {
-                        input.thresholdError -> stringResource(R.string.physiology_error_threshold, (input.max ?: MAX_FALLBACK) - 1)
+                        input.thresholdError -> stringResource(
+                            R.string.physiology_error_threshold,
+                            (input.effectiveMax ?: MAX_FALLBACK) - 1,
+                        )
 
-                        input.max != null && !input.maxError ->
-                            stringResource(R.string.physiology_editor_threshold_hint, ThresholdEstimates.thresholdFromMax(input.max))
+                        input.effectiveMax != null && !input.maxError ->
+                            stringResource(
+                                R.string.physiology_editor_threshold_hint,
+                                ThresholdEstimates.thresholdFromMax(input.effectiveMax),
+                            )
 
                         else -> null
                     },
@@ -187,28 +194,35 @@ private fun NumberField(
     )
 }
 
-/** The editor's text fields and what is wrong with them. Empty optional fields are fine. */
-internal data class EditorInput(val maxText: String, val thresholdText: String, val restingText: String) {
+/**
+ * The editor's text fields and what is wrong with them. Every field may stay empty: then PacingLab's
+ * own value applies, for the maximum [estimatedMaxHr].
+ */
+internal data class EditorInput(val maxText: String, val thresholdText: String, val restingText: String, val estimatedMaxHr: Int? = null) {
     val max: Int? = maxText.toIntOrNull()
     private val threshold: Int? = thresholdText.toIntOrNull()
     private val resting: Int? = restingText.toIntOrNull()
 
+    /** The maximum that will apply: the one typed, or the estimate. */
+    val effectiveMax: Int? = max ?: estimatedMaxHr.takeIf { maxText.isEmpty() }
+
     val maxError: Boolean = maxText.isNotEmpty() && (max == null || max !in HeartRateAnchors.MAX_HR_RANGE)
 
     val thresholdError: Boolean = thresholdText.isNotEmpty() &&
-        (threshold == null || threshold < HeartRateAnchors.MIN_THRESHOLD_HR || (max != null && threshold >= max))
+        (threshold == null || threshold < HeartRateAnchors.MIN_THRESHOLD_HR || (effectiveMax != null && threshold >= effectiveMax))
 
     val restingError: Boolean = restingText.isNotEmpty() &&
         (
             resting == null || resting !in HeartRateAnchors.RESTING_HR_RANGE ||
-                resting >= (threshold ?: max?.let(ThresholdEstimates::thresholdFromMax) ?: 0)
+                resting >=
+                (threshold ?: effectiveMax?.let(ThresholdEstimates::thresholdFromMax) ?: HeartRateAnchors.RESTING_HR_RANGE.last + 1)
             )
 
-    /** The entry these fields describe, or null while they are incomplete or invalid. */
+    /** The entry these fields describe, or null while they are invalid or nothing at all would apply. */
     fun toEntry(date: LocalDate): PhysiologyEntry? {
-        val maxHr = max ?: return null
         if (maxError || thresholdError || restingError) return null
-        return runCatching { PhysiologyEntry(date, maxHr, threshold, resting) }.getOrNull()
+        if (effectiveMax == null) return null
+        return runCatching { PhysiologyEntry(date, max, threshold, resting) }.getOrNull()
     }
 }
 

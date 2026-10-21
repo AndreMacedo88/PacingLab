@@ -8,6 +8,8 @@ import app.pacinglab.core.analytics.load.LoadScores
 import app.pacinglab.core.analytics.load.TrainingLoads
 import app.pacinglab.core.analytics.load.WorkoutLoad
 import app.pacinglab.core.analytics.workout.TrainingSessions
+import app.pacinglab.core.analytics.zones.HeartRatePeak
+import app.pacinglab.core.analytics.zones.MaxHeartRateEstimate
 import app.pacinglab.core.analytics.zones.TimeInZones
 import app.pacinglab.core.analytics.zones.ZoneDistribution
 import app.pacinglab.core.analytics.zones.Zones
@@ -20,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
@@ -47,12 +50,31 @@ class TrainingLoadRepository @Inject constructor(
     /** Scores survive recomposition and syncs; a workout is only recalculated when it or its anchors change. */
     private val cache = ConcurrentHashMap<CacheKey, Cached>()
 
+    private class Peak(val bpm: Double?)
+
+    /** Sustained peaks by workout and version, so that a sync only decodes what changed. */
+    private val peaks = ConcurrentHashMap<Pair<String, Instant>, Peak>()
+
+    /** Maximal heart rate estimated from the workouts that count as training. */
+    val estimatedMax: Flow<MaxHeartRateEstimate?> = workouts.observeAll()
+        .mapLatest { all ->
+            val counted = TrainingSessions.removeDuplicates(all.filter(TrainingLoads::counts))
+            val found = counted.mapNotNull { workout ->
+                val key = workout.id to workout.lastModified
+                val peak = peaks[key] ?: Peak(MaxHeartRateEstimate.sustainedPeak(workouts.heartRate(workout.id))).also { peaks[key] = it }
+                peak.bpm?.let { HeartRatePeak(workout.id, TrainingLoads.dateOf(workout, clock.zone), it) }
+            }
+            MaxHeartRateEstimate.of(found, LocalDate.now(clock))
+        }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.Default)
+
     /**
-     * Heart rate anchors for any day: the athlete's values, completed with the resting heart rate measured
-     * during sleep (daytime estimates run 10 to 20 bpm higher and are not used).
+     * Heart rate anchors for any day: the athlete's values, completed with the estimated maximum and the
+     * resting heart rate measured during sleep (daytime estimates run 10 to 20 bpm higher and are not used).
      */
-    val anchors: Flow<AnchorTimeline> = combine(physiology.observe(), nights.observeNights()) { history, nightly ->
-        AnchorTimeline(history, nightly.mapNotNull { night -> night.restingHr?.let { night.date to it } }.toMap())
+    val anchors: Flow<AnchorTimeline> = combine(physiology.observe(), nights.observeNights(), estimatedMax) { history, nightly, max ->
+        AnchorTimeline(history, nightly.mapNotNull { night -> night.restingHr?.let { night.date to it } }.toMap(), max)
     }
 
     /**

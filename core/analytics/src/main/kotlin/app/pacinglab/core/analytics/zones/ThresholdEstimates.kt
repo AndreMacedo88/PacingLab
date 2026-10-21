@@ -14,7 +14,16 @@ object ThresholdEstimates {
 
     fun thresholdFromMax(maxHr: Int): Int = (maxHr * LTHR_FRACTION_OF_MAX).roundToInt()
 
-    /** Anchors for [entry], with LTHR estimated from HRmax when the athlete has not set it. */
-    fun anchors(entry: PhysiologyEntry): HeartRateAnchors =
-        HeartRateAnchors(maxHr = entry.maxHr, thresholdHr = entry.thresholdHr ?: thresholdFromMax(entry.maxHr), restingHr = entry.restingHr)
+    /**
+     * Anchors for [entry], with LTHR estimated from HRmax when the athlete has not set it, and
+     * [estimatedMaxHr] standing in for an empty maximum; null without either.
+     */
+    fun anchors(entry: PhysiologyEntry, estimatedMaxHr: Int? = null): HeartRateAnchors? {
+        val max = entry.maxHr ?: estimatedMaxHr ?: return null
+        return HeartRateAnchors(
+            maxHr = max,
+            thresholdHr = entry.thresholdHr?.takeIf { it < max } ?: thresholdFromMax(max),
+            restingHr = entry.restingHr,
+        )
+    }
 }

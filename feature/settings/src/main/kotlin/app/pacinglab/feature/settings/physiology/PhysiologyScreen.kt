@@ -94,7 +94,7 @@ fun PhysiologyScreen(
             )
         },
         floatingActionButton = {
-            if (loaded != null && loaded.entries.isNotEmpty()) {
+            if (loaded?.current != null) {
                 ExtendedFloatingActionButton(
                     onClick = { editor = EDITOR_NEW },
                     icon = { Icon(painterResource(PacingLabIcons.Add), contentDescription = null) },
@@ -124,6 +124,7 @@ fun PhysiologyScreen(
             template = editing ?: loaded.current?.entry,
             today = loaded.today,
             measuredRestingHr = loaded.measuredRestingHr,
+            estimatedMaxHr = loaded.estimatedMax?.bpm,
             takenDates = loaded.entries.map { it.effectiveFrom }.toSet() - setOfNotNull(editing?.effectiveFrom),
             onDismiss = { editor = EDITOR_CLOSED },
             onSave = { entry ->
@@ -161,9 +162,11 @@ private fun PhysiologyContent(
         }
         item { CurrentCard(current) }
         item { ZonesCard(current) }
-        item { SectionHeading(stringResource(R.string.physiology_history)) }
-        items(state.entries, key = { it.effectiveFrom.toEpochDay() }) { entry ->
-            HistoryItem(entry, locale, onClick = { onEdit(entry) })
+        if (state.entries.isNotEmpty()) {
+            item { SectionHeading(stringResource(R.string.physiology_history)) }
+            items(state.entries, key = { it.effectiveFrom.toEpochDay() }) { entry ->
+                HistoryItem(entry, locale, onClick = { onEdit(entry) })
+            }
         }
     }
 }
@@ -193,7 +196,7 @@ private fun CurrentCard(current: CurrentPhysiology, modifier: Modifier = Modifie
                 Value(
                     label = stringResource(R.string.physiology_max_hr),
                     value = stringResource(R.string.physiology_bpm, current.anchors.maxHr),
-                    note = null,
+                    note = stringResource(if (current.maxEstimated) R.string.physiology_max_estimated else R.string.physiology_set_by_you),
                     modifier = Modifier.weight(1f),
                 )
                 Value(
@@ -207,7 +210,7 @@ private fun CurrentCard(current: CurrentPhysiology, modifier: Modifier = Modifie
                     value = current.anchors.restingHr?.let { stringResource(R.string.physiology_bpm, it) } ?: DASH,
                     note = stringResource(
                         when {
-                            current.restingSetByAthlete -> R.string.physiology_resting_own
+                            current.restingSetByAthlete -> R.string.physiology_set_by_you
                             current.anchors.restingHr != null -> R.string.physiology_resting_measured
                             else -> R.string.physiology_resting_not_measured
                         },
@@ -294,17 +297,11 @@ private fun ZoneTable(zones: ZoneSet, modifier: Modifier = Modifier) {
 @Composable
 private fun HistoryItem(entry: PhysiologyEntry, locale: Locale, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val format = remember(locale) { DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(locale) }
-    val estimate = entry.thresholdHr == null
-    val threshold = entry.thresholdHr ?: current(entry).anchors.thresholdHr
     val parts = listOfNotNull(
-        stringResource(R.string.physiology_entry_max, entry.maxHr),
-        if (estimate) {
-            stringResource(R.string.physiology_entry_threshold_estimated, threshold)
-        } else {
-            stringResource(R.string.physiology_entry_threshold, threshold)
-        },
+        entry.maxHr?.let { stringResource(R.string.physiology_entry_max, it) },
+        entry.thresholdHr?.let { stringResource(R.string.physiology_entry_threshold, it) },
         entry.restingHr?.let { stringResource(R.string.physiology_entry_resting, it) },
-    )
+    ).ifEmpty { listOf(stringResource(R.string.physiology_entry_automatic)) }
     ListItem(
         headlineContent = { Text(stringResource(R.string.physiology_from, format.format(entry.effectiveFrom))) },
         supportingContent = { Text(parts.joinToString(" · "), style = MaterialTheme.typography.bodyMedium.tabularNumbers()) },

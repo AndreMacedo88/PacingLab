@@ -23,10 +23,18 @@ class EditorInputTest {
     }
 
     @Test
-    fun `an empty max heart rate is incomplete but not an error`() {
+    fun `without an estimate an empty max heart rate is incomplete but not an error`() {
         val input = EditorInput("", "", "")
         assertThat(input.maxError).isFalse()
         assertThat(input.toEntry(day)).isNull()
+    }
+
+    @Test
+    fun `with an estimate every field may stay empty`() {
+        assertThat(EditorInput("", "", "", estimatedMaxHr = 186).toEntry(day)).isEqualTo(PhysiologyEntry(day))
+        assertThat(EditorInput("", "160", "", estimatedMaxHr = 186).toEntry(day)).isEqualTo(PhysiologyEntry(day, thresholdHr = 160))
+        // The threshold must stay below the estimated maximum it will be used with.
+        assertThat(EditorInput("", "186", "", estimatedMaxHr = 186).thresholdError).isTrue()
     }
 
     @Test

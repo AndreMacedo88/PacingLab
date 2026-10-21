@@ -4,18 +4,20 @@ import java.time.LocalDate
 
 /**
  * Heart rate values the athlete set, valid from [effectiveFrom] until the next entry, so that older
- * sessions keep being analysed with the values that applied when they were run.
- *
- * @property thresholdHr lactate threshold heart rate; null while it has not been measured, in which
- *   case it is estimated from [maxHr].
- * @property restingHr null while the athlete has not set one.
+ * sessions keep being analysed with the values that applied when they were run. Every value may be
+ * left empty, in which case PacingLab uses its own: maximal heart rate estimated from workouts,
+ * threshold as a share of the maximum, resting heart rate measured during sleep.
  */
-data class PhysiologyEntry(val effectiveFrom: LocalDate, val maxHr: Int, val thresholdHr: Int? = null, val restingHr: Int? = null) {
+data class PhysiologyEntry(val effectiveFrom: LocalDate, val maxHr: Int? = null, val thresholdHr: Int? = null, val restingHr: Int? = null) {
     init {
-        require(maxHr in HeartRateAnchors.MAX_HR_RANGE) { "maxHr $maxHr outside ${HeartRateAnchors.MAX_HR_RANGE}" }
-        restingHr?.let { require(it in HeartRateAnchors.RESTING_HR_RANGE && it < maxHr) { "restingHr $it is implausible" } }
+        maxHr?.let { require(it in HeartRateAnchors.MAX_HR_RANGE) { "maxHr $it outside ${HeartRateAnchors.MAX_HR_RANGE}" } }
+        restingHr?.let {
+            require(it in HeartRateAnchors.RESTING_HR_RANGE && it < (maxHr ?: Int.MAX_VALUE)) { "restingHr $it is implausible" }
+        }
         thresholdHr?.let {
-            require(it in HeartRateAnchors.MIN_THRESHOLD_HR until maxHr && it > (restingHr ?: 0)) { "thresholdHr $it is implausible" }
+            require(it >= HeartRateAnchors.MIN_THRESHOLD_HR && it < (maxHr ?: Int.MAX_VALUE) && it > (restingHr ?: 0)) {
+                "thresholdHr $it is implausible"
+            }
         }
     }
 }

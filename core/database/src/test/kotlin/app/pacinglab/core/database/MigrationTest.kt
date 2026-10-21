@@ -7,12 +7,14 @@ import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import app.pacinglab.core.database.store.PhysiologyStore
 import app.pacinglab.core.database.store.WorkoutStore
+import app.pacinglab.core.model.PhysiologyEntry
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Workout
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNotNull
+import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -22,6 +24,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
+import java.time.LocalDate
 
 /**
  * Builds a database exactly as an older app version created it, from the exported schema, and checks
@@ -71,6 +74,25 @@ class MigrationTest {
 
         assertThat(workout.recordingMethod).isEqualTo(RecordingMethod.ACTIVE)
         assertThat(history.isEmpty()).isTrue()
+    }
+
+    @Test
+    fun `version 4 heart rate values survive the upgrade and max HR may then be left empty`() = runTest {
+        val file = databaseFile()
+        createFromSchema(file, version = 4)
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("INSERT INTO physiology (effective_from, max_hr, threshold_hr, resting_hr) VALUES (20697, 186, NULL, 57)")
+        }
+
+        val database = Room.databaseBuilder(context, PacingLabDatabase::class.java, file.path).setDriver(AndroidSQLiteDriver()).build()
+        val store = PhysiologyStore(database)
+        val migrated = store.observe().first().entries.single()
+        store.save(PhysiologyEntry(LocalDate.of(2026, 10, 21)))
+        val automatic = store.observe().first().entries.last()
+        database.close()
+
+        assertThat(migrated).isEqualTo(PhysiologyEntry(LocalDate.of(2026, 9, 1), maxHr = 186, restingHr = 57))
+        assertThat(automatic.maxHr).isNull()
     }
 
     private fun databaseFile(): File = context.getDatabasePath("migration-test.db").apply {

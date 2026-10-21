@@ -78,8 +78,18 @@ class ZonesTest {
     fun `anchors use the athlete's LTHR when set and the estimate otherwise`() {
         val day = LocalDate.of(2026, 10, 21)
 
-        assertThat(ThresholdEstimates.anchors(PhysiologyEntry(day, maxHr = 186)).thresholdHr).isEqualTo(167)
-        assertThat(ThresholdEstimates.anchors(PhysiologyEntry(day, maxHr = 186, thresholdHr = 171)).thresholdHr).isEqualTo(171)
+        assertThat(ThresholdEstimates.anchors(PhysiologyEntry(day, maxHr = 186))!!.thresholdHr).isEqualTo(167)
+        assertThat(ThresholdEstimates.anchors(PhysiologyEntry(day, maxHr = 186, thresholdHr = 171))!!.thresholdHr).isEqualTo(171)
+    }
+
+    @Test
+    fun `an empty maximum takes the estimate and without either there are no anchors`() {
+        val day = LocalDate.of(2026, 10, 21)
+
+        assertThat(ThresholdEstimates.anchors(PhysiologyEntry(day), estimatedMaxHr = 186)!!.maxHr).isEqualTo(186)
+        assertThat(ThresholdEstimates.anchors(PhysiologyEntry(day))).isEqualTo(null)
+        // A threshold above an estimated maximum gives way to the 90 % estimate.
+        assertThat(ThresholdEstimates.anchors(PhysiologyEntry(day, thresholdHr = 182), estimatedMaxHr = 180)!!.thresholdHr).isEqualTo(162)
     }
 
     @Test

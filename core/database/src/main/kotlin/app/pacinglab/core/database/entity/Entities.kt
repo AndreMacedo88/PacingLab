@@ -80,7 +80,7 @@ data class SyncStateEntity(@PrimaryKey val key: String, val value: String)
 @Entity(tableName = "physiology")
 class PhysiologyEntity(
     @PrimaryKey @ColumnInfo(name = "effective_from") val effectiveFromEpochDay: Long,
-    @ColumnInfo(name = "max_hr") val maxHr: Int,
+    @ColumnInfo(name = "max_hr") val maxHr: Int?,
     @ColumnInfo(name = "threshold_hr") val thresholdHr: Int?,
     @ColumnInfo(name = "resting_hr") val restingHr: Int?,
 )

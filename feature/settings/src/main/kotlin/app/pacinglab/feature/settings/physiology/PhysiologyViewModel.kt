@@ -2,12 +2,14 @@ package app.pacinglab.feature.settings.physiology
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.pacinglab.core.analytics.zones.ThresholdEstimates
+import app.pacinglab.core.analytics.load.AnchorTimeline
+import app.pacinglab.core.analytics.zones.MaxHeartRateEstimate
 import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.data.repository.PhysiologyRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.PhysiologyEntry
+import app.pacinglab.core.model.PhysiologyHistory
 import app.pacinglab.core.model.ZoneModel
 import app.pacinglab.core.model.ZoneSet
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,12 +23,13 @@ import java.time.LocalDate
 import javax.inject.Inject
 
 /**
- * The values in force today and the zones they give. [anchors] holds the resting heart rate in use: the
- * athlete's own when set, otherwise the one measured during sleep.
+ * The values in force today and the zones they give. [anchors] holds what is in use: the athlete's own
+ * values from [entry] where set, PacingLab's estimates and measurements everywhere else.
  */
-data class CurrentPhysiology(val entry: PhysiologyEntry, val anchors: HeartRateAnchors, val fiveZones: ZoneSet, val threeZones: ZoneSet) {
-    val thresholdEstimated: Boolean get() = entry.thresholdHr == null
-    val restingSetByAthlete: Boolean get() = entry.restingHr != null
+data class CurrentPhysiology(val entry: PhysiologyEntry?, val anchors: HeartRateAnchors, val fiveZones: ZoneSet, val threeZones: ZoneSet) {
+    val maxEstimated: Boolean get() = entry?.maxHr == null
+    val thresholdEstimated: Boolean get() = entry?.thresholdHr != anchors.thresholdHr
+    val restingSetByAthlete: Boolean get() = entry?.restingHr != null
 }
 
 sealed interface PhysiologyUiState {
@@ -34,14 +37,17 @@ sealed interface PhysiologyUiState {
 
     /**
      * @property entries newest first.
+     * @property current null while there is neither an entry nor an estimate of maximal heart rate.
      * @property measuredRestingHr resting heart rate measured during sleep (median of the last 30 nights),
      *   used whenever an entry leaves resting heart rate empty; null before the watch has been worn at night.
+     * @property estimatedMax maximal heart rate from the workouts, used whenever an entry leaves it empty.
      */
     data class Loaded(
         val entries: List<PhysiologyEntry>,
         val current: CurrentPhysiology?,
         val today: LocalDate,
         val measuredRestingHr: Int? = null,
+        val estimatedMax: MaxHeartRateEstimate? = null,
     ) : PhysiologyUiState
 }
 
@@ -53,12 +59,12 @@ class PhysiologyViewModel @Inject constructor(
 ) : ViewModel() {
     val state: StateFlow<PhysiologyUiState> = combine(repository.observeHistory(), trainingLoad.anchors) { history, timeline ->
         val today = LocalDate.now(clock)
-        val measured = timeline.measuredRestingAt(today)
         PhysiologyUiState.Loaded(
             entries = history.entries.reversed(),
-            current = history.at(today)?.let { current(it, measured) },
+            current = current(history.at(today), timeline.at(today)),
             today = today,
-            measuredRestingHr = measured,
+            measuredRestingHr = timeline.measuredRestingAt(today),
+            estimatedMax = timeline.estimatedMax,
         )
     }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), PhysiologyUiState.Loading)
@@ -76,17 +82,26 @@ class PhysiologyViewModel @Inject constructor(
     }
 }
 
-internal fun current(entry: PhysiologyEntry, measuredRestingHr: Int? = null): CurrentPhysiology {
-    val own = ThresholdEstimates.anchors(entry)
-    val anchors = if (own.restingHr == null && measuredRestingHr != null && measuredRestingHr < own.thresholdHr) {
-        own.copy(restingHr = measuredRestingHr)
-    } else {
-        own
-    }
-    return CurrentPhysiology(
+internal fun current(entry: PhysiologyEntry?, anchors: HeartRateAnchors?): CurrentPhysiology? = anchors?.let {
+    CurrentPhysiology(
         entry = entry,
-        anchors = anchors,
-        fiveZones = Zones.of(ZoneModel.LTHR_FIVE, anchors),
-        threeZones = Zones.of(ZoneModel.POLARIZED_THREE, anchors),
+        anchors = it,
+        fiveZones = Zones.of(ZoneModel.LTHR_FIVE, it),
+        threeZones = Zones.of(ZoneModel.POLARIZED_THREE, it),
     )
+}
+
+/** What [entry] means today given PacingLab's own values; for previews and tests. */
+internal fun current(
+    entry: PhysiologyEntry?,
+    estimatedMax: MaxHeartRateEstimate? = null,
+    measuredRestingHr: Int? = null,
+    today: LocalDate = entry?.effectiveFrom ?: LocalDate.MIN,
+): CurrentPhysiology? {
+    val timeline = AnchorTimeline(
+        history = PhysiologyHistory(listOfNotNull(entry)),
+        measuredResting = measuredRestingHr?.let { mapOf(today to it.toDouble()) }.orEmpty(),
+        estimatedMax = estimatedMax,
+    )
+    return current(entry, timeline.at(today))
 }

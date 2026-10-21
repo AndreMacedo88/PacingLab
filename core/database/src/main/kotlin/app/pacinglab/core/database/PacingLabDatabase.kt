@@ -24,7 +24,7 @@ import app.pacinglab.core.database.entity.WorkoutStreamEntity
         SyncStateEntity::class,
         PhysiologyEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
     autoMigrations = [
         // 2: workouts.route_pending
@@ -33,6 +33,8 @@ import app.pacinglab.core.database.entity.WorkoutStreamEntity
         AutoMigration(from = 2, to = 3),
         // 4: physiology
         AutoMigration(from = 3, to = 4),
+        // 5: physiology.max_hr may be empty (estimated from workouts)
+        AutoMigration(from = 4, to = 5),
     ],
 )
 abstract class PacingLabDatabase : RoomDatabase() {

@@ -3,6 +3,7 @@ package app.pacinglab.feature.settings.physiology
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
+import app.pacinglab.core.analytics.zones.MaxHeartRateEstimate
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.model.PhysiologyEntry
 import app.pacinglab.feature.settings.PHONE
@@ -26,6 +27,7 @@ class PhysiologyScreenScreenshotTest {
     private val today = LocalDate.of(2026, 10, 21)
     private val first = PhysiologyEntry(LocalDate.of(2025, 8, 14), maxHr = 186)
     private val latest = PhysiologyEntry(LocalDate.of(2026, 10, 1), maxHr = 186, thresholdHr = 170, restingHr = 52)
+    private val estimate = MaxHeartRateEstimate(bpm = 186, reachedOn = LocalDate.of(2026, 9, 22), workouts = 120)
 
     @Test
     fun empty() = capture(PhysiologyUiState.Loaded(emptyList(), current = null, today = today))
@@ -37,6 +39,18 @@ class PhysiologyScreenScreenshotTest {
 
     @Test
     fun beforeAnyNightIsRecorded() = capture(PhysiologyUiState.Loaded(listOf(first), current(first), today))
+
+    @Test
+    @Config(qualifiers = TALL_PHONE)
+    fun everythingAutomatic() = capture(
+        PhysiologyUiState.Loaded(
+            entries = emptyList(),
+            current = current(null, estimate, measuredRestingHr = 58, today = today),
+            today = today,
+            measuredRestingHr = 58,
+            estimatedMax = estimate,
+        ),
+    )
 
     @Test
     @Config(qualifiers = TALL_PHONE)
@@ -55,6 +69,7 @@ class PhysiologyScreenScreenshotTest {
                     template = first,
                     today = today,
                     measuredRestingHr = 58,
+                    estimatedMaxHr = 186,
                     takenDates = setOf(first.effectiveFrom),
                     onDismiss = {},
                     onSave = {},

@@ -7,7 +7,7 @@
     <string name="settings_physiology_summary">Max, threshold and resting heart rate, and your zones</string>
 
     <string name="physiology_title">Heart rate and zones</string>
-    <string name="physiology_empty">Enter your maximum heart rate. PacingLab derives your training zones from it and keeps each change with the date it applies from, so older sessions are analysed with the values that held at the time.</string>
+    <string name="physiology_empty">PacingLab estimates your maximum heart rate from hard workouts, the highest heart rate you held for 10 seconds, once two of them come close. Until then, or if you know your maximum from a test, enter it here. Each change is kept with the date it applies from, so older sessions are analysed with the values that held at the time.</string>
     <string name="physiology_set_values">Set heart rate values</string>
     <string name="physiology_add">New values</string>
     <string name="physiology_current">Current values</string>
@@ -26,7 +26,6 @@
     <string name="physiology_from">From %1$s</string>
     <string name="physiology_entry_max">Max %1$d</string>
     <string name="physiology_entry_threshold">threshold %1$d</string>
-    <string name="physiology_entry_threshold_estimated">threshold %1$d (estimate)</string>
     <string name="physiology_entry_resting">resting %1$d</string>
     <string name="physiology_edit">Edit</string>
 
@@ -38,7 +37,6 @@
     <string name="physiology_editor_threshold_hint">Optional. Leave empty to use %1$d bpm, 90 %% of max.</string>
     <string name="physiology_editor_resting_hint">Optional. Leave empty to use what your watch measures during sleep.</string>
     <string name="physiology_editor_resting_measured">Optional. Leave empty to use what your watch measures during sleep, now %1$d bpm.</string>
-    <string name="physiology_resting_own">Set by you</string>
     <string name="physiology_resting_measured">Measured in sleep</string>
     <string name="physiology_resting_not_measured">Not measured yet</string>
     <string name="physiology_editor_replaces">Replaces the values already set for this day.</string>
@@ -153,4 +151,8 @@
         <item quantity="one">Saves the full-resolution streams of your most recent workout, including GPS, as a file for building test fixtures. Contains your location: keep it private.</item>
         <item quantity="other">Saves the full-resolution streams of your %1$d most recent workouts, including GPS, as a file for building test fixtures. Contains your location: keep it private.</item>
     </plurals>
+    <string name="physiology_entry_automatic">All values automatic</string>
+    <string name="physiology_max_estimated">From your workouts</string>
+    <string name="physiology_set_by_you">Set by you</string>
+    <string name="physiology_editor_max_estimated">Optional. Leave empty to use the highest heart rate you held in your workouts, now %1$d bpm.</string>
 </resources>
