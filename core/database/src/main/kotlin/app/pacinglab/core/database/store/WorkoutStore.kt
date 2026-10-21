@@ -65,6 +65,10 @@ class WorkoutStore @Inject constructor(database: PacingLabDatabase) {
         )
     }
 
+    /** Only the heart rate of a workout, for calculations over the whole history. */
+    suspend fun heartRate(id: String): HeartRateSeries =
+        dao.stream(id, HEART_RATE)?.let { StreamCodec.decodeHeartRate(it.data) } ?: HeartRateSeries.EMPTY
+
     /** Workouts whose time span intersects [from, to]. */
     suspend fun overlapping(from: Instant, to: Instant): List<Workout> =
         dao.overlapping(from.toEpochMilli(), to.toEpochMilli()).map { it.toDomain() }

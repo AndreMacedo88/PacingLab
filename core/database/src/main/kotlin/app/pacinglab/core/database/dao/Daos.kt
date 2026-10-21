@@ -43,6 +43,9 @@ abstract class WorkoutDao {
     @Query("SELECT * FROM workout_streams WHERE workout_id = :workoutId")
     abstract suspend fun streams(workoutId: String): List<WorkoutStreamEntity>
 
+    @Query("SELECT * FROM workout_streams WHERE workout_id = :workoutId AND channel = :channel")
+    abstract suspend fun stream(workoutId: String, channel: String): WorkoutStreamEntity?
+
     @Query("SELECT * FROM workouts WHERE end_ms >= :fromMs AND start_ms <= :toMs ORDER BY start_ms")
     abstract suspend fun overlapping(fromMs: Long, toMs: Long): List<WorkoutEntity>
 

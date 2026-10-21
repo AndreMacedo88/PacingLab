@@ -84,6 +84,8 @@ class StoresTest {
         assertThat(loaded.heartRate).isEqualTo(streams.heartRate)
         assertThat(loaded.speed).isEqualTo(streams.speed)
         assertThat(loaded.route.latitudes.toList()).containsExactly(55.1)
+        assertThat(workouts.heartRate("hc:a")).isEqualTo(streams.heartRate)
+        assertThat(workouts.heartRate("hc:missing").isEmpty()).isEqualTo(true)
     }
 
     @Test

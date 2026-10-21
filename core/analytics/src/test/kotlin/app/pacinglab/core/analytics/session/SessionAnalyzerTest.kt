@@ -1,6 +1,7 @@
 package app.pacinglab.core.analytics.session
 
 import app.pacinglab.core.analytics.intervals.PhaseKind
+import app.pacinglab.core.analytics.load.HeartRateLoad
 import app.pacinglab.core.analytics.workout.T0
 import app.pacinglab.core.analytics.workout.workout
 import app.pacinglab.core.analytics.zones.Zones
@@ -98,6 +99,20 @@ class SessionAnalyzerTest {
         assertThat(distribution.totalMillis / 1000).isEqualTo(1_198L)
         assertThat(distribution.millis[zones.indexOf(140)] / 1000).isEqualTo(599L)
         assertThat(distribution.millis[zones.indexOf(175)] / 1000).isEqualTo(599L)
+    }
+
+    @Test
+    fun `training load adds up the parts and needs a resting heart rate`() {
+        val anchors = HeartRateAnchors(maxHr = 186, thresholdHr = 167, restingHr = 50)
+        val first = part(workout("a", Sport.RUN, 0, 10), constant(600, 3.0, hr = 140), 1_800.0)
+        val second = part(workout("b", Sport.RUN, 14, 10), constant(600, 3.0, hr = 175, startMinute = 14), 1_800.0)
+
+        val load = SessionAnalyzer.analyze(listOf(first, second), anchors = anchors).load!!
+
+        val expected = HeartRateLoad.of(first.streams.heartRate, anchors)!! + HeartRateLoad.of(second.streams.heartRate, anchors)!!
+        assertThat(load).isEqualTo(expected)
+        assertThat(SessionAnalyzer.analyze(listOf(first, second), anchors = anchors.copy(restingHr = null)).load).isNull()
+        assertThat(SessionAnalyzer.analyze(listOf(first, second)).load).isNull()
     }
 
     @Test

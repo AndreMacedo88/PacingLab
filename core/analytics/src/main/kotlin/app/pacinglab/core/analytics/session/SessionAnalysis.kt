@@ -4,10 +4,13 @@ import app.pacinglab.core.analytics.intervals.IntervalDetection
 import app.pacinglab.core.analytics.intervals.Phase
 import app.pacinglab.core.analytics.intervals.PhaseKind
 import app.pacinglab.core.analytics.intervals.RecordingMode
+import app.pacinglab.core.analytics.load.HeartRateLoad
+import app.pacinglab.core.analytics.load.LoadScores
 import app.pacinglab.core.analytics.workout.SpeedCleaning
 import app.pacinglab.core.analytics.workout.WorkoutSummaries
 import app.pacinglab.core.analytics.zones.TimeInZones
 import app.pacinglab.core.analytics.zones.ZoneDistribution
+import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Sport
 import app.pacinglab.core.model.Workout
@@ -44,8 +47,10 @@ data class PhaseTotals(val kind: PhaseKind, val count: Int, val durationMillis: 
  *   holds no intervals.
  * @property zones time in each zone of every zone set passed to [SessionAnalyzer.analyze], in the
  *   same order.
+ * @property load training load of the parts with heart rate; null without heart rate or without the
+ *   resting heart rate the load models need.
  */
-data class SessionAnalysis(val phases: List<PhaseSummary>, val zones: List<ZoneDistribution>) {
+data class SessionAnalysis(val phases: List<PhaseSummary>, val zones: List<ZoneDistribution>, val load: LoadScores? = null) {
     val isIntervalSession: Boolean get() = phases.any { it.kind == PhaseKind.WORK }
 
     /** Totals of [kinds]; warm-up and cool-down are usually reported together. */
@@ -74,14 +79,15 @@ object SessionAnalyzer {
     private val RECONCILABLE = 0.8..1.25
 
     /**
-     * Splits the session into reps and recoveries where its runs allow it and adds up time in zones.
+     * Splits the session into reps and recoveries where its runs allow it and adds up time in zones and,
+     * with [anchors], training load.
      *
      * Each run is analysed on its own, because watches record the warm-up and the intervals as separate
      * workouts; workouts before the first interval workout count as warm-up, those after the last as
      * cool-down. Phase distances come from the speed stream, scaled so that they add up to the
      * workout's recorded distance.
      */
-    fun analyze(parts: List<SessionPart>, zoneSets: List<ZoneSet> = emptyList()): SessionAnalysis {
+    fun analyze(parts: List<SessionPart>, zoneSets: List<ZoneSet> = emptyList(), anchors: HeartRateAnchors? = null): SessionAnalysis {
         val ordered = parts.sortedBy { it.workout.start }
         val detected = ordered.map { part -> detect(part)?.let { phases -> summarize(part, phases) } }
         val firstIntervals = detected.indexOfFirst { it != null }
@@ -110,7 +116,13 @@ object SessionAnalyzer {
             }
             ZoneDistribution(set, millis)
         }
-        return SessionAnalysis(phases, zones)
+        val load = anchors?.let { a ->
+            ordered.filterNot { it.streams.heartRate.isEmpty() }
+                .mapNotNull { HeartRateLoad.of(it.streams.heartRate, a) }
+                .takeIf { it.isNotEmpty() }
+                ?.fold(LoadScores.ZERO, LoadScores::plus)
+        }
+        return SessionAnalysis(phases, zones, load)
     }
 
     private fun detect(part: SessionPart): List<Phase>? {
