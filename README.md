@@ -101,3 +101,8 @@ Roborazzi and compared on every run.
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 Run `./gradlew spotlessApply check` before committing.
+
+## Licence
+
+PacingLab is released under the [Apache License 2.0](LICENSE). The bundled Material Symbols are
+also under Apache 2.0; map data comes from OpenStreetMap via OpenFreeMap and is credited on every map.
