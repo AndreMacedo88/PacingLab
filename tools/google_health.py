@@ -8,6 +8,7 @@ Setup: a Desktop OAuth client from the PacingLab Google Cloud project, downloade
 fixtures-private/google-health/ because they hold personal data.
 
     tools/google_health.py auth                     sign in once in the browser
+    tools/google_health.py status                   check that the sign-in still works and how long it lasts
     tools/google_health.py identity                 check that Google Health is linked
     tools/google_health.py exercises 2026-10-15 2026-10-16
     tools/google_health.py tcx <exercise id>        download the GPS track as TCX
@@ -119,11 +120,47 @@ def auth():
         "redirect_uri": redirect,
     })
     token["expires_at"] = dt.datetime.now(dt.timezone.utc).timestamp() + token["expires_in"]
+    token["signed_in_at"] = dt.datetime.now().astimezone().isoformat(timespec="minutes")
     save_token(token)
     granted = token.get("scope", "").split()
     print("Signed in. Granted scopes:")
     for scope in SCOPES:
         print(("  yes " if scope in granted else "  NO  ") + scope.rsplit("/", 1)[-1])
+    print(lifetime(token))
+
+
+def lifetime(token):
+    """Google sends refresh_token_expires_in only for refresh tokens with a fixed end, such as those of
+    an app still in Testing (seven days)."""
+    seconds = token.get("refresh_token_expires_in")
+    if seconds is None:
+        return "Refresh token: no fixed expiry (the app is in production)."
+    end = dt.datetime.now().astimezone() + dt.timedelta(seconds=seconds)
+    return f"Refresh token: EXPIRES {end:%Y-%m-%d %H:%M} (the app was in Testing when you signed in; sign in again)."
+
+
+def status():
+    """Refreshes the access token, which proves the refresh token works, and reports its lifetime."""
+    if not TOKEN_FILE.exists():
+        sys.exit("Not signed in. Run: tools/google_health.py auth")
+    token = json.loads(TOKEN_FILE.read_text())
+    c = client()
+    try:
+        fresh = post_form(c["token_uri"], {
+            "client_id": c["client_id"],
+            "client_secret": c["client_secret"],
+            "refresh_token": token["refresh_token"],
+            "grant_type": "refresh_token",
+        })
+    except urllib.error.HTTPError as e:
+        sys.exit(f"Refresh failed ({e.code}): {e.read().decode()[:300]}\nSign in again: tools/google_health.py auth")
+    token.update(fresh)
+    if "refresh_token_expires_in" not in fresh:
+        token.pop("refresh_token_expires_in", None)
+    token["expires_at"] = dt.datetime.now(dt.timezone.utc).timestamp() + fresh["expires_in"]
+    save_token(token)
+    print(f"Refresh works. Signed in {token.get('signed_in_at', 'before this was recorded')}.")
+    print(lifetime(fresh))
 
 
 def access_token():
@@ -205,6 +242,8 @@ def main(args):
         print(__doc__)
     elif args[0] == "auth":
         auth()
+    elif args[0] == "status":
+        status()
     elif args[0] == "identity":
         print(json.dumps(get("users/me/identity"), indent=1))
     elif args[0] == "exercises" and len(args) == 3:
