@@ -1,10 +1,15 @@
 package app.pacinglab.feature.sleep
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
+import app.pacinglab.core.analytics.recovery.FeelingAgreement
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.SleepContinuity
 import app.pacinglab.core.analytics.recovery.SleepHistory
@@ -141,6 +146,36 @@ class SleepScreenScreenshotTest {
         compose.onNodeWithText("Tuesday 20 October").assertExists()
         compose.onNodeWithContentDescription("Next night").performClick()
         compose.onNodeWithText("Wednesday 21 October").assertExists()
+    }
+
+    /** Eighteen rated mornings in which the score loosely follows the feeling. */
+    private val agreement: FeelingAgreement = run {
+        val pairs = listOf(
+            84 to 4, 71 to 3, 66 to 2, 88 to 5, 79 to 4, 74 to 4, 69 to 3, 82 to 3, 91 to 5,
+            62 to 2, 77 to 3, 85 to 4, 73 to 4, 80 to 5, 68 to 3, 58 to 1, 76 to 3, 87 to 4,
+        )
+        val days = pairs.indices.map { last.minusDays((pairs.size - 1 - it).toLong()) }
+        FeelingAgreement.of(
+            days.zip(pairs).associate { (day, pair) -> day to SleepScore(pair.first, 1.0, 1.0, 1.0, 1.0, midpointMinuteOfDay = 180) },
+            days.zip(pairs).associate { (day, pair) -> day to pair.second },
+        )
+    }
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun feelingAndScore() = captureFeeling(darkTheme = false)
+
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun feelingAndScoreDark() = captureFeeling(darkTheme = true)
+
+    private fun captureFeeling(darkTheme: Boolean) {
+        compose.setContent {
+            PacingLabTheme(darkTheme = darkTheme) {
+                Surface { FeelingCard(agreement, Modifier.padding(16.dp)) }
+            }
+        }
+        compose.onRoot().captureRoboImage()
     }
 
     private fun capture(state: SleepUiState, darkTheme: Boolean = false) {

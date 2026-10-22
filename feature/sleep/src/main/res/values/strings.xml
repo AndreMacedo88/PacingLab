@@ -104,4 +104,24 @@
         <item>rested</item>
         <item>fully rested</item>
     </string-array>
+    <string name="feeling_title">How you felt and the score</string>
+    <string name="feeling_info">Each dot is a morning: the sleep score of the night across, how rested you said you felt on Today up the side. The tick in a row marks its median score.\n\n# Agreement\nSpearman\'s rank correlation between score and answer, from −1 to 1. Near 1 the score rises with how rested you feel, near 0 it does not follow your feeling, below 0 it runs against it. It uses only the order of your answers, not equal steps between them. The words follow Evans (1996): from 0.2 weak, from 0.4 moderate, from 0.6 strong.\n\nIt shows from 10 mornings. With few mornings it is uncertain: at ten it takes about 0.65 to rule out chance, at thirty about 0.36.\n\nA weak agreement means the score misses something you feel, such as stress, illness or a late meal, or weighs something you do not notice. The score\'s parts and weights come from published sleep health criteria, not from your answers.</string>
+    <plurals name="feeling_progress">
+        <item quantity="one">%1$d rated morning so far; the agreement shows from %2$d</item>
+        <item quantity="other">%1$d rated mornings so far; the agreement shows from %2$d</item>
+    </plurals>
+    <plurals name="feeling_over">
+        <item quantity="one">over %d morning</item>
+        <item quantity="other">over %d mornings</item>
+    </plurals>
+    <plurals name="feeling_description">
+        <item quantity="one">Sleep score by how rested you felt, %d morning</item>
+        <item quantity="other">Sleep score by how rested you felt, %d mornings</item>
+    </plurals>
+    <string name="feeling_constant">Every answer so far has been the same, so there is nothing to compare yet</string>
+    <string name="feeling_opposite">The score runs against how you feel</string>
+    <string name="feeling_none">No clear agreement</string>
+    <string name="feeling_weak">Weak agreement</string>
+    <string name="feeling_moderate">Moderate agreement</string>
+    <string name="feeling_strong">Strong agreement</string>
 </resources>

@@ -161,6 +161,7 @@ fun SleepScreen(
                         if (night.sleepingHeartRate != null) item(key = "heart") { HeartRateCard(night, locale) }
                         item(key = "body") { BodyCard(nights, night) }
                         item(key = "metrics") { KeyMetricsCard(nights, night.date, loaded.scores, loaded.needs, locale) }
+                        item(key = "feeling") { FeelingCard(loaded.feeling) }
                     }
                 }
             }
@@ -667,7 +668,7 @@ private fun MetricRow(name: String, average: String?, modifier: Modifier = Modif
 private fun average(values: List<Double?>): Double? = values.filterNotNull().takeIf { it.isNotEmpty() }?.average()
 
 @Composable
-private fun SleepCard(title: String, info: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+internal fun SleepCard(title: String, info: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),

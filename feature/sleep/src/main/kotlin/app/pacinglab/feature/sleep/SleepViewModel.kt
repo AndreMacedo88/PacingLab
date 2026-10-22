@@ -2,6 +2,7 @@ package app.pacinglab.feature.sleep
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.pacinglab.core.analytics.recovery.FeelingAgreement
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.data.repository.NightRepository
@@ -22,13 +23,16 @@ sealed interface SleepUiState {
      * @property nights every night, oldest first.
      * @property scores the score of each night.
      * @property needs the sleep need going into each night.
+     * @property rested how rested the athlete said they felt each morning, 1 to 5.
      */
     data class Loaded(
         val nights: List<Night>,
         val scores: Map<LocalDate, SleepScore>,
         val needs: Map<LocalDate, Long>,
         val rested: Map<LocalDate, Int> = emptyMap(),
-    ) : SleepUiState
+    ) : SleepUiState {
+        val feeling: FeelingAgreement by lazy { FeelingAgreement.of(scores, rested) }
+    }
 }
 
 @HiltViewModel
