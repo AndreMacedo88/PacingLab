@@ -3,94 +3,33 @@ package app.pacinglab.core.designsystem.theme
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 
-private val LightColors: ColorScheme = lightColorScheme(
-    primary = PrimaryLight,
-    onPrimary = OnPrimaryLight,
-    primaryContainer = PrimaryContainerLight,
-    onPrimaryContainer = OnPrimaryContainerLight,
-    secondary = SecondaryLight,
-    onSecondary = OnSecondaryLight,
-    secondaryContainer = SecondaryContainerLight,
-    onSecondaryContainer = OnSecondaryContainerLight,
-    tertiary = TertiaryLight,
-    onTertiary = OnTertiaryLight,
-    tertiaryContainer = TertiaryContainerLight,
-    onTertiaryContainer = OnTertiaryContainerLight,
-    error = ErrorLight,
-    onError = OnErrorLight,
-    errorContainer = ErrorContainerLight,
-    onErrorContainer = OnErrorContainerLight,
-    background = BackgroundLight,
-    onBackground = OnBackgroundLight,
-    surface = SurfaceLight,
-    onSurface = OnSurfaceLight,
-    surfaceVariant = SurfaceVariantLight,
-    onSurfaceVariant = OnSurfaceVariantLight,
-    outline = OutlineLight,
-    outlineVariant = OutlineVariantLight,
-    scrim = ScrimLight,
-    inverseSurface = InverseSurfaceLight,
-    inverseOnSurface = InverseOnSurfaceLight,
-    inversePrimary = InversePrimaryLight,
-    surfaceDim = SurfaceDimLight,
-    surfaceBright = SurfaceBrightLight,
-    surfaceContainerLowest = SurfaceContainerLowestLight,
-    surfaceContainerLow = SurfaceContainerLowLight,
-    surfaceContainer = SurfaceContainerLight,
-    surfaceContainerHigh = SurfaceContainerHighLight,
-    surfaceContainerHighest = SurfaceContainerHighestLight,
-    surfaceTint = SurfaceTintLight,
-)
+/**
+ * The accent colours the app can wear, each a full Material 3 scheme for light and dark generated from
+ * one seed (see Palettes.kt). Chart, zone and status colours do not change with it: they carry meaning.
+ */
+enum class ThemePalette(internal val light: ColorScheme, internal val dark: ColorScheme) {
+    INDIGO(IndigoLight, IndigoDark),
+    AMBER(AmberLight, AmberDark),
+    GREEN(GreenLight, GreenDark),
+    BLUE(BlueLight, BlueDark),
+}
 
-private val DarkColors: ColorScheme = darkColorScheme(
-    primary = PrimaryDark,
-    onPrimary = OnPrimaryDark,
-    primaryContainer = PrimaryContainerDark,
-    onPrimaryContainer = OnPrimaryContainerDark,
-    secondary = SecondaryDark,
-    onSecondary = OnSecondaryDark,
-    secondaryContainer = SecondaryContainerDark,
-    onSecondaryContainer = OnSecondaryContainerDark,
-    tertiary = TertiaryDark,
-    onTertiary = OnTertiaryDark,
-    tertiaryContainer = TertiaryContainerDark,
-    onTertiaryContainer = OnTertiaryContainerDark,
-    error = ErrorDark,
-    onError = OnErrorDark,
-    errorContainer = ErrorContainerDark,
-    onErrorContainer = OnErrorContainerDark,
-    background = BackgroundDark,
-    onBackground = OnBackgroundDark,
-    surface = SurfaceDark,
-    onSurface = OnSurfaceDark,
-    surfaceVariant = SurfaceVariantDark,
-    onSurfaceVariant = OnSurfaceVariantDark,
-    outline = OutlineDark,
-    outlineVariant = OutlineVariantDark,
-    scrim = ScrimDark,
-    inverseSurface = InverseSurfaceDark,
-    inverseOnSurface = InverseOnSurfaceDark,
-    inversePrimary = InversePrimaryDark,
-    surfaceDim = SurfaceDimDark,
-    surfaceBright = SurfaceBrightDark,
-    surfaceContainerLowest = SurfaceContainerLowestDark,
-    surfaceContainerLow = SurfaceContainerLowDark,
-    surfaceContainer = SurfaceContainerDark,
-    surfaceContainerHigh = SurfaceContainerHighDark,
-    surfaceContainerHighest = SurfaceContainerHighestDark,
-    surfaceTint = SurfaceTintDark,
-)
-
-/** Root theme for every PacingLab screen. Follows the system light/dark setting by default. */
+/** Root theme for every PacingLab screen. Follows the system light/dark setting unless told otherwise. */
 @Composable
-fun PacingLabTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun PacingLabTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    palette: ThemePalette = ThemePalette.INDIGO,
+    content: @Composable () -> Unit,
+) {
     MaterialTheme(
-        colorScheme = if (darkTheme) DarkColors else LightColors,
+        colorScheme = if (darkTheme) palette.dark else palette.light,
         typography = PacingLabTypography,
         content = content,
     )
 }
+
+/** The palette's seed colour, for showing the choice in settings. */
+fun ThemePalette.swatch(): Color = light.primaryContainer
