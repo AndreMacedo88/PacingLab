@@ -51,7 +51,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.Nights
-import app.pacinglab.core.analytics.recovery.PersonalRange
 import app.pacinglab.core.analytics.recovery.Readiness
 import app.pacinglab.core.analytics.recovery.SleepMeasureKind
 import app.pacinglab.core.analytics.recovery.SleepRating
@@ -601,20 +600,20 @@ private fun KeyMetricsCard(
         }
         for (type in listOf(SleepStageType.DEEP, SleepStageType.REM)) {
             val typical = type.typical() ?: continue
-            fun share(n: Night) = (n.stageMillis[type] ?: 0L).takeIf { it > 0 }?.let { 100.0 * it / n.asleepMillis }
-            val shares = series(::share)
-            // Each day's own usual range from the month before it; the published range until there is a week of nights.
-            val history = nights.mapNotNull { n -> share(n)?.let { n.date to it } }.toMap()
-            val ranges = days.map { day ->
-                PersonalRange.of(history, day, minHalfWidth = MIN_STAGE_HALF_WIDTH) ?: typical.first.toDouble()..typical.last.toDouble()
-            }
+            val shares = series { n -> (n.stageMillis[type] ?: 0L).takeIf { it > 0 }?.let { 100.0 * it / n.asleepMillis } }
             MetricRow(
                 stringResource(R.string.sleep_quality_stage, stringResource(type.label())),
                 average(shares)?.let {
                     stringResource(R.string.sleep_percent, it.roundToInt())
                 },
             ) {
-                Sparkline(values = shares, bands = ranges, color = colors.stage(type), labels = labels)
+                // Published ranges, not the athlete's own: a habit of short deep sleep should not look normal.
+                Sparkline(
+                    values = shares,
+                    band = typical.first.toDouble()..typical.last.toDouble(),
+                    color = colors.stage(type),
+                    labels = labels,
+                )
             }
         }
     }
@@ -697,9 +696,6 @@ private const val HOUR = 3_600_000.0
 private const val DASH = "–"
 private const val WEEK = 7L
 private const val MONTH = 30L
-
-/** Narrowest usual range of a stage's share, in percentage points either way. */
-private const val MIN_STAGE_HALF_WIDTH = 2.0
 
 /** A measure this close to full points counts as excellent in the summary. */
 private const val NEARLY_FULL = 0.85
