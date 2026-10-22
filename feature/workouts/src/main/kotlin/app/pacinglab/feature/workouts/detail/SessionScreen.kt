@@ -186,6 +186,9 @@ private fun ScopeContent(
         if (scope.analysis.isIntervalSession) {
             item(key = "intervals") { IntervalsCard(scope.analysis, toggle, locale) }
         }
+        if (scope.splits.isNotEmpty()) {
+            item(key = "splits") { SplitsCard(scope.splits, toggle, locale) }
+        }
         scope.analysis.load?.takeIf { it.heartRateMillis > 0 }?.let { load ->
             item(key = "load") { LoadCard(load) }
         }

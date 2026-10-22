@@ -1,12 +1,14 @@
 package app.pacinglab.core.analytics.workout
 
+import app.pacinglab.core.analytics.intervals.SprintDetection
 import app.pacinglab.core.model.SampleSeries
 import app.pacinglab.core.model.Sport
 
 /**
  * Decides what a workout was. Most source activity types map directly, but generic types need the
  * data: Fitbit records its "Interval workout" mode as boot camp, and for this athlete those are
- * running intervals, which the speed stream reveals.
+ * running intervals, which the speed stream reveals. Sprint sessions run for well under the
+ * [MIN_RUNNING_MILLIS] of a run and are recognised by their sprints instead ([SprintDetection]).
  */
 object SportClassifier {
     private val direct = mapOf(
@@ -74,8 +76,15 @@ object SportClassifier {
         return when {
             medianMoving > CYCLING_SPEED -> Sport.RIDE
             runningMillis >= MIN_RUNNING_MILLIS && runningMillis.toDouble() / movingMillis >= MIN_RUNNING_SHARE -> Sport.RUN
+            isSprintSession(speed) -> Sport.RUN
             else -> Sport.OTHER
         }
+    }
+
+    private fun isSprintSession(speed: SampleSeries): Boolean {
+        val running = SpeedCleaning.dropImplausible(speed, SpeedCleaning.maxPlausibleSpeed(Sport.RUN))
+        if (running.size < 2) return false
+        return SprintDetection.detect(running, running.times.first(), running.times.last() + 1_000) != null
     }
 
     private fun classifyByDistance(distanceMeters: Double?, durationMillis: Long): Sport {

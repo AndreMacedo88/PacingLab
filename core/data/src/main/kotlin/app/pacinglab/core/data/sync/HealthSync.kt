@@ -418,8 +418,9 @@ class HealthSync @Inject constructor(
          * streams are read. The next foreground sync then re-imports the whole history.
          * 3: workouts carry their recording method.
          * 4: sleep sessions carry the heart rate recorded during them.
+         * 5: sprint sessions in interval mode are classified as runs.
          */
-        const val CURRENT_SYNC_VERSION = "4"
+        const val CURRENT_SYNC_VERSION = "5"
 
         fun workoutId(sourceRecordId: String) = "hc:$sourceRecordId"
 

@@ -15,6 +15,7 @@ import app.pacinglab.core.analytics.intervals.PhaseKind
 import app.pacinglab.core.analytics.load.LoadScores
 import app.pacinglab.core.analytics.session.PhaseSummary
 import app.pacinglab.core.analytics.session.SessionAnalysis
+import app.pacinglab.core.analytics.session.Split
 import app.pacinglab.core.analytics.zones.ZoneDistribution
 import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
@@ -69,8 +70,8 @@ class SessionScreenScreenshotTest {
     /** Warm-up run, 5 x 4 min with 2 min walking, and a short cool-down. */
     private val phases = buildList {
         var t = start.toEpochMilli()
-        fun add(kind: PhaseKind, seconds: Int, meters: Double, average: Int, max: Int) {
-            add(PhaseSummary(kind, t, t + seconds * 1_000L, meters, average, max))
+        fun add(kind: PhaseKind, seconds: Int, meters: Double, average: Int, max: Int, drop: Int? = null) {
+            add(PhaseSummary(kind, t, t + seconds * 1_000L, meters, average, max, hrDrop = drop, hrDropSeconds = drop?.let { 60 }))
             t += seconds * 1_000L
         }
         add(PhaseKind.WARM_UP, 360, 1_190.0, 139, 151)
@@ -78,7 +79,16 @@ class SessionScreenScreenshotTest {
         val repHr = listOf(159 to 171, 166 to 176, 170 to 179, 169 to 180, 169 to 181)
         repMeters.forEachIndexed { i, meters ->
             add(PhaseKind.WORK, 241, meters, repHr[i].first, repHr[i].second)
-            if (i < repMeters.lastIndex) add(PhaseKind.RECOVERY, 120, listOf(116.0, 142.0, 139.0, 119.0)[i], 147 + i, repHr[i].second)
+            if (i < repMeters.lastIndex) {
+                add(
+                    PhaseKind.RECOVERY,
+                    120,
+                    listOf(116.0, 142.0, 139.0, 119.0)[i],
+                    147 + i,
+                    repHr[i].second,
+                    drop = listOf(31, 29, 26, 22)[i],
+                )
+            }
         }
         add(PhaseKind.COOL_DOWN, 180, 600.0, 150, 158)
     }
@@ -310,6 +320,59 @@ class SessionScreenScreenshotTest {
             zonesAvailable = false,
         ),
     )
+
+    /** 10-second sprints with walking rests, as on 18 October 2026. */
+    @Test
+    @Config(qualifiers = "w384dp-h1400dp-xxhdpi")
+    fun sprints() {
+        var t = start.toEpochMilli()
+        val phases = buildList {
+            fun add(kind: PhaseKind, seconds: Int, meters: Double, top: Double? = null) {
+                add(PhaseSummary(kind, t, t + seconds * 1_000L, meters, 118, 131, topSpeed = top))
+                t += seconds * 1_000L
+            }
+            add(PhaseKind.WARM_UP, 4, 6.0)
+            listOf(13 to 9.6, 12 to 9.4, 12 to 9.1, 13 to 8.8, 12 to 8.6).forEachIndexed { i, (seconds, top) ->
+                add(PhaseKind.WORK, seconds, seconds * top * 0.82, top)
+                if (i < 4) add(PhaseKind.RECOVERY, 48, 60.0)
+            }
+            add(PhaseKind.COOL_DOWN, 40, 50.0)
+        }
+        val scope = warmUp.copy(
+            title = "Interval workout",
+            end = start.plusSeconds(300),
+            movingMillis = 300_000L,
+            distanceMeters = 555.0,
+            routes = emptyList(),
+            analysis = SessionAnalysis(phases, listOf(ZoneDistribution(five, longArrayOf(5 * 60_000L, 0, 0, 0, 0))), sprints = true),
+            recording = RecordingItem("com.fitbit.FitbitMobile", RecordingMethod.ACTIVE, "boot_camp", 250, 302, 0, 0),
+        )
+        capture(SessionUiState.Loaded(session.copy(titles = listOf("Interval workout"), parts = 1), listOf(scope), zonesAvailable = true))
+    }
+
+    @Test
+    @Config(qualifiers = "w384dp-h1600dp-xxhdpi")
+    fun steadyRunWithSplits() {
+        var t = start.toEpochMilli()
+        val splits = listOf(312 to 141, 301 to 148, 298 to 151, 305 to 152, 296 to 155, 289 to 158).mapIndexed { i, (seconds, hr) ->
+            Split(i + 1, t, t + seconds * 1_000L, 1_000.0, hr).also { t += seconds * 1_000L }
+        } + Split(7, t, t + 128_000L, 430.0, 160)
+        val run = warmUp.copy(
+            end = start.plusSeconds(2_029),
+            movingMillis = 2_029_000L,
+            distanceMeters = 6_430.0,
+            averageHr = 152,
+            maxHr = 166,
+            splits = splits,
+        )
+        capture(
+            SessionUiState.Loaded(
+                session.copy(titles = listOf("Run"), parts = 1, distanceMeters = 6_430.0),
+                listOf(run),
+                zonesAvailable = true,
+            ),
+        )
+    }
 
     private fun capture(state: SessionUiState, darkTheme: Boolean = false, scope: Int = 0) {
         compose.setContent {

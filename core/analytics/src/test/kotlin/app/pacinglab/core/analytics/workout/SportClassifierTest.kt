@@ -59,6 +59,14 @@ class SportClassifierTest {
     }
 
     @Test
+    fun `sprints with walking rests are a run despite little running time`() {
+        val sprint = arrayOf(2 to 3.5, 10 to 8.5, 2 to 3.5, 150 to 1.1)
+        val session = arrayOf(30 to 1.2) + sprint + sprint + sprint
+
+        assertThat(SportClassifier.classify("boot_camp", speedBlocks(*session))).isEqualTo(Sport.RUN)
+    }
+
+    @Test
     fun `without speed, the recorded distance decides`() {
         val thirtyMinutes = 30 * 60_000L
 

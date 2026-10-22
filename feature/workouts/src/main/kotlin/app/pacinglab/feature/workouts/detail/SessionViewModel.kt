@@ -8,6 +8,9 @@ import app.pacinglab.core.analytics.load.TrainingLoads
 import app.pacinglab.core.analytics.session.SessionAnalysis
 import app.pacinglab.core.analytics.session.SessionAnalyzer
 import app.pacinglab.core.analytics.session.SessionPart
+import app.pacinglab.core.analytics.session.Split
+import app.pacinglab.core.analytics.session.Splits
+import app.pacinglab.core.analytics.workout.SpeedCleaning
 import app.pacinglab.core.analytics.workout.TrainingSession
 import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.data.repository.TrainingLoadRepository
@@ -46,6 +49,7 @@ import java.time.ZoneOffset
  *   empty otherwise.
  * @property recording how the part was recorded; null for the whole session of several parts.
  * @property heartRate heart rate over the scope; for the whole session the parts' series one after another.
+ * @property splits kilometre splits of a steady run or walk recorded as one workout; empty otherwise.
  */
 data class DetailScope(
     val title: String?,
@@ -62,6 +66,7 @@ data class DetailScope(
     val analysis: SessionAnalysis,
     val recording: RecordingItem?,
     val heartRate: HeartRateSeries = HeartRateSeries.EMPTY,
+    val splits: List<Split> = emptyList(),
 )
 
 /** Where a recorded part came from and how much data it carries. */
@@ -125,7 +130,7 @@ class SessionViewModel @AssistedInject constructor(
             analysis = SessionAnalyzer.analyze(parts, zoneSets, anchors),
             recording = parts.singleOrNull()?.recording(),
             heartRate = HeartRateSeries.joined(parts.map { it.streams.heartRate }),
-        )
+        ).let { scope -> parts.singleOrNull()?.let { scope.copy(splits = it.splits(scope.analysis)) } ?: scope }
         val scopes = if (parts.size == 1) listOf(whole) else listOf(whole) + parts.map { it.scope(zoneSets, anchors) }
         return SessionUiState.Loaded(session = item, scopes = scopes, zonesAvailable = zoneSets.isNotEmpty())
     }
@@ -145,7 +150,14 @@ class SessionViewModel @AssistedInject constructor(
         analysis = SessionAnalyzer.analyze(listOf(this), zoneSets, anchors),
         recording = recording(),
         heartRate = streams.heartRate,
-    )
+    ).let { it.copy(splits = splits(it.analysis)) }
+
+    /** Splits of a steady run or walk; an interval session has its rep table instead. */
+    private fun SessionPart.splits(analysis: SessionAnalysis): List<Split> {
+        if (workout.sport !in setOf(Sport.RUN, Sport.WALK) || analysis.isIntervalSession) return emptyList()
+        val speed = SpeedCleaning.dropImplausible(streams.speed, SpeedCleaning.maxPlausibleSpeed(workout.sport))
+        return Splits.of(streams.route, speed, streams.heartRate, workout.summary.distanceMeters)
+    }
 
     private fun SessionPart.recording() = RecordingItem(
         origin = workout.origin,

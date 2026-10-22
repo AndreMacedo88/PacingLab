@@ -54,6 +54,28 @@ class SessionAnalyzerTest {
         assertThat(work.averageHr).isEqualTo(170)
         assertThat(analysis.totals(PhaseKind.RECOVERY)!!.count).isEqualTo(4)
         assertThat(analysis.totals(PhaseKind.WARM_UP, PhaseKind.COOL_DOWN)!!.distanceMeters).isEqualTo(1_580.0)
+        assertThat(analysis.sprints).isFalse()
+        // Heart rate steps from 170 to 145 as each rep ends: a drop of 25 within the first minute.
+        assertThat(analysis.phases.filter { it.kind == PhaseKind.RECOVERY }.map { it.hrDrop to it.hrDropSeconds }.distinct())
+            .isEqualTo(listOf(25 to 60))
+        assertThat(analysis.averageHrDrop).isEqualTo(25)
+        analysis.phases.filter { it.kind == PhaseKind.WORK }.forEach { assertThat(it.topSpeed!!).isBetween(4.1, 4.2) }
+    }
+
+    @Test
+    fun `a sprint session is split into sprints without heart rate recovery`() {
+        val sprint = listOf(2 to 3.5, 10 to 8.5, 2 to 3.5, 150 to 1.1)
+        val sprints = part(
+            workout("sprints", Sport.RUN, startMinute = 0, minutes = 9).copy(activity = "boot_camp"),
+            blocks(startMinute = 0, listOf(30 to 1.2) + sprint + sprint + sprint, workHr = 130, restHr = 120),
+            distance = 900.0,
+        )
+
+        val analysis = SessionAnalyzer.analyze(listOf(sprints), listOf(zones))
+
+        assertThat(analysis.sprints).isTrue()
+        assertThat(analysis.totals(PhaseKind.WORK)!!.count).isEqualTo(3)
+        assertThat(analysis.averageHrDrop).isNull()
     }
 
     @Test

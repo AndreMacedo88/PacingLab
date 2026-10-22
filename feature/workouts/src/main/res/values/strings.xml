@@ -52,7 +52,7 @@
     <string name="show_pace">Show pace per kilometre</string>
 
     <string name="intervals_title">Intervals</string>
-    <string name="intervals_info">Your watch does not mark reps, so PacingLab finds them in the speed it records every second.\n\n# How reps are found\n- Stretches clearly faster than those around them are reps; the slower stretches in between are recoveries.\n- Stretches shorter than 10 seconds are ignored.\n- A run recorded just before or after the interval workout counts as warm-up or cool-down.\n\n# The numbers\n- Running and Recovery add up all reps and all recoveries.\n- Distances come from the speed, scaled so that they add up to the distance the watch reported.\n- Average heart rate is weighted by time; the maximum ignores single-sample spikes.</string>
+    <string name="intervals_info">Your watch does not mark reps, so PacingLab finds them in the speed it records every second.\n\n# How reps are found\n- Stretches clearly faster than those around them are reps; the slower stretches in between are recoveries.\n- Stretches shorter than 10 seconds are ignored.\n- A run recorded just before or after the interval workout counts as warm-up or cool-down.\n\n# The numbers\n- Running and Recovery add up all reps and all recoveries.\n- Distances come from the speed, scaled so that they add up to the distance the watch reported.\n- Average heart rate is weighted by time; the maximum ignores single-sample spikes.\n\n# Heart rate recovery\nOn recovery rows, the drop in heart rate from the rep\'s peak to one minute later (or to the end of a shorter recovery). It shows how quickly your body switches back to rest. Within a session, a smaller drop than after the earlier reps is a sign of fatigue; across sessions, a larger drop after the same work points to better fitness (Daanen 2012). Wrist sensors lag, so the peak is looked for up to 10 seconds after the rep ends.</string>
     <string name="intervals_running">Running</string>
     <string name="intervals_recovery">Recovery</string>
     <string name="intervals_easy">Warm-up and cool-down</string>
@@ -65,6 +65,23 @@
     <string name="intervals_recovery_row">rec</string>
     <string name="intervals_hr">%1$d bpm average</string>
     <string name="intervals_hr_pair">%1$d/%2$d</string>
+    <string name="intervals_hr_drop">↓%1$d</string>
+    <string name="intervals_hr_rise">↑%1$d</string>
+    <string name="intervals_hr_drop_average">↓%1$d bpm in 1 min</string>
+    <string name="intervals_hr_drop_caption">Recovery rows: heart rate drop in the first minute.</string>
+    <string name="unit_m">%1$d m</string>
+    <string name="splits_title">Splits</string>
+    <string name="splits_header_km">km</string>
+    <string name="splits_header_hr">HR</string>
+    <string name="splits_info">Time, pace and average heart rate of each kilometre. The bar shows speed, from zero, against the fastest kilometre.\n\nDistance comes from the GPS track, or from the speed the watch records when there is no track, scaled to the distance the watch reported so that the splits add up the way it shows them. A last part shorter than 100 m is left out.</string>
+    <string name="sprints_sprinting">Sprinting</string>
+    <string name="sprints_top_speed">Top speed</string>
+    <string name="sprints_rest_total">%1$s resting</string>
+    <string name="sprints_header_sprint">Sprint</string>
+    <string name="sprints_header_distance">m</string>
+    <string name="sprints_header_top">Top km/h</string>
+    <string name="sprints_header_rest">Rest</string>
+    <string name="sprints_info">PacingLab finds sprints in the speed your watch records every second: bursts of at least 3 seconds faster than 18 km/h, with rest between them.\n\n# The numbers\n- Time and distance include the acceleration, from the moment you ran faster than a jog until you slowed down again.\n- Top speed is the fastest three seconds of each sprint.\n- Rest is the time until the next sprint.\n\n# Limits\n- Without GPS the watch estimates speed from your steps, which tends to read high at sprint speed. Compare sprints with each other rather than with a stopwatch.\n- Heart rate barely reacts to a 10-second effort, which is why the time in zones of a sprint session looks easy.</string>
 
     <string name="zones_title">Heart rate</string>
     <string name="zones_chart_description">Heart rate over the session, coloured by zone</string>
@@ -81,6 +98,10 @@
     <plurals name="session_parts">
         <item quantity="one">%1$d part</item>
         <item quantity="other">%1$d parts</item>
+    </plurals>
+    <plurals name="sprints_title">
+        <item quantity="one">%1$d sprint</item>
+        <item quantity="other">%1$d sprints</item>
     </plurals>
     <plurals name="intervals_reps">
         <item quantity="one">%1$d rep</item>
