@@ -78,8 +78,6 @@ fun TrendsRoute(
         onOpenPhysiology = onOpenPhysiology,
         onOpenSettings = onOpenSettings,
         modifier = modifier,
-        onSaveTest = viewModel::saveTest,
-        onDeleteTest = viewModel::deleteTest,
     )
 }
 
@@ -90,8 +88,6 @@ fun TrendsScreen(
     onOpenPhysiology: () -> Unit,
     modifier: Modifier = Modifier,
     initialRange: TrendRange = TrendRange.THREE_MONTHS,
-    onSaveTest: (LocalDate, Double) -> Unit = { _, _ -> },
-    onDeleteTest: (LocalDate) -> Unit = {},
     onOpenSettings: () -> Unit = {},
     refreshing: Boolean = false,
     onRefresh: () -> Unit = {},
@@ -132,10 +128,6 @@ fun TrendsScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         item(key = "form") { FormCard(state.days, state.today, initialRange, locale) }
-                        item(key = "vo2max") { Vo2MaxCard(state.vo2max, state.today, onSaveTest, onDeleteTest, locale) }
-                        if (state.efficiency.trend.isNotEmpty()) {
-                            item(key = "efficiency") { EfficiencyCard(state.efficiency, state.today, locale) }
-                        }
                         if (state.recovery.isNotEmpty()) {
                             item(key = "recovery") { RecoveryCard(state.recovery, state.today, locale) }
                         }

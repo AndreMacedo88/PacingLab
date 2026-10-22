@@ -1,4 +1,4 @@
-package app.pacinglab.feature.trends
+package app.pacinglab.feature.performance
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement

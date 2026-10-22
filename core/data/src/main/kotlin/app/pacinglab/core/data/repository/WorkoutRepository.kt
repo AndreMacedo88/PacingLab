@@ -1,5 +1,6 @@
 package app.pacinglab.core.data.repository
 
+import app.pacinglab.core.analytics.workout.StreamCleaning
 import app.pacinglab.core.analytics.workout.TrainingSession
 import app.pacinglab.core.analytics.workout.TrainingSessions
 import app.pacinglab.core.database.store.WorkoutStore
@@ -26,5 +27,6 @@ class WorkoutRepository @Inject constructor(private val store: WorkoutStore, pri
 
     fun observeWorkout(id: String): Flow<Workout?> = store.observe(id)
 
-    suspend fun streams(id: String): WorkoutStreams = store.streams(id)
+    /** The workout's streams, cleaned of measurement errors (see [StreamCleaning]). */
+    suspend fun streams(workout: Workout): WorkoutStreams = store.cleanStreams(workout)
 }

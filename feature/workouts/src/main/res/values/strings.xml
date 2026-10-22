@@ -118,4 +118,15 @@
     <string name="effort_title">Effort</string>
     <string name="effort_session_rpe">Session RPE</string>
     <string name="effort_info">How hard the whole session felt, from 1 (very, very easy) to 10 (maximal), rated once afterwards. Heart rate reacts little to lifting, so gym sessions are the only ones that ask for a rating; runs count by heart rate.\n\n# Session RPE\nThe rating times the minutes (Foster 2001), in arbitrary units: the usual measure of strength training load.\n\n# Stress score\nTo add gym sessions to fitness and fatigue, PacingLab turns the rating into 10 × rating + 10 per hour, so an hour rated 9 scores 100 like an hour at threshold heart rate. This is a rule of thumb from coaching practice, not a validated conversion. Unrated gym sessions count by heart rate.\n\nTap the chosen value again to clear it.</string>
+    <string name="decoupling_title">Aerobic decoupling</string>
+    <string name="decoupling_value">%1$s %%</string>
+    <string name="decoupling_good">Heart rate held steady</string>
+    <string name="decoupling_drift">Heart rate drifted up</string>
+    <string name="decoupling_first_half">First half</string>
+    <string name="decoupling_second_half">Second half</string>
+    <plurals name="decoupling_minutes">
+        <item quantity="one">%d minute after the warm-up, split in two halves of equal time</item>
+        <item quantity="other">%d minutes after the warm-up, split in two halves of equal time</item>
+    </plurals>
+    <string name="decoupling_info" formatted="false">On a long steady run, heart rate drifts up at an unchanged pace once aerobic endurance runs short. Decoupling compares speed per heartbeat in the second half with the first (Friel); under 5 % counts as good aerobic endurance for this duration.\n\nThe first 10 minutes are left out as warm-up. Hills, heat and dehydration also raise heart rate, so the number describes the run as well as the runner.</string>
 </resources>

@@ -9,17 +9,10 @@ import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.LoadScores
 import app.pacinglab.core.analytics.load.TrainingLoads
 import app.pacinglab.core.analytics.load.WorkoutLoad
-import app.pacinglab.core.analytics.performance.AerobicEfficiency
-import app.pacinglab.core.analytics.performance.EfficiencyPoint
-import app.pacinglab.core.analytics.performance.Vo2MaxPoint
-import app.pacinglab.core.analytics.performance.Vo2MaxSource
-import app.pacinglab.core.analytics.performance.Vo2MaxTrend
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.RecoveryTrend
 import app.pacinglab.core.analytics.zones.ZoneDistribution
 import app.pacinglab.core.analytics.zones.Zones
-import app.pacinglab.core.data.repository.EfficiencyHistory
-import app.pacinglab.core.data.repository.Vo2MaxHistory
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.ZoneModel
@@ -39,7 +32,7 @@ import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h3300dp-xxhdpi")
+@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h2400dp-xxhdpi")
 class TrendsScreenScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
@@ -81,17 +74,6 @@ class TrendsScreenScreenshotTest {
         }
     }
 
-    /** Four months of PacingLab estimates around a slow rise from 54 to 57, a few Fitbit values and one test. */
-    private val vo2Points: List<Vo2MaxPoint> = buildList {
-        for (d in 0 until 120 step 3) {
-            add(Vo2MaxPoint(today.minusDays(120L - d), 54.0 + 3.0 * d / 120 + 2.5 * sin(d * 1.9), Vo2MaxSource.PACINGLAB))
-        }
-        listOf(100L to 52.4, 70L to 53.6, 45L to 55.1, 20L to 54.8, 6L to 55.9).forEach { (back, v) ->
-            add(Vo2MaxPoint(today.minusDays(back), v, Vo2MaxSource.FITBIT))
-        }
-        add(Vo2MaxPoint(today.minusDays(30), 56.5, Vo2MaxSource.TEST))
-    }
-
     /** Ten weeks of nights: HRV wobbling around 60 ms with a dip in the last week, resting heart rate rising then. */
     private val nights = (69 downTo 0).map { back ->
         val date = today.minusDays(back.toLong())
@@ -110,18 +92,11 @@ class TrendsScreenScreenshotTest {
         )
     }
 
-    /** Easy runs every few days over five months, getting a little faster. */
-    private val efficiencyPoints = (150 downTo 0 step 4).map { back ->
-        EfficiencyPoint(today.minusDays(back.toLong()), 2.55 + 0.0012 * (150 - back) + 0.05 * sin(back * 0.9), 6 + back % 5)
-    }
-
     private val loaded = TrendsUiState.Loaded(
         days = FitnessModel.series(TrainingLoads.daily(loads), until = today),
         weeks = TrainingLoads.weeks(loads, until = today, count = 8),
         today = today,
-        vo2max = Vo2MaxHistory(vo2Points.sortedBy { it.date }, Vo2MaxTrend.of(vo2Points, today)),
         recovery = RecoveryTrend.of(nights, today),
-        efficiency = EfficiencyHistory(efficiencyPoints, AerobicEfficiency.trend(efficiencyPoints, today), referenceHr = 142),
     )
 
     @Test
@@ -148,7 +123,7 @@ class TrendsScreenScreenshotTest {
         val today = loaded.days.last()
         val fitness = "Fitness ${Math.round(today.fitness)}"
 
-        // The fitness card's range buttons come first; the VO2max card has its own.
+        // The fitness card's range buttons.
         compose.onAllNodesWithText("1 year")[0].performClick()
         compose.onNodeWithText("Today", substring = true).assertExists()
         compose.onAllNodesWithText("6 weeks")[0].performClick()

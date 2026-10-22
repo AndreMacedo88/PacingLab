@@ -13,6 +13,10 @@ object PacingLabIcons {
 
     @DrawableRes val WorkoutsSelected = R.drawable.ic_directions_run_filled
 
+    @DrawableRes val Performance = R.drawable.ic_trophy_outline
+
+    @DrawableRes val PerformanceSelected = R.drawable.ic_trophy_filled
+
     @DrawableRes val Trends = R.drawable.ic_monitoring_outline
 
     @DrawableRes val TrendsSelected = R.drawable.ic_monitoring_filled

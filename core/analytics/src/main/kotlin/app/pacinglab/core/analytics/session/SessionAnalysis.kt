@@ -6,6 +6,7 @@ import app.pacinglab.core.analytics.intervals.Phase
 import app.pacinglab.core.analytics.intervals.PhaseKind
 import app.pacinglab.core.analytics.intervals.RecordingMode
 import app.pacinglab.core.analytics.intervals.SprintDetection
+import app.pacinglab.core.analytics.load.BanisterWeighting
 import app.pacinglab.core.analytics.load.HeartRateLoad
 import app.pacinglab.core.analytics.load.LoadScores
 import app.pacinglab.core.analytics.series.secondGrid
@@ -109,7 +110,12 @@ object SessionAnalyzer {
      * cool-down. Phase distances come from the speed stream, scaled so that they add up to the
      * workout's recorded distance.
      */
-    fun analyze(parts: List<SessionPart>, zoneSets: List<ZoneSet> = emptyList(), anchors: HeartRateAnchors? = null): SessionAnalysis {
+    fun analyze(
+        parts: List<SessionPart>,
+        zoneSets: List<ZoneSet> = emptyList(),
+        anchors: HeartRateAnchors? = null,
+        weighting: BanisterWeighting = BanisterWeighting.MALE,
+    ): SessionAnalysis {
         val ordered = parts.sortedBy { it.workout.start }
         val found = ordered.map(::detect)
         val sprints = found.any { it != null } && found.filterNotNull().all { it.sprints }
@@ -142,7 +148,7 @@ object SessionAnalyzer {
         }
         val load = anchors?.let { a ->
             ordered.filterNot { it.streams.heartRate.isEmpty() }
-                .mapNotNull { HeartRateLoad.of(it.streams.heartRate, a) }
+                .mapNotNull { HeartRateLoad.of(it.streams.heartRate, a, weighting) }
                 .takeIf { it.isNotEmpty() }
                 ?.fold(LoadScores.ZERO, LoadScores::plus)
         }

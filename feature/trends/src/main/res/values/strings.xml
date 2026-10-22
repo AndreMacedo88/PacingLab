@@ -22,26 +22,6 @@
     <string name="chart_fitness_fatigue">Fitness and fatigue</string>
     <string name="chart_form">Form</string>
 
-    <string name="vo2_title">VO2max</string>
-    <string name="vo2_unit">ml/kg/min</string>
-    <string name="vo2_uncertainty">± %1$s</string>
-    <string name="vo2_change">%1$s in 30 days</string>
-    <string name="vo2_empty">No estimates yet. PacingLab estimates VO2max from runs with steady stretches, and adds the values Fitbit writes after GPS runs.</string>
-    <string name="vo2_legend_trend">Trend</string>
-    <string name="vo2_legend_test">Test</string>
-    <string name="vo2_legend_fitbit">Fitbit</string>
-    <string name="vo2_legend_pacinglab">PacingLab</string>
-    <string name="vo2_chart_description">VO2max trend, now %1$s ml/kg/min</string>
-    <string name="vo2_tests">Your tests</string>
-    <string name="vo2_test_row">%1$s · %2$s ml/kg/min</string>
-    <string name="vo2_delete_test">Delete test</string>
-    <string name="vo2_add_test">Add a lab or field test</string>
-    <string name="vo2_test_explained">A measured VO2max, for example from a lab test with gas analysis. It counts more than any estimate.</string>
-    <string name="vo2_change_date">Change date</string>
-    <string name="vo2_test_invalid">Enter a value from 20 to 95.</string>
-    <string name="vo2_save">Save</string>
-    <string name="vo2_cancel">Cancel</string>
-    <string name="vo2_ok">OK</string>
     <string name="weeks_title">Weekly training</string>
     <string name="weeks_info" tools:ignore="Typos" formatted="false">Weeks run from Monday to Sunday.\n\n- Load: the stress scores of the week added up.\n- Hours: the duration of every workout that counts as training.\n- Intensity: how the time with heart rate splits over three zones: below the first ventilatory threshold (VT1), between VT1 and VT2, and above VT2.\n\nStudies of successful endurance athletes typically find most of their training time, often around 80 %, below VT1 (Seiler 2010).</string>
     <string name="weeks_week">Week</string>
@@ -54,7 +34,6 @@
         <item quantity="one">%1$d workout</item>
         <item quantity="other">%1$d workouts</item>
     </plurals>
-    <string name="vo2_info">VO2max, the most oxygen your body can use, in ml per kg per minute. The line is PacingLab\'s best estimate of your true value over time, the band one standard deviation of its uncertainty.\n\n# Where the values come from\n- Test (diamond): a lab or field test you entered. The most trusted value.\n- Fitbit (filled dot): the estimate Fitbit writes to Health Connect after some GPS runs.\n- PacingLab (hollow dot): estimated from every run with steady stretches, interval reps included. Runs without a speed recording use their GPS track.\n\n# PacingLab\'s estimate\n- Steady stretches: four minutes of even pace whose heart rate has levelled off. Heart rate needs about three minutes to settle, so short warm-ups give no estimate.\n- The oxygen cost of the pace by the ACSM running equation, on the flat.\n- The share of your heart rate reserve used equals the share of your VO2 reserve (Swain and Leutholtz 1997), which gives VO2max from the cost.\n- It depends on correct maximum and resting heart rate and assumes average running economy.\n\n# The trend\nA Kalman filter treats your true VO2max as changing slowly, about 1 ml/kg/min a month, and every value as a noisy measurement of it. Each source\'s noise is learned from how much it scatters around the trend, so steadier sources pull the line harder. A smoother then uses later values too, for the best picture of the past.\n\nThe number at the top is today\'s value from the estimates so far; its uncertainty grows on days without new ones.</string>
     <string name="recovery_title">HRV and resting heart rate</string>
     <string name="recovery_hrv">HRV</string>
     <string name="recovery_hrv_value">7-day %1$d ms</string>
@@ -66,11 +45,4 @@
     <string name="recovery_hrv_description">Nightly HRV with its seven-day average and normal range</string>
     <string name="recovery_resting_description">Nightly resting heart rate with its seven-day average and usual range</string>
     <string name="recovery_info">How your body handles training over weeks and months, measured each night.\n\n# Reading the charts\n- Dots are single nights, the line is the average of the last seven days.\n- The shaded band is your own normal range on each day, the same one readiness uses; it moves as your baseline does.\n- The line turns orange while the week sits outside the band.\n\n# HRV\nThe normal range is the mean of the last 60 days, plus or minus half a standard deviation, on the log scale (Plews 2013). A week below the range is the clearest sign of accumulated fatigue, illness or stress; a rising range over months often comes with better fitness.\n\n# Resting heart rate\nThe usual range is the average of the last 30 nights, plus or minus one standard deviation, at least 3 bpm. A raised resting heart rate for several nights points the same way as low HRV.\n\nBoth need a week of nights before a range appears.</string>
-    <string name="efficiency_title">Aerobic efficiency</string>
-    <string name="efficiency_headline">Easy pace at %1$d bpm</string>
-    <string name="efficiency_pace">%1$s /km</string>
-    <string name="efficiency_change">%1$s in 6 weeks</string>
-    <string name="efficiency_last_run">last measured %1$s</string>
-    <string name="efficiency_description">Pace at %1$d bpm in each run with steady easy running, and its six-week average</string>
-    <string name="efficiency_info">How fast you run at an easy heart rate, here %1$d bpm (85 %% of your threshold). As aerobic fitness grows, the same heart rate carries you faster.\n\n# How it is measured\n- Only steady stretches count: two minutes of even pace with heart rate levelled off, at 80 to 90 %% of threshold heart rate.\n- Each run gives speed per heartbeat over those stretches (the efficiency factor of endurance coaching), turned into the pace it means at %1$d bpm.\n- The line is the average of the last six weeks of runs.\n\n# When it appears\nIt needs at least three steady minutes at an easy heart rate in a run. Short warm-ups, where heart rate is still climbing, and interval sessions do not count, so zone 2 runs fill it.\n\n# Limits\nHeat, hills, wind and fatigue slow a single run; compare the line, not single dots.</string>
 </resources>

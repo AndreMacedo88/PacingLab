@@ -2,6 +2,7 @@ package app.pacinglab.core.data.repository
 
 import app.pacinglab.core.analytics.geo.speeds
 import app.pacinglab.core.analytics.load.AnchorTimeline
+import app.pacinglab.core.analytics.load.BanisterWeighting
 import app.pacinglab.core.analytics.load.EffortLoad
 import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.FormDay
@@ -9,6 +10,7 @@ import app.pacinglab.core.analytics.load.HeartRateLoad
 import app.pacinglab.core.analytics.load.LoadScores
 import app.pacinglab.core.analytics.load.TrainingLoads
 import app.pacinglab.core.analytics.load.WorkoutLoad
+import app.pacinglab.core.analytics.workout.StreamCleaning
 import app.pacinglab.core.analytics.workout.TrainingSessions
 import app.pacinglab.core.analytics.zones.HeartRatePeak
 import app.pacinglab.core.analytics.zones.MaxHeartRateEstimate
@@ -52,7 +54,12 @@ class TrainingLoadRepository @Inject constructor(
 ) {
     private class Cached(val scores: LoadScores?, val intensity: ZoneDistribution?)
 
-    private data class CacheKey(val workoutId: String, val lastModified: Instant, val anchors: HeartRateAnchors?)
+    private data class CacheKey(
+        val workoutId: String,
+        val lastModified: Instant,
+        val anchors: HeartRateAnchors?,
+        val weighting: BanisterWeighting,
+    )
 
     /** Scores survive recomposition and syncs; a workout is only recalculated when it or its anchors change. */
     private val cache = ConcurrentHashMap<CacheKey, Cached>()
@@ -112,7 +119,7 @@ class TrainingLoadRepository @Inject constructor(
     }
 
     private suspend fun thresholdEffort(workout: Workout): Double? {
-        val streams = workouts.streams(workout.id)
+        val streams = workouts.cleanStreams(workout)
         // Runs from before August 2026 have no speed stream; their GPS track stands in.
         val speed = if (streams.speed.size > 0) streams.speed else streams.route.speeds()
         return ThresholdHeartRateEstimate.effort(streams.heartRate, speed, workout.start.toEpochMilli(), workout.end.toEpochMilli())
@@ -125,13 +132,19 @@ class TrainingLoadRepository @Inject constructor(
     fun observeWorkoutLoads(): Flow<List<WorkoutLoad>> = combine(
         workouts.observeAll(),
         anchors,
-        preferences.preferences.map { it.strengthInLoad }.distinctUntilChanged(),
+        preferences.preferences.map { it.strengthInLoad to it.sex.weighting }.distinctUntilChanged(),
         ratings.observe(),
-    ) { all, timeline, strength, rated -> LoadInputs(all, timeline, strength, rated) }
+    ) { all, timeline, (strength, weighting), rated -> LoadInputs(all, timeline, strength, weighting, rated) }
         .mapLatest { loads(it) }
         .flowOn(Dispatchers.Default)
 
-    private class LoadInputs(val all: List<Workout>, val timeline: AnchorTimeline, val strength: Boolean, val efforts: Map<String, Int>)
+    private class LoadInputs(
+        val all: List<Workout>,
+        val timeline: AnchorTimeline,
+        val strength: Boolean,
+        val weighting: BanisterWeighting,
+        val efforts: Map<String, Int>,
+    )
 
     /** The fitness-fatigue model from the first day with load up to today. */
     fun observeFitness(): Flow<List<FormDay>> = observeWorkoutLoads().map { loads ->
@@ -150,8 +163,8 @@ class TrainingLoadRepository @Inject constructor(
         return TrainingSessions.removeDuplicates(counted).sortedBy { it.start }.map { workout ->
             val date = TrainingLoads.dateOf(workout, clock.zone)
             val anchors = inputs.timeline.at(date)
-            val key = CacheKey(workout.id, workout.lastModified, anchors)
-            val cached = cache[key] ?: score(workout, anchors).also { cache[key] = it }
+            val key = CacheKey(workout.id, workout.lastModified, anchors, inputs.weighting)
+            val cached = cache[key] ?: score(workout, anchors, inputs.weighting).also { cache[key] = it }
             val millis = Duration.between(workout.start, workout.end).toMillis()
             val effort = inputs.efforts[workout.id]?.takeIf { workout.sport == Sport.STRENGTH }
             val scores = if (effort == null) {
@@ -163,10 +176,13 @@ class TrainingLoadRepository @Inject constructor(
         }
     }
 
-    private suspend fun score(workout: Workout, anchors: HeartRateAnchors?): Cached {
+    private suspend fun score(workout: Workout, anchors: HeartRateAnchors?, weighting: BanisterWeighting): Cached {
         if (anchors == null) return Cached(null, null)
-        val heartRate = workouts.heartRate(workout.id)
+        val heartRate = StreamCleaning.heartRate(workouts.heartRate(workout.id))
         if (heartRate.isEmpty()) return Cached(null, null)
-        return Cached(HeartRateLoad.of(heartRate, anchors), TimeInZones.compute(heartRate, Zones.of(ZoneModel.POLARIZED_THREE, anchors)))
+        return Cached(
+            HeartRateLoad.of(heartRate, anchors, weighting),
+            TimeInZones.compute(heartRate, Zones.of(ZoneModel.POLARIZED_THREE, anchors)),
+        )
     }
 }

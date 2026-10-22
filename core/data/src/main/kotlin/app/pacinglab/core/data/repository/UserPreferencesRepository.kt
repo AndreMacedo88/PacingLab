@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import app.pacinglab.core.analytics.load.BanisterWeighting
 import app.pacinglab.core.analytics.workout.TrainingSessions
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -21,6 +22,12 @@ enum class ThemeChoice {
     BLUE,
 }
 
+/** Sets the heart rate weighting of training load: Banister fitted TRIMP to blood lactate separately by sex. */
+enum class Sex(val weighting: BanisterWeighting) {
+    MALE(BanisterWeighting.MALE),
+    FEMALE(BanisterWeighting.FEMALE),
+}
+
 enum class DarkMode {
     SYSTEM,
     LIGHT,
@@ -34,6 +41,7 @@ enum class DarkMode {
  * @property speedByDefault running speed shows as km/h rather than pace when a session opens.
  * @property sleepNeed a fixed sleep need; null lets PacingLab work it out from the athlete's nights.
  * @property strengthInLoad gym sessions count towards training load, fitness and fatigue.
+ * @property sex the athlete's, for the weighting of training load.
  */
 data class UserPreferences(
     val sessionMergeGap: Duration = TrainingSessions.DEFAULT_MAX_GAP,
@@ -42,6 +50,7 @@ data class UserPreferences(
     val speedByDefault: Boolean = false,
     val sleepNeed: Duration? = null,
     val strengthInLoad: Boolean = true,
+    val sex: Sex = Sex.MALE,
 )
 
 @Singleton
@@ -55,6 +64,7 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
             speedByDefault = values[SPEED_BY_DEFAULT] ?: false,
             sleepNeed = values[SLEEP_NEED_MINUTES]?.let { Duration.ofMinutes(it.toLong()) },
             strengthInLoad = values[STRENGTH_IN_LOAD] ?: true,
+            sex = values[SEX]?.let { name -> Sex.entries.firstOrNull { it.name == name } } ?: Sex.MALE,
         )
     }
 
@@ -85,6 +95,10 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         dataStore.edit { it[STRENGTH_IN_LOAD] = count }
     }
 
+    suspend fun setSex(sex: Sex) {
+        dataStore.edit { it[SEX] = sex.name }
+    }
+
     companion object {
         val MAX_MERGE_GAP: Duration = Duration.ofMinutes(60)
         val MIN_SLEEP_NEED: Duration = Duration.ofHours(6)
@@ -95,5 +109,6 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         private val SPEED_BY_DEFAULT = booleanPreferencesKey("speed_by_default")
         private val SLEEP_NEED_MINUTES = intPreferencesKey("sleep_need_minutes")
         private val STRENGTH_IN_LOAD = booleanPreferencesKey("strength_in_load")
+        private val SEX = stringPreferencesKey("sex")
     }
 }

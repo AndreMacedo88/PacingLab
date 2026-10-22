@@ -14,6 +14,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import app.pacinglab.core.analytics.intervals.PhaseKind
 import app.pacinglab.core.analytics.load.LoadScores
+import app.pacinglab.core.analytics.performance.Decoupling
+import app.pacinglab.core.analytics.performance.RunHalf
 import app.pacinglab.core.analytics.session.PhaseSummary
 import app.pacinglab.core.analytics.session.SessionAnalysis
 import app.pacinglab.core.analytics.session.Split
@@ -354,7 +356,7 @@ class SessionScreenScreenshotTest {
     }
 
     @Test
-    @Config(qualifiers = "w384dp-h1600dp-xxhdpi")
+    @Config(qualifiers = "w384dp-h2000dp-xxhdpi")
     fun steadyRunWithSplits() {
         var t = start.toEpochMilli()
         val splits = listOf(312 to 141, 301 to 148, 298 to 151, 305 to 152, 296 to 155, 289 to 158).mapIndexed { i, (seconds, hr) ->
@@ -367,6 +369,7 @@ class SessionScreenScreenshotTest {
             averageHr = 152,
             maxHr = 166,
             splits = splits,
+            decoupling = Decoupling(2.4, RunHalf(3.18, 149.0), RunHalf(3.15, 151.4), 23),
         )
         capture(
             SessionUiState.Loaded(

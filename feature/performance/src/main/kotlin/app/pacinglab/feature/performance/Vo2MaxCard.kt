@@ -1,4 +1,4 @@
-package app.pacinglab.feature.trends
+package app.pacinglab.feature.performance
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
@@ -87,7 +87,7 @@ internal fun Vo2MaxCard(
     var range by rememberSaveable { mutableStateOf(Vo2MaxRange.THREE_MONTHS) }
     var adding by rememberSaveable { mutableStateOf(false) }
     val trend = history.trend
-    TrendCard(title = stringResource(R.string.vo2_title), info = stringResource(R.string.vo2_info), modifier = modifier) {
+    PerformanceCard(title = stringResource(R.string.vo2_title), info = stringResource(R.string.vo2_info), modifier = modifier) {
         if (trend == null) {
             Text(stringResource(R.string.vo2_empty), style = MaterialTheme.typography.bodyMedium)
         } else {

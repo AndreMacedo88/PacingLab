@@ -22,6 +22,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import app.pacinglab.R
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
+import app.pacinglab.feature.performance.navigation.performanceEntries
 import app.pacinglab.feature.settings.navigation.DataSourcesKey
 import app.pacinglab.feature.settings.navigation.PhysiologyKey
 import app.pacinglab.feature.settings.navigation.SettingsKey
@@ -102,6 +103,7 @@ fun PacingLabApp(modifier: Modifier = Modifier) {
                     openPhysiology = { backStack.add(PhysiologyKey) },
                     openSettings = openSettings,
                 )
+                performanceEntries(openWorkout = { backStack.add(SessionKey(it)) }, openSettings = openSettings)
                 trendsEntries(openPhysiology = { backStack.add(PhysiologyKey) }, openSettings = openSettings)
                 settingsEntries(
                     navigateTo = { backStack.add(it) },

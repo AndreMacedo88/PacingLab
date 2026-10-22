@@ -206,7 +206,7 @@ class TodayViewModel @Inject constructor(
     /** The newest session that counts as training; detected walks and rides do not. */
     private suspend fun lastWorkout(sessions: List<TrainingSession>, loads: List<WorkoutLoad>, anchors: AnchorTimeline): LastWorkout? {
         val session = sessions.firstOrNull { s -> s.workouts.any(TrainingLoads::counts) } ?: return null
-        val streams = session.workouts.map { workouts.streams(it.id) }
+        val streams = session.workouts.map { workouts.streams(it) }
         val byId = loads.associateBy { it.workoutId }
         val scored = session.workouts.mapNotNull { byId[it.id]?.scores }
         val withHr = session.workouts.filter { it.summary.averageHr != null }

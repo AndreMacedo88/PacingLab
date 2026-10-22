@@ -104,9 +104,11 @@ fun SessionScreen(
         label = stringResource(if (showSpeed) R.string.show_pace else R.string.show_speed),
         onToggle = { showSpeed = !showSpeed },
     )
-    var selected by rememberSaveable { mutableIntStateOf(initialScope) }
+    // -1 until the athlete picks a tab: the screen opens on the session's focus or on initialScope.
+    var selected by rememberSaveable { mutableIntStateOf(-1) }
     val scopes = (state as? SessionUiState.Loaded)?.scopes.orEmpty()
-    val index = selected.coerceIn(0, maxOf(0, scopes.lastIndex))
+    val opening = maxOf(initialScope, (state as? SessionUiState.Loaded)?.focus ?: 0)
+    val index = (if (selected >= 0) selected else opening).coerceIn(0, maxOf(0, scopes.lastIndex))
     val title = (state as? SessionUiState.Loaded)?.session?.title() ?: stringResource(R.string.session_title)
     Scaffold(
         modifier = modifier,
@@ -217,6 +219,9 @@ private fun ScopeContent(
         }
         if (scope.splits.isNotEmpty()) {
             item(key = "splits") { SplitsCard(scope.splits, toggle, locale) }
+        }
+        scope.decoupling?.let { decoupling ->
+            item(key = "decoupling") { DecouplingCard(decoupling, toggle, locale) }
         }
         // The effort card shows the load of a rated gym session.
         scope.analysis.load?.takeIf { it.heartRateMillis > 0 && rated == null }?.let { load ->

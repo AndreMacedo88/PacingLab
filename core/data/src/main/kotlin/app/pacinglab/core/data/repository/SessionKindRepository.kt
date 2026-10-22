@@ -57,7 +57,7 @@ class SessionKindRepository @Inject constructor(
     }
 
     private suspend fun classify(session: TrainingSession, anchors: HeartRateAnchors?): SessionKind {
-        val parts = session.workouts.map { SessionPart(it, workouts.streams(it.id)) }
+        val parts = session.workouts.map { SessionPart(it, workouts.streams(it)) }
         return SessionClassifier.classify(
             analysis = SessionAnalyzer.analyze(parts),
             heartRate = HeartRateSeries.joined(parts.map { it.streams.heartRate }),
