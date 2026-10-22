@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.data.repository.DarkMode
+import app.pacinglab.core.data.repository.Sex
 import app.pacinglab.core.data.repository.ThemeChoice
 import app.pacinglab.core.data.repository.UserPreferences
 import app.pacinglab.core.designsystem.format.Formats
@@ -53,6 +54,7 @@ import java.time.Duration
 fun SettingsRoute(
     onOpenPhysiology: () -> Unit,
     onOpenDataSources: () -> Unit,
+    onOpenAbout: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -67,9 +69,11 @@ fun SettingsRoute(
             onMergeGap = viewModel::setMergeGap,
             onSpeedByDefault = viewModel::setSpeedByDefault,
             onSleepNeed = viewModel::setSleepNeed,
+            onSex = viewModel::setSex,
         ),
         onOpenPhysiology = onOpenPhysiology,
         onOpenDataSources = onOpenDataSources,
+        onOpenAbout = onOpenAbout,
         onBack = onBack,
         modifier = modifier,
     )
@@ -83,6 +87,7 @@ class SettingsActions(
     val onMergeGap: (Duration) -> Unit = {},
     val onSpeedByDefault: (Boolean) -> Unit = {},
     val onSleepNeed: (Duration?) -> Unit = {},
+    val onSex: (Sex) -> Unit = {},
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -94,6 +99,7 @@ fun SettingsScreen(
     onOpenDataSources: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenAbout: () -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier,
@@ -107,6 +113,16 @@ fun SettingsScreen(
         },
     ) { padding ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+            item { SectionLabel(stringResource(R.string.settings_section_profile)) }
+            item {
+                ChoiceItem(
+                    title = stringResource(R.string.settings_sex),
+                    summary = stringResource(R.string.settings_sex_summary),
+                    options = Sex.entries.map { stringResource(it.label()) to it },
+                    selected = preferences.sex,
+                    onSelect = actions.onSex,
+                )
+            }
             item { SectionLabel(stringResource(R.string.settings_section_appearance)) }
             item { ThemeRow(preferences.theme, actions.onTheme) }
             item { DarkModeRow(preferences.darkMode, actions.onDarkMode) }
@@ -173,6 +189,14 @@ fun SettingsScreen(
                     summary = stringResource(R.string.settings_data_sources_summary),
                     icon = PacingLabIcons.Database,
                     onClick = onOpenDataSources,
+                )
+            }
+            item {
+                SettingsItem(
+                    title = stringResource(R.string.about_title),
+                    summary = stringResource(R.string.settings_about_summary),
+                    icon = PacingLabIcons.Info,
+                    onClick = onOpenAbout,
                 )
             }
         }
@@ -288,6 +312,11 @@ private fun ThemeChoice.label(): Int = when (this) {
     ThemeChoice.AMBER -> R.string.theme_amber
     ThemeChoice.GREEN -> R.string.theme_green
     ThemeChoice.BLUE -> R.string.theme_blue
+}
+
+private fun Sex.label(): Int = when (this) {
+    Sex.MALE -> R.string.sex_male
+    Sex.FEMALE -> R.string.sex_female
 }
 
 private fun DarkMode.label(): Int = when (this) {

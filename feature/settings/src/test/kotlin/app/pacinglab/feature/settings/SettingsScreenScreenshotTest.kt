@@ -45,6 +45,13 @@ class SettingsScreenScreenshotTest {
         capture(preferences.copy(theme = ThemeChoice.BLUE, darkMode = DarkMode.LIGHT), ThemePalette.BLUE, dark = false)
 
     @Test
+    @Config(qualifiers = PHONE)
+    fun about() {
+        compose.setContent { PacingLabTheme { AboutScreen(onBack = {}, version = "1.0") } }
+        compose.onRoot().captureRoboImage()
+    }
+
+    @Test
     fun choosingAColourReportsIt() {
         var chosen: ThemeChoice? = null
         compose.setContent {

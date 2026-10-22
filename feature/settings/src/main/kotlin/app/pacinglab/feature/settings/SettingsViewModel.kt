@@ -3,6 +3,7 @@ package app.pacinglab.feature.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.pacinglab.core.data.repository.DarkMode
+import app.pacinglab.core.data.repository.Sex
 import app.pacinglab.core.data.repository.ThemeChoice
 import app.pacinglab.core.data.repository.UserPreferences
 import app.pacinglab.core.data.repository.UserPreferencesRepository
@@ -30,6 +31,8 @@ class SettingsViewModel @Inject constructor(private val repository: UserPreferen
     fun setSpeedByDefault(speed: Boolean) = launch { repository.setSpeedByDefault(speed) }
 
     fun setSleepNeed(need: Duration?) = launch { repository.setSleepNeed(need) }
+
+    fun setSex(sex: Sex) = launch { repository.setSex(sex) }
 
     private fun launch(block: suspend () -> Unit) {
         viewModelScope.launch { block() }

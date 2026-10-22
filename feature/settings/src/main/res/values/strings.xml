@@ -180,4 +180,22 @@
     <string name="physiology_threshold_from_run">From your run on %1$s</string>
     <string name="physiology_set_by_you">Set by you</string>
     <string name="physiology_editor_max_estimated">Optional. Leave empty to use the highest heart rate you held in your workouts, now %1$d bpm.</string>
+    <string name="settings_section_profile">Profile</string>
+    <string name="settings_sex">Sex</string>
+    <string name="settings_sex_summary">Sets how heart rate is weighted in training load: Banister fitted it to blood lactate separately for men and women</string>
+    <string name="sex_male">Male</string>
+    <string name="sex_female">Female</string>
+    <string name="settings_about_summary">Version, licence, privacy and credits</string>
+    <string name="about_title">About</string>
+    <string name="about_app">PacingLab</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_purpose">Training analysis from your watch\'s data in Health Connect, with published methods. Everything is computed and kept on this phone; map tiles are its only network traffic.</string>
+    <string name="about_source">Source code</string>
+    <string name="about_licence">Free software under the Apache License 2.0, on GitHub</string>
+    <string name="about_privacy">Privacy policy</string>
+    <string name="about_privacy_summary">What PacingLab reads and why it never leaves the phone</string>
+    <string name="about_maps">Maps</string>
+    <string name="about_maps_summary">Tiles from OpenFreeMap. © OpenMapTiles, data © OpenStreetMap contributors</string>
+    <string name="about_libraries">Built with</string>
+    <string name="about_libraries_summary">Jetpack Compose, Room, Hilt, WorkManager, DataStore and the Health Connect client (Apache License 2.0); MapLibre Native (BSD 2-clause)</string>
 </resources>
