@@ -24,6 +24,9 @@ class AndroidScreenshotConventionPlugin : Plugin<Project> {
         tasks.withType<Test>().configureEach {
             systemProperty("robolectric.graphicsMode", "NATIVE")
             systemProperty("robolectric.pixelCopyRenderMode", "hardware")
+            // Tall screenshots (the sleep screen is 10,800 px high) are held several times over while
+            // Roborazzi compares them, which outgrows the default 512 MB heap.
+            maxHeapSize = "1g"
         }
         dependencies {
             add("testImplementation", libs.library("robolectric"))
