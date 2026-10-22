@@ -80,4 +80,11 @@
         <item quantity="other">Provisional: %1$d of %2$d nights of HRV. The score settles after two weeks.</item>
     </plurals>
     <string name="workout_heart_rate">Heart rate over the workout, coloured by zone</string>
+    <string name="rested_title">How rested do you feel?</string>
+    <string name="rested_1">Exhausted</string>
+    <string name="rested_2">Tired</string>
+    <string name="rested_3">Okay</string>
+    <string name="rested_4">Rested</string>
+    <string name="rested_5">Fully rested</string>
+    <string name="rested_info">Your own answer, once in the morning, from 1 (exhausted) to 5 (fully rested).\n\nHow rested you feel is the one part of sleep health a watch cannot measure. In training research, simple daily ratings like this one follow training load at least as well as most measurements (Saw 2016).\n\nPacingLab keeps your answers with the night they follow; the sleep screen shows them. Once a few weeks have collected, they will show how well the sleep score matches how you feel. Tap your answer again to clear it.</string>
 </resources>

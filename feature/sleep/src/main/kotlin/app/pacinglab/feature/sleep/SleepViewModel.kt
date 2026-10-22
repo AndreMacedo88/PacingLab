@@ -5,11 +5,12 @@ import androidx.lifecycle.viewModelScope
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.data.repository.NightRepository
+import app.pacinglab.core.data.repository.WellnessRepository
 import app.pacinglab.core.data.sync.SyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import javax.inject.Inject
@@ -22,13 +23,20 @@ sealed interface SleepUiState {
      * @property scores the score of each night.
      * @property needs the sleep need going into each night.
      */
-    data class Loaded(val nights: List<Night>, val scores: Map<LocalDate, SleepScore>, val needs: Map<LocalDate, Long>) : SleepUiState
+    data class Loaded(
+        val nights: List<Night>,
+        val scores: Map<LocalDate, SleepScore>,
+        val needs: Map<LocalDate, Long>,
+        val rested: Map<LocalDate, Int> = emptyMap(),
+    ) : SleepUiState
 }
 
 @HiltViewModel
-class SleepViewModel @Inject constructor(nights: NightRepository, private val scheduler: SyncScheduler) : ViewModel() {
-    val state: StateFlow<SleepUiState> = nights.observeSleep()
-        .map { history -> SleepUiState.Loaded(history.nights, history.scores, history.needs) }
+class SleepViewModel @Inject constructor(nights: NightRepository, wellness: WellnessRepository, private val scheduler: SyncScheduler) :
+    ViewModel() {
+    val state: StateFlow<SleepUiState> = combine(nights.observeSleep(), wellness.observeRested()) { history, rested ->
+        SleepUiState.Loaded(history.nights, history.scores, history.needs, rested)
+    }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), SleepUiState.Loading)
 
     val refreshing: StateFlow<Boolean> =

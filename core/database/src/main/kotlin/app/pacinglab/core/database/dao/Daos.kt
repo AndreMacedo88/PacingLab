@@ -8,6 +8,7 @@ import app.pacinglab.core.database.entity.MeasurementEntity
 import app.pacinglab.core.database.entity.PhysiologyEntity
 import app.pacinglab.core.database.entity.SleepSessionEntity
 import app.pacinglab.core.database.entity.SyncStateEntity
+import app.pacinglab.core.database.entity.WellnessEntity
 import app.pacinglab.core.database.entity.WorkoutEntity
 import app.pacinglab.core.database.entity.WorkoutStreamEntity
 import kotlinx.coroutines.flow.Flow
@@ -108,6 +109,18 @@ interface SyncStateDao {
 
     @Query("SELECT * FROM sync_state")
     fun observeAll(): Flow<List<SyncStateEntity>>
+}
+
+@Dao
+interface WellnessDao {
+    @Query("SELECT * FROM wellness ORDER BY epoch_day")
+    fun observeAll(): Flow<List<WellnessEntity>>
+
+    @Upsert
+    suspend fun upsert(entry: WellnessEntity)
+
+    @Query("DELETE FROM wellness WHERE epoch_day = :epochDay")
+    suspend fun delete(epochDay: Long)
 }
 
 @Dao

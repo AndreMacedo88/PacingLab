@@ -88,6 +88,7 @@ fun TodayRoute(
         onOpenSettings = onOpenSettings,
         refreshing = refreshing,
         onRefresh = viewModel::refresh,
+        onRate = viewModel::rate,
     )
 }
 
@@ -108,6 +109,7 @@ fun TodayScreen(
     onOpenSettings: () -> Unit = {},
     refreshing: Boolean = false,
     onRefresh: () -> Unit = {},
+    onRate: (Int) -> Unit = {},
 ) {
     val locale = LocalConfiguration.current.locales[0]
     Scaffold(
@@ -150,6 +152,7 @@ fun TodayScreen(
                         item(key = "values") { SetValuesCard(onOpenPhysiology) }
                     }
                     item(key = "readiness") { ReadinessCard(state.readiness, state.readinessHistory, state.days(locale)) }
+                    item(key = "rested") { RestedCard(state.rested, onRate) }
                     item(key = "night") {
                         TileRow {
                             SleepTile(state, onOpenSleep, Modifier.weight(1f))
@@ -451,7 +454,8 @@ private fun LastWorkoutCard(
                 }
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = workout.titles.joinToString(" + ").ifEmpty { stringResource(workout.sport.label()) },
+                        text = workout.kind?.let { stringResource(it.label()) }
+                            ?: workout.titles.joinToString(" + ").ifEmpty { stringResource(workout.sport.label()) },
                         style = MaterialTheme.typography.titleMedium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,

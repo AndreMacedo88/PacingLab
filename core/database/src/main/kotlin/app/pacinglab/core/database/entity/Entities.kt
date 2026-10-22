@@ -77,6 +77,13 @@ class SleepSessionEntity(
 @Entity(tableName = "sync_state")
 data class SyncStateEntity(@PrimaryKey val key: String, val value: String)
 
+/**
+ * How the athlete felt on a day, as they rated it (stored by epoch day). [rested] answers "how rested do
+ * you feel?" on a scale of 1 (exhausted) to 5 (fully rested).
+ */
+@Entity(tableName = "wellness")
+class WellnessEntity(@PrimaryKey @ColumnInfo(name = "epoch_day") val epochDay: Long, @ColumnInfo(name = "rested") val rested: Int?)
+
 /** Heart rate values the athlete set, valid from a date (stored as epoch day) until the next entry. */
 @Entity(tableName = "physiology")
 class PhysiologyEntity(

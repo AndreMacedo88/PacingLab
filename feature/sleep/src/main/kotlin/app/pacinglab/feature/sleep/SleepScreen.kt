@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -154,7 +155,7 @@ fun SleepScreen(
                             )
                         }
                         item(key = "tiles") { TopTiles(night, score, need, nights, loaded.scores, loaded.needs, locale) }
-                        item(key = "stages") { NightCard(night, score, locale) }
+                        item(key = "stages") { NightCard(night, score, locale, rested = loaded.rested[night.date]) }
                         item(key = "score") { ScoreCard(night, score, need) }
                         if (night.continuity != null) item(key = "quality") { QualityCard(night, score) }
                         if (night.sleepingHeartRate != null) item(key = "heart") { HeartRateCard(night, locale) }
@@ -267,7 +268,7 @@ private fun StatusChip(text: String, good: Boolean, modifier: Modifier = Modifie
 
 /** What kind of night it was, what held it back, and the stages over the night. */
 @Composable
-private fun NightCard(night: Night, score: SleepScore, locale: Locale, modifier: Modifier = Modifier) {
+private fun NightCard(night: Night, score: SleepScore, locale: Locale, modifier: Modifier = Modifier, rested: Int? = null) {
     val time = remember(locale) { DateTimeFormatter.ofPattern("HH:mm", locale) }
     val labels = STAGE_LANES.map { type ->
         stringResource(R.string.sleep_lane, stringResource(type.label()), Formats.hoursMinutes(night.stageMillis[type] ?: 0))
@@ -284,6 +285,13 @@ private fun NightCard(night: Night, score: SleepScore, locale: Locale, modifier:
             )
             TimeLabel(clock(score.midpointMinuteOfDay), stringResource(R.string.sleep_middle), TextAlign.Center, Modifier.weight(1f))
             TimeLabel(time.format(night.end.atZone(night.zone)), stringResource(R.string.sleep_got_up), TextAlign.End, Modifier.weight(1f))
+        }
+        if (rested != null) {
+            Text(
+                text = stringResource(R.string.sleep_felt, rested, stringArrayResource(R.array.sleep_rested_words)[rested - 1]),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

@@ -117,6 +117,7 @@ class SleepScreenScreenshotTest {
         nights.associate {
             it.date to SleepScore.need(nights, it.date)
         },
+        rested = mapOf(nights.last().date to 4),
     )
 
     @Test

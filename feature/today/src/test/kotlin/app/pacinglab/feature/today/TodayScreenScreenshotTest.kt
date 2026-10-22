@@ -187,7 +187,7 @@ class TodayScreenScreenshotTest {
     fun provisional() = capture(loaded(nights(10)))
 
     @Test
-    fun ready() = capture(loaded(nights(40)))
+    fun ready() = capture(loaded(nights(40)).copy(rested = 4))
 
     @Test
     fun readyDark() = capture(loaded(nights(40)), darkTheme = true)

@@ -7,6 +7,7 @@ import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
+import app.pacinglab.core.database.store.WellnessStore
 import app.pacinglab.core.database.store.WorkoutStore
 import app.pacinglab.core.model.PhysiologyEntry
 import app.pacinglab.core.model.RecordingMethod
@@ -114,6 +115,25 @@ class MigrationTest {
 
         assertThat(session.sourceRecordId).isEqualTo("night")
         assertThat(session.heartRate.isEmpty()).isTrue()
+    }
+
+    @Test
+    fun `version 6 databases gain an empty wellness table that then takes ratings`() = runTest {
+        val file = databaseFile()
+        createFromSchema(file, version = 6)
+        insertWorkout(file, extraColumns = ", route_pending, recording_method", extraValues = ", 0, 'ACTIVE'")
+
+        val workout = openAndRead(file)
+        val database = Room.databaseBuilder(context, PacingLabDatabase::class.java, file.path).setDriver(AndroidSQLiteDriver()).build()
+        val store = WellnessStore(database)
+        val before = store.observeRested().first()
+        store.setRested(LocalDate.of(2026, 10, 22), 4)
+        val after = store.observeRested().first()
+        database.close()
+
+        assertThat(workout.recordingMethod).isEqualTo(RecordingMethod.ACTIVE)
+        assertThat(before.isEmpty()).isTrue()
+        assertThat(after).isEqualTo(mapOf(LocalDate.of(2026, 10, 22) to 4))
     }
 
     private fun databaseFile(): File = context.getDatabasePath("migration-test.db").apply {

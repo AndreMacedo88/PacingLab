@@ -7,11 +7,13 @@ import app.pacinglab.core.database.dao.MeasurementDao
 import app.pacinglab.core.database.dao.PhysiologyDao
 import app.pacinglab.core.database.dao.SleepDao
 import app.pacinglab.core.database.dao.SyncStateDao
+import app.pacinglab.core.database.dao.WellnessDao
 import app.pacinglab.core.database.dao.WorkoutDao
 import app.pacinglab.core.database.entity.MeasurementEntity
 import app.pacinglab.core.database.entity.PhysiologyEntity
 import app.pacinglab.core.database.entity.SleepSessionEntity
 import app.pacinglab.core.database.entity.SyncStateEntity
+import app.pacinglab.core.database.entity.WellnessEntity
 import app.pacinglab.core.database.entity.WorkoutEntity
 import app.pacinglab.core.database.entity.WorkoutStreamEntity
 
@@ -23,8 +25,9 @@ import app.pacinglab.core.database.entity.WorkoutStreamEntity
         SleepSessionEntity::class,
         SyncStateEntity::class,
         PhysiologyEntity::class,
+        WellnessEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
     autoMigrations = [
         // 2: workouts.route_pending
@@ -37,6 +40,8 @@ import app.pacinglab.core.database.entity.WorkoutStreamEntity
         AutoMigration(from = 4, to = 5),
         // 6: sleep_sessions.heart_rate
         AutoMigration(from = 5, to = 6),
+        // 7: wellness (morning rating)
+        AutoMigration(from = 6, to = 7),
     ],
 )
 abstract class PacingLabDatabase : RoomDatabase() {
@@ -49,6 +54,8 @@ abstract class PacingLabDatabase : RoomDatabase() {
     abstract fun syncStateDao(): SyncStateDao
 
     abstract fun physiologyDao(): PhysiologyDao
+
+    abstract fun wellnessDao(): WellnessDao
 
     companion object {
         const val FILE_NAME = "pacinglab.db"
