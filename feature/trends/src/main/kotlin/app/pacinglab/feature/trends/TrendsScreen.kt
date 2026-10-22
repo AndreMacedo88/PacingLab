@@ -27,6 +27,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,8 +70,11 @@ fun TrendsRoute(
     viewModel: TrendsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
     TrendsScreen(
         state = state,
+        refreshing = refreshing,
+        onRefresh = viewModel::refresh,
         onOpenPhysiology = onOpenPhysiology,
         onOpenSettings = onOpenSettings,
         modifier = modifier,
@@ -89,40 +93,51 @@ fun TrendsScreen(
     onSaveTest: (LocalDate, Double) -> Unit = { _, _ -> },
     onDeleteTest: (LocalDate) -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    refreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
 ) {
     val locale = LocalConfiguration.current.locales[0]
     Scaffold(
         modifier = modifier,
         topBar = { TopAppBar(title = { Text(stringResource(R.string.trends_title)) }, actions = { SettingsAction(onOpenSettings) }) },
-    ) { padding ->
-        when (state) {
-            TrendsUiState.Loading -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+    ) { scaffoldPadding ->
+        PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.fillMaxSize().padding(scaffoldPadding),
+        ) {
+            when (state) {
+                TrendsUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
 
-            TrendsUiState.NeedsHeartRateValues -> Column(
-                Modifier.padding(padding).padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(stringResource(R.string.trends_needs_values), style = MaterialTheme.typography.bodyLarge)
-                TextButton(onClick = onOpenPhysiology) { Text(stringResource(R.string.trends_set_values)) }
-            }
-
-            is TrendsUiState.Loaded -> if (state.days.isEmpty()) {
-                Text(
-                    text = stringResource(R.string.trends_empty),
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(padding).padding(24.dp),
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                TrendsUiState.NeedsHeartRateValues -> Column(
+                    Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    item(key = "form") { FormCard(state.days, state.today, initialRange, locale) }
-                    item(key = "vo2max") { Vo2MaxCard(state.vo2max, state.today, onSaveTest, onDeleteTest, locale) }
-                    item(key = "weeks") { WeeksCard(state.weeks, state.today, locale) }
+                    Text(stringResource(R.string.trends_needs_values), style = MaterialTheme.typography.bodyLarge)
+                    TextButton(onClick = onOpenPhysiology) { Text(stringResource(R.string.trends_set_values)) }
+                }
+
+                is TrendsUiState.Loaded -> if (state.days.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.trends_empty),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(24.dp),
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        item(key = "form") { FormCard(state.days, state.today, initialRange, locale) }
+                        item(key = "vo2max") { Vo2MaxCard(state.vo2max, state.today, onSaveTest, onDeleteTest, locale) }
+                        if (state.recovery.isNotEmpty()) {
+                            item(key = "recovery") { RecoveryCard(state.recovery, state.today, locale) }
+                        }
+                        item(key = "weeks") { WeeksCard(state.weeks, state.today, locale) }
+                    }
                 }
             }
         }

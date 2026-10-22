@@ -12,6 +12,8 @@ import app.pacinglab.core.analytics.load.WorkoutLoad
 import app.pacinglab.core.analytics.performance.Vo2MaxPoint
 import app.pacinglab.core.analytics.performance.Vo2MaxSource
 import app.pacinglab.core.analytics.performance.Vo2MaxTrend
+import app.pacinglab.core.analytics.recovery.Night
+import app.pacinglab.core.analytics.recovery.RecoveryTrend
 import app.pacinglab.core.analytics.zones.ZoneDistribution
 import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.data.repository.Vo2MaxHistory
@@ -26,12 +28,15 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
+import kotlin.math.exp
 import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h2000dp-xxhdpi")
+@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h2800dp-xxhdpi")
 class TrendsScreenScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
@@ -84,11 +89,30 @@ class TrendsScreenScreenshotTest {
         add(Vo2MaxPoint(today.minusDays(30), 56.5, Vo2MaxSource.TEST))
     }
 
+    /** Ten weeks of nights: HRV wobbling around 60 ms with a dip in the last week, resting heart rate rising then. */
+    private val nights = (69 downTo 0).map { back ->
+        val date = today.minusDays(back.toLong())
+        val start = Instant.parse("${date.minusDays(1)}T22:00:00Z")
+        val dip = if (back < 6) 0.82 else 1.0
+        Night(
+            date = date,
+            start = start,
+            end = start.plusSeconds(8 * 3_600L),
+            asleepMillis = 7 * 3_600_000L,
+            stageMillis = emptyMap(),
+            hrvMs = 60.0 * dip * exp(0.09 * sin(back * 1.3)),
+            restingHr = 54.0 + 1.2 * sin(back * 0.8) + if (back < 6) 3.5 else 0.0,
+            respiratoryRate = 12.5,
+            zone = ZoneOffset.UTC,
+        )
+    }
+
     private val loaded = TrendsUiState.Loaded(
         days = FitnessModel.series(TrainingLoads.daily(loads), until = today),
         weeks = TrainingLoads.weeks(loads, until = today, count = 8),
         today = today,
         vo2max = Vo2MaxHistory(vo2Points.sortedBy { it.date }, Vo2MaxTrend.of(vo2Points, today)),
+        recovery = RecoveryTrend.of(nights, today),
     )
 
     @Test
@@ -118,7 +142,7 @@ class TrendsScreenScreenshotTest {
         // The fitness card's range buttons come first; the VO2max card has its own.
         compose.onAllNodesWithText("1 year")[0].performClick()
         compose.onNodeWithText("Today", substring = true).assertExists()
-        compose.onNodeWithText("6 weeks").performClick()
+        compose.onAllNodesWithText("6 weeks")[0].performClick()
         compose.onNodeWithText("Today", substring = true).assertExists()
         compose.onNode(androidx.compose.ui.test.hasContentDescription(fitness)).assertExists()
     }
