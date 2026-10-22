@@ -2,6 +2,9 @@ package app.pacinglab.core.data.repository
 
 import app.pacinglab.core.analytics.geo.speeds
 import app.pacinglab.core.analytics.load.TrainingLoads
+import app.pacinglab.core.analytics.performance.AerobicEfficiency
+import app.pacinglab.core.analytics.performance.EfficiencyDay
+import app.pacinglab.core.analytics.performance.EfficiencyPoint
 import app.pacinglab.core.analytics.performance.RunVo2Max
 import app.pacinglab.core.analytics.performance.Vo2MaxPoint
 import app.pacinglab.core.analytics.performance.Vo2MaxSource
@@ -38,7 +41,18 @@ data class Vo2MaxHistory(val points: List<Vo2MaxPoint>, val trend: Vo2MaxTrend?)
     }
 }
 
-/** Performance measures: VO2max from tests, from Fitbit and from PacingLab's own run estimates. */
+/**
+ * Aerobic efficiency of every run with enough steady easy running, and its six-week trend.
+ *
+ * @property referenceHr the heart rate today's threshold puts the reference at, or null without one.
+ */
+data class EfficiencyHistory(val points: List<EfficiencyPoint>, val trend: List<EfficiencyDay>, val referenceHr: Int?) {
+    companion object {
+        val EMPTY = EfficiencyHistory(emptyList(), emptyList(), null)
+    }
+}
+
+/** Performance measures: VO2max from tests, from Fitbit and from PacingLab's own run estimates; aerobic efficiency. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
 class PerformanceRepository @Inject constructor(
@@ -101,6 +115,43 @@ class PerformanceRepository @Inject constructor(
         .flowOn(Dispatchers.Default)
 
     fun observeVo2Max(): Flow<Vo2MaxHistory> = history
+
+    private val efficiencies = ConcurrentHashMap<Key, Cached>()
+
+    private val efficiency: Flow<EfficiencyHistory> = combine(workouts.observeAll(), trainingLoad.anchors) { all, timeline ->
+        all to
+            timeline
+    }
+        .mapLatest { (all, timeline) ->
+            val runs = TrainingSessions.removeDuplicates(all.filter { it.sport == Sport.RUN && TrainingLoads.counts(it) })
+            val points = runs.mapNotNull { workout ->
+                val date = TrainingLoads.dateOf(workout, clock.zone)
+                val anchors = timeline.at(date) ?: return@mapNotNull null
+                val key = Key(workout.id, workout.lastModified, anchors)
+                val cached = efficiencies[key] ?: run {
+                    val streams = workouts.streams(workout.id)
+                    val speed = if (streams.speed.size > 0) streams.speed else streams.route.speeds()
+                    val estimate = AerobicEfficiency.of(
+                        streams.heartRate,
+                        speed,
+                        workout.start.toEpochMilli(),
+                        workout.end.toEpochMilli(),
+                        anchors.thresholdHr,
+                    )
+                    Cached(estimate?.speedAtReference, estimate?.windows ?: 0).also { efficiencies[key] = it }
+                }
+                cached.value?.let { EfficiencyPoint(date, it, cached.windows) }
+            }.sortedBy { it.date }
+            val today = LocalDate.now(clock)
+            EfficiencyHistory(
+                points,
+                AerobicEfficiency.trend(points, today),
+                timeline.at(today)?.thresholdHr?.let(AerobicEfficiency::referenceHr),
+            )
+        }
+        .flowOn(Dispatchers.Default)
+
+    fun observeEfficiency(): Flow<EfficiencyHistory> = efficiency
 
     /** Records a lab or field test; a second test on the same day replaces the first. */
     suspend fun saveTest(date: LocalDate, value: Double) {

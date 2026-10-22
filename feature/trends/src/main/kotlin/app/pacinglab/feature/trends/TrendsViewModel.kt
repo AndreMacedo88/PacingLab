@@ -8,6 +8,7 @@ import app.pacinglab.core.analytics.load.TrainingLoads
 import app.pacinglab.core.analytics.load.WeekSummary
 import app.pacinglab.core.analytics.recovery.RecoveryDay
 import app.pacinglab.core.analytics.recovery.RecoveryTrend
+import app.pacinglab.core.data.repository.EfficiencyHistory
 import app.pacinglab.core.data.repository.NightRepository
 import app.pacinglab.core.data.repository.PerformanceRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
@@ -42,6 +43,7 @@ sealed interface TrendsUiState {
         val today: LocalDate,
         val vo2max: Vo2MaxHistory = Vo2MaxHistory.EMPTY,
         val recovery: List<RecoveryDay> = emptyList(),
+        val efficiency: EfficiencyHistory = EfficiencyHistory.EMPTY,
     ) : TrendsUiState
 }
 
@@ -59,13 +61,14 @@ class TrendsViewModel @Inject constructor(
         repository.observeWorkoutLoads(),
         performance.observeVo2Max(),
         recovery,
-    ) { loads, vo2max, recoveryDays ->
+        performance.observeEfficiency(),
+    ) { loads, vo2max, recoveryDays, efficiency ->
         val today = LocalDate.now(clock)
         val days = FitnessModel.series(TrainingLoads.daily(loads), until = today)
         if (days.isEmpty() && loads.isNotEmpty()) {
             TrendsUiState.NeedsHeartRateValues
         } else {
-            TrendsUiState.Loaded(days, TrainingLoads.weeks(loads, until = today, count = WEEKS), today, vo2max, recoveryDays)
+            TrendsUiState.Loaded(days, TrainingLoads.weeks(loads, until = today, count = WEEKS), today, vo2max, recoveryDays, efficiency)
         }
     }
         .flowOn(Dispatchers.Default)

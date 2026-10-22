@@ -133,6 +133,9 @@ fun TrendsScreen(
                     ) {
                         item(key = "form") { FormCard(state.days, state.today, initialRange, locale) }
                         item(key = "vo2max") { Vo2MaxCard(state.vo2max, state.today, onSaveTest, onDeleteTest, locale) }
+                        if (state.efficiency.trend.isNotEmpty()) {
+                            item(key = "efficiency") { EfficiencyCard(state.efficiency, state.today, locale) }
+                        }
                         if (state.recovery.isNotEmpty()) {
                             item(key = "recovery") { RecoveryCard(state.recovery, state.today, locale) }
                         }

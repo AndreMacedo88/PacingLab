@@ -9,6 +9,8 @@ import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.LoadScores
 import app.pacinglab.core.analytics.load.TrainingLoads
 import app.pacinglab.core.analytics.load.WorkoutLoad
+import app.pacinglab.core.analytics.performance.AerobicEfficiency
+import app.pacinglab.core.analytics.performance.EfficiencyPoint
 import app.pacinglab.core.analytics.performance.Vo2MaxPoint
 import app.pacinglab.core.analytics.performance.Vo2MaxSource
 import app.pacinglab.core.analytics.performance.Vo2MaxTrend
@@ -16,6 +18,7 @@ import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.RecoveryTrend
 import app.pacinglab.core.analytics.zones.ZoneDistribution
 import app.pacinglab.core.analytics.zones.Zones
+import app.pacinglab.core.data.repository.EfficiencyHistory
 import app.pacinglab.core.data.repository.Vo2MaxHistory
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.model.HeartRateAnchors
@@ -36,7 +39,7 @@ import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h2800dp-xxhdpi")
+@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h3300dp-xxhdpi")
 class TrendsScreenScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
@@ -107,12 +110,18 @@ class TrendsScreenScreenshotTest {
         )
     }
 
+    /** Easy runs every few days over five months, getting a little faster. */
+    private val efficiencyPoints = (150 downTo 0 step 4).map { back ->
+        EfficiencyPoint(today.minusDays(back.toLong()), 2.55 + 0.0012 * (150 - back) + 0.05 * sin(back * 0.9), 6 + back % 5)
+    }
+
     private val loaded = TrendsUiState.Loaded(
         days = FitnessModel.series(TrainingLoads.daily(loads), until = today),
         weeks = TrainingLoads.weeks(loads, until = today, count = 8),
         today = today,
         vo2max = Vo2MaxHistory(vo2Points.sortedBy { it.date }, Vo2MaxTrend.of(vo2Points, today)),
         recovery = RecoveryTrend.of(nights, today),
+        efficiency = EfficiencyHistory(efficiencyPoints, AerobicEfficiency.trend(efficiencyPoints, today), referenceHr = 142),
     )
 
     @Test
