@@ -27,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -76,7 +77,18 @@ fun TodayRoute(
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    TodayScreen(state, onOpenSession, onOpenTrends, onOpenPhysiology, modifier, onOpenSleep = onOpenSleep, onOpenSettings = onOpenSettings)
+    val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
+    TodayScreen(
+        state,
+        onOpenSession,
+        onOpenTrends,
+        onOpenPhysiology,
+        modifier,
+        onOpenSleep = onOpenSleep,
+        onOpenSettings = onOpenSettings,
+        refreshing = refreshing,
+        onRefresh = viewModel::refresh,
+    )
 }
 
 /**
@@ -94,6 +106,8 @@ fun TodayScreen(
     zoneId: ZoneId = ZoneId.systemDefault(),
     onOpenSleep: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    refreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
 ) {
     val locale = LocalConfiguration.current.locales[0]
     Scaffold(
@@ -116,42 +130,48 @@ fun TodayScreen(
                 actions = { SettingsAction(onOpenSettings) },
             )
         },
-    ) { padding ->
-        when (state) {
-            TodayUiState.Loading -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+    ) { scaffoldPadding ->
+        PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.fillMaxSize().padding(scaffoldPadding),
+        ) {
+            when (state) {
+                TodayUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
 
-            is TodayUiState.Loaded -> LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                if (!state.heartRateValuesSet) {
-                    item(key = "values") { SetValuesCard(onOpenPhysiology) }
-                }
-                item(key = "readiness") { ReadinessCard(state.readiness, state.readinessHistory, state.days(locale)) }
-                item(key = "night") {
-                    TileRow {
-                        SleepTile(state, onOpenSleep, Modifier.weight(1f))
-                        HrvTile(state, Modifier.weight(1f))
+                is TodayUiState.Loaded -> LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (!state.heartRateValuesSet) {
+                        item(key = "values") { SetValuesCard(onOpenPhysiology) }
                     }
-                }
-                item(key = "heart") {
-                    TileRow {
-                        RestingHrTile(state, Modifier.weight(1f))
-                        BreathingTile(state, Modifier.weight(1f))
+                    item(key = "readiness") { ReadinessCard(state.readiness, state.readinessHistory, state.days(locale)) }
+                    item(key = "night") {
+                        TileRow {
+                            SleepTile(state, onOpenSleep, Modifier.weight(1f))
+                            HrvTile(state, Modifier.weight(1f))
+                        }
                     }
-                }
-                item(key = "training") {
-                    TileRow {
-                        FormTile(state, onOpenTrends, Modifier.weight(1f))
-                        WeekTile(state, onOpenTrends, Modifier.weight(1f))
+                    item(key = "heart") {
+                        TileRow {
+                            RestingHrTile(state, Modifier.weight(1f))
+                            BreathingTile(state, Modifier.weight(1f))
+                        }
                     }
-                }
-                state.lastWorkout?.let { workout ->
-                    item(key = "workout") {
-                        LastWorkoutCard(workout, state.today, locale, zoneId, onClick = { onOpenSession(workout.sessionId) })
+                    item(key = "training") {
+                        TileRow {
+                            FormTile(state, onOpenTrends, Modifier.weight(1f))
+                            WeekTile(state, onOpenTrends, Modifier.weight(1f))
+                        }
+                    }
+                    state.lastWorkout?.let { workout ->
+                        item(key = "workout") {
+                            LastWorkoutCard(workout, state.today, locale, zoneId, onClick = { onOpenSession(workout.sessionId) })
+                        }
                     }
                 }
             }

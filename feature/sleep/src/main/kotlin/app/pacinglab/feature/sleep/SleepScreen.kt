@@ -29,6 +29,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -78,7 +79,15 @@ fun SleepRoute(
     viewModel: SleepViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    SleepScreen(state = state, initialDate = initialDate?.let(LocalDate::parse), onOpenSettings = onOpenSettings, modifier = modifier)
+    val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
+    SleepScreen(
+        state = state,
+        initialDate = initialDate?.let(LocalDate::parse),
+        onOpenSettings = onOpenSettings,
+        modifier = modifier,
+        refreshing = refreshing,
+        onRefresh = viewModel::refresh,
+    )
 }
 
 /**
@@ -89,7 +98,14 @@ fun SleepRoute(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SleepScreen(state: SleepUiState, onOpenSettings: () -> Unit, modifier: Modifier = Modifier, initialDate: LocalDate? = null) {
+fun SleepScreen(
+    state: SleepUiState,
+    onOpenSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+    initialDate: LocalDate? = null,
+    refreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
+) {
     val locale = LocalConfiguration.current.locales[0]
     val loaded = state as? SleepUiState.Loaded
     val nights = loaded?.nights.orEmpty()
@@ -104,41 +120,47 @@ fun SleepScreen(state: SleepUiState, onOpenSettings: () -> Unit, modifier: Modif
                 actions = { SettingsAction(onOpenSettings) },
             )
         },
-    ) { padding ->
-        when {
-            state is SleepUiState.Loading -> Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+    ) { scaffoldPadding ->
+        PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.fillMaxSize().padding(scaffoldPadding),
+        ) {
+            when {
+                state is SleepUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
 
-            loaded == null || night == null -> Text(
-                text = stringResource(R.string.sleep_empty),
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(padding).padding(24.dp),
-            )
+                loaded == null || night == null -> Text(
+                    text = stringResource(R.string.sleep_empty),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(24.dp),
+                )
 
-            else -> {
-                val score = loaded.scores.getValue(night.date)
-                val need = loaded.needs.getValue(night.date)
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    item(key = "night") {
-                        NightSelector(
-                            night = night,
-                            locale = locale,
-                            onPrevious = nights.getOrNull(index - 1)?.let { { selectedDay = it.date.toEpochDay() } },
-                            onNext = nights.getOrNull(index + 1)?.let { { selectedDay = it.date.toEpochDay() } },
-                        )
+                else -> {
+                    val score = loaded.scores.getValue(night.date)
+                    val need = loaded.needs.getValue(night.date)
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        item(key = "night") {
+                            NightSelector(
+                                night = night,
+                                locale = locale,
+                                onPrevious = nights.getOrNull(index - 1)?.let { { selectedDay = it.date.toEpochDay() } },
+                                onNext = nights.getOrNull(index + 1)?.let { { selectedDay = it.date.toEpochDay() } },
+                            )
+                        }
+                        item(key = "tiles") { TopTiles(night, score, need, nights, loaded.scores, loaded.needs, locale) }
+                        item(key = "stages") { NightCard(night, score, locale) }
+                        item(key = "score") { ScoreCard(night, score, need) }
+                        if (night.continuity != null) item(key = "quality") { QualityCard(night, score) }
+                        if (night.sleepingHeartRate != null) item(key = "heart") { HeartRateCard(night, locale) }
+                        item(key = "body") { BodyCard(nights, night) }
+                        item(key = "metrics") { KeyMetricsCard(nights, night.date, loaded.scores, loaded.needs, locale) }
                     }
-                    item(key = "tiles") { TopTiles(night, score, need, nights, loaded.scores, loaded.needs, locale) }
-                    item(key = "stages") { NightCard(night, score, locale) }
-                    item(key = "score") { ScoreCard(night, score, need) }
-                    if (night.continuity != null) item(key = "quality") { QualityCard(night, score) }
-                    if (night.sleepingHeartRate != null) item(key = "heart") { HeartRateCard(night, locale) }
-                    item(key = "body") { BodyCard(nights, night) }
-                    item(key = "metrics") { KeyMetricsCard(nights, night.date, loaded.scores, loaded.needs, locale) }
                 }
             }
         }

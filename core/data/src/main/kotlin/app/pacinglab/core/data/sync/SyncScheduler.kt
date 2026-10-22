@@ -10,6 +10,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Duration
 import javax.inject.Inject
@@ -28,6 +31,12 @@ class SyncScheduler @Inject constructor(
     private val visibility: AppVisibility,
 ) {
     private var running: Job? = null
+
+    /**
+     * True while a sync of recent changes runs, for pull-to-refresh indicators. The first import shows
+     * its own progress and does not count.
+     */
+    val updating: Flow<Boolean> = sync.status.map { it == SyncStatus.Updating }.distinctUntilChanged()
 
     /**
      * Syncs now unless a sync started from here is still running. When Health Connect rate-limits the

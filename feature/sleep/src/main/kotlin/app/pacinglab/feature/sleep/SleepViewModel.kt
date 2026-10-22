@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.data.repository.NightRepository
+import app.pacinglab.core.data.sync.SyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,10 +26,15 @@ sealed interface SleepUiState {
 }
 
 @HiltViewModel
-class SleepViewModel @Inject constructor(nights: NightRepository) : ViewModel() {
+class SleepViewModel @Inject constructor(nights: NightRepository, private val scheduler: SyncScheduler) : ViewModel() {
     val state: StateFlow<SleepUiState> = nights.observeSleep()
         .map { history -> SleepUiState.Loaded(history.nights, history.scores, history.needs) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), SleepUiState.Loading)
+
+    val refreshing: StateFlow<Boolean> =
+        scheduler.updating.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)
+
+    fun refresh() = scheduler.syncNow()
 
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L

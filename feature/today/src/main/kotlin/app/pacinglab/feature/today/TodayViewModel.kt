@@ -17,6 +17,7 @@ import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.data.repository.NightRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.repository.WorkoutRepository
+import app.pacinglab.core.data.sync.SyncScheduler
 import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.Sport
@@ -92,6 +93,7 @@ class TodayViewModel @Inject constructor(
     trainingLoad: TrainingLoadRepository,
     nights: NightRepository,
     private val clock: Clock,
+    private val scheduler: SyncScheduler,
 ) : ViewModel() {
     val state: StateFlow<TodayUiState> = combine(
         nights.observeSleep(),
@@ -102,6 +104,11 @@ class TodayViewModel @Inject constructor(
         .mapLatest { build(it) }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TodayUiState.Loading)
+
+    val refreshing: StateFlow<Boolean> =
+        scheduler.updating.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)
+
+    fun refresh() = scheduler.syncNow()
 
     private class Inputs(
         val sleep: SleepHistory,
