@@ -31,10 +31,14 @@
     <string name="session_parts_heading">Recorded parts</string>
     <string name="session_when">%1$s, %2$s–%3$s</string>
     <string name="scope_whole_session">Whole session</string>
+    <string name="scope_warm_up">Warm-up</string>
+    <string name="scope_cool_down">Cool-down</string>
     <string name="part_time_range">%1$s–%2$s</string>
     <string name="part_streams">HR %1$s · speed %2$s · GPS %3$s</string>
     <string name="part_none">none</string>
     <string name="map_description">Map of the route</string>
+    <string name="map_open">Open the map</string>
+    <string name="map_title">Route</string>
     <string name="map_only_from">GPS recorded during %1$s only.</string>
     <string name="recording_heading">Recording</string>
     <string name="recording_active">Recorded with %1$s</string>

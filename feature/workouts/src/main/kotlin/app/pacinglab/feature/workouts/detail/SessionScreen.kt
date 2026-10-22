@@ -1,5 +1,6 @@
 package app.pacinglab.feature.workouts.detail
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SecondaryScrollableTabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -39,16 +41,22 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.pacinglab.core.analytics.intervals.PhaseKind
+import app.pacinglab.core.designsystem.chart.ZoneLegend
 import app.pacinglab.core.designsystem.component.label
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.tabularNumbers
+import app.pacinglab.core.maps.InteractiveRouteMap
 import app.pacinglab.core.maps.RouteMap
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Sport
 import app.pacinglab.feature.workouts.R
+import app.pacinglab.feature.workouts.list.title
 import app.pacinglab.feature.workouts.originName
 import java.text.NumberFormat
 import java.time.ZoneId
@@ -89,9 +97,7 @@ fun SessionScreen(
     var selected by rememberSaveable { mutableIntStateOf(initialScope) }
     val scopes = (state as? SessionUiState.Loaded)?.scopes.orEmpty()
     val index = selected.coerceIn(0, maxOf(0, scopes.lastIndex))
-    val title = (state as? SessionUiState.Loaded)?.session?.let { session ->
-        session.titles.joinToString(" + ").ifEmpty { stringResource(session.sport.label()) }
-    } ?: stringResource(R.string.session_title)
+    val title = (state as? SessionUiState.Loaded)?.session?.title() ?: stringResource(R.string.session_title)
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -209,8 +215,13 @@ private fun ScopeContent(
 }
 
 @Composable
-private fun DetailScope.name(): String = title?.takeIf { it.isNotBlank() }
-    ?: if (recording == null) stringResource(R.string.scope_whole_session) else stringResource(sport.label())
+private fun DetailScope.name(): String = when {
+    role == PhaseKind.WARM_UP -> stringResource(R.string.scope_warm_up)
+    role == PhaseKind.COOL_DOWN -> stringResource(R.string.scope_cool_down)
+    recording == null -> stringResource(R.string.scope_whole_session)
+    kind != null -> stringResource(kind.label())
+    else -> title?.takeIf { it.isNotBlank() } ?: stringResource(sport.label())
+}
 
 @Composable
 private fun When(scope: DetailScope, locale: Locale, zoneId: ZoneId, modifier: Modifier = Modifier) {
@@ -272,14 +283,43 @@ private fun Metric(label: String, value: String, unit: String?, modifier: Modifi
 
 @Composable
 private fun RouteSection(scope: DetailScope, modifier: Modifier = Modifier) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        RouteMap(routes = scope.routes, contentDescription = stringResource(R.string.map_description))
+        RouteMap(
+            routes = scope.routes,
+            contentDescription = stringResource(R.string.map_description),
+            modifier = Modifier.clickable(onClickLabel = stringResource(R.string.map_open)) { expanded = true },
+        )
         if (scope.routeOnlyFrom.isNotEmpty()) {
             Text(
                 text = stringResource(R.string.map_only_from, scope.routeOnlyFrom.joinToString(", ")),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+    if (expanded) RouteMapDialog(scope, onDismiss = { expanded = false })
+}
+
+/** The route full screen on a map that pans and zooms, coloured by heart rate zone. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RouteMapDialog(scope: DetailScope, onDismiss: () -> Unit) {
+    val zones = scope.analysis.zones.firstOrNull()?.zoneSet?.takeIf { !scope.heartRate.isEmpty() }
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(Modifier.fillMaxSize()) {
+            Column {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.map_title)) },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss) {
+                            Icon(painterResource(PacingLabIcons.ArrowBack), stringResource(R.string.navigate_back))
+                        }
+                    },
+                )
+                InteractiveRouteMap(scope.routes, scope.heartRate, zones, Modifier.weight(1f).fillMaxWidth())
+                if (zones != null) ZoneLegend(zones, Modifier.padding(16.dp))
+            }
         }
     }
 }

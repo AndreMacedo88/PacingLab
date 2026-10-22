@@ -1,5 +1,6 @@
 package app.pacinglab.core.analytics.session
 
+import app.pacinglab.core.analytics.geo.speeds
 import app.pacinglab.core.analytics.intervals.IntervalDetection
 import app.pacinglab.core.analytics.intervals.Phase
 import app.pacinglab.core.analytics.intervals.PhaseKind
@@ -158,7 +159,9 @@ object SessionAnalyzer {
     private fun detect(part: SessionPart): Detected? {
         val workout = part.workout
         if (workout.sport != Sport.RUN) return null
-        val speed = SpeedCleaning.dropImplausible(part.streams.speed, SpeedCleaning.maxPlausibleSpeed(Sport.RUN))
+        // Runs from before August 2026 came without a speed stream; their GPS track stands in.
+        val recorded = if (part.streams.speed.size > 0) part.streams.speed else part.streams.route.speeds()
+        val speed = SpeedCleaning.dropImplausible(recorded, SpeedCleaning.maxPlausibleSpeed(Sport.RUN))
         if (speed.size < 2) return null
         val start = workout.start.toEpochMilli()
         val end = workout.end.toEpochMilli()

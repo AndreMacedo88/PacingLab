@@ -222,15 +222,16 @@ private fun NoticeCard(title: String, detail: String?, action: String, onAction:
 }
 
 /**
- * One session. Sessions started on the watch carry a filled badge and full-strength text; sessions an
- * app detected from everyday movement, or that were typed in, recede: an outlined badge, muted title and
+ * One session, in three steps of emphasis so that runs stand out: runs started on the watch carry a
+ * filled badge, other sessions started on the watch (weights, rides) a lighter tint of it, and sessions
+ * an app detected from everyday movement, or that were typed in, an outlined badge with a muted title and
  * a line saying where they came from. The difference never rests on colour alone.
  */
 @Composable
 private fun SessionRow(session: SessionItem, locale: Locale, zoneId: ZoneId, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val dateFormat = remember(locale) { DateTimeFormatter.ofPattern("EEE d MMM", locale) }
     val zone = session.zoneOffset ?: zoneId
-    val title = session.titles.joinToString(" + ").ifEmpty { stringResource(session.sport.label()) }
+    val title = session.title()
     val recorded = session.capture == Capture.RECORDED
     Row(
         modifier = modifier
@@ -243,10 +244,15 @@ private fun SessionRow(session: SessionItem, locale: Locale, zoneId: ZoneId, onC
             modifier = Modifier
                 .size(40.dp)
                 .then(
-                    if (recorded) {
-                        Modifier.background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
-                    } else {
-                        Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                    when {
+                        !recorded -> Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+
+                        session.sport == Sport.RUN -> Modifier.background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+
+                        else -> Modifier.background(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = SECONDARY_BADGE_ALPHA),
+                            CircleShape,
+                        )
                     },
                 ),
             contentAlignment = Alignment.Center,
@@ -254,7 +260,11 @@ private fun SessionRow(session: SessionItem, locale: Locale, zoneId: ZoneId, onC
             Icon(
                 painter = painterResource(session.sport.icon()),
                 contentDescription = stringResource(session.sport.label()),
-                tint = if (recorded) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = when {
+                    !recorded -> MaterialTheme.colorScheme.onSurfaceVariant
+                    session.sport == Sport.RUN -> MaterialTheme.colorScheme.onPrimaryContainer
+                    else -> MaterialTheme.colorScheme.primary.copy(alpha = SECONDARY_ICON_ALPHA)
+                },
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -322,3 +332,7 @@ private fun metricsLine(session: SessionItem, locale: Locale): String {
 }
 
 private const val MIN_SHOWN_DISTANCE = 50.0
+
+/** Sessions started on the watch that are not runs: a lighter version of the run badge. */
+private const val SECONDARY_BADGE_ALPHA = 0.35f
+private const val SECONDARY_ICON_ALPHA = 0.75f

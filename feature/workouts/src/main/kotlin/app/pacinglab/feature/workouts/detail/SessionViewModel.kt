@@ -2,11 +2,13 @@ package app.pacinglab.feature.workouts.detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.pacinglab.core.analytics.intervals.PhaseKind
 import app.pacinglab.core.analytics.intervals.RecordingMode
 import app.pacinglab.core.analytics.load.AnchorTimeline
 import app.pacinglab.core.analytics.load.TrainingLoads
 import app.pacinglab.core.analytics.session.SessionAnalysis
 import app.pacinglab.core.analytics.session.SessionAnalyzer
+import app.pacinglab.core.analytics.session.SessionClassifier
 import app.pacinglab.core.analytics.session.SessionPart
 import app.pacinglab.core.analytics.session.Split
 import app.pacinglab.core.analytics.session.Splits
@@ -19,6 +21,7 @@ import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Route
+import app.pacinglab.core.model.SessionKind
 import app.pacinglab.core.model.Sport
 import app.pacinglab.core.model.ZoneModel
 import app.pacinglab.core.model.ZoneSet
@@ -50,6 +53,9 @@ import java.time.ZoneOffset
  * @property recording how the part was recorded; null for the whole session of several parts.
  * @property heartRate heart rate over the scope; for the whole session the parts' series one after another.
  * @property splits kilometre splits of a steady run or walk recorded as one workout; empty otherwise.
+ * @property kind what the run was for; null for other sports.
+ * @property role [PhaseKind.WARM_UP] or [PhaseKind.COOL_DOWN] for a recorded part that only warmed up or
+ *   cooled down around the main part; null otherwise.
  */
 data class DetailScope(
     val title: String?,
@@ -67,6 +73,8 @@ data class DetailScope(
     val recording: RecordingItem?,
     val heartRate: HeartRateSeries = HeartRateSeries.EMPTY,
     val splits: List<Split> = emptyList(),
+    val kind: SessionKind? = null,
+    val role: PhaseKind? = null,
 )
 
 /** Where a recorded part came from and how much data it carries. */
@@ -114,7 +122,15 @@ class SessionViewModel @AssistedInject constructor(
         val parts = session.workouts.map { SessionPart(it, repository.streams(it.id)) }
         val anchors = timeline.at(TrainingLoads.dateOf(session.workouts.first(), ZoneId.systemDefault()))
         val zoneSets = anchors?.let { listOf(Zones.of(ZoneModel.LTHR_FIVE, it), Zones.of(ZoneModel.POLARIZED_THREE, it)) }.orEmpty()
-        val item = session.toItem()
+        val five = zoneSets.firstOrNull()
+        val analysis = SessionAnalyzer.analyze(parts, zoneSets, anchors)
+        val joined = HeartRateSeries.joined(parts.map { it.streams.heartRate })
+        val kind = if (session.sport == Sport.RUN) {
+            SessionClassifier.classify(analysis, joined, five, parts.sumOf { it.workout.summary.durationMillis })
+        } else {
+            null
+        }
+        val item = session.toItem(kind)
         val whole = DetailScope(
             title = null,
             sport = item.sport,
@@ -127,15 +143,21 @@ class SessionViewModel @AssistedInject constructor(
             maxHr = item.maxHr,
             routes = parts.map { it.streams.route }.filterNot { it.isEmpty() },
             routeOnlyFrom = routeOnlyFrom(parts),
-            analysis = SessionAnalyzer.analyze(parts, zoneSets, anchors),
+            analysis = analysis,
             recording = parts.singleOrNull()?.recording(),
-            heartRate = HeartRateSeries.joined(parts.map { it.streams.heartRate }),
+            heartRate = joined,
+            kind = kind,
         ).let { scope -> parts.singleOrNull()?.let { scope.copy(splits = it.splits(scope.analysis)) } ?: scope }
-        val scopes = if (parts.size == 1) listOf(whole) else listOf(whole) + parts.map { it.scope(zoneSets, anchors) }
+        val scopes = if (parts.size == 1) listOf(whole) else listOf(whole) + parts.map { it.scope(zoneSets, anchors, it.roleIn(analysis)) }
         return SessionUiState.Loaded(session = item, scopes = scopes, zonesAvailable = zoneSets.isNotEmpty())
     }
 
-    private fun SessionPart.scope(zoneSets: List<ZoneSet>, anchors: HeartRateAnchors?) = DetailScope(
+    /** Warm-up or cool-down when the session's analysis took this whole part for one. */
+    private fun SessionPart.roleIn(analysis: SessionAnalysis): PhaseKind? = analysis.phases.firstOrNull {
+        it.startMillis == workout.start.toEpochMilli() && it.endMillis == workout.end.toEpochMilli()
+    }?.kind?.takeIf { it == PhaseKind.WARM_UP || it == PhaseKind.COOL_DOWN }
+
+    private fun SessionPart.scope(zoneSets: List<ZoneSet>, anchors: HeartRateAnchors?, role: PhaseKind?) = DetailScope(
         title = workout.title,
         sport = workout.sport,
         start = workout.start,
@@ -150,7 +172,15 @@ class SessionViewModel @AssistedInject constructor(
         analysis = SessionAnalyzer.analyze(listOf(this), zoneSets, anchors),
         recording = recording(),
         heartRate = streams.heartRate,
-    ).let { it.copy(splits = splits(it.analysis)) }
+        role = role,
+    ).let { scope ->
+        val kind = if (workout.sport == Sport.RUN && role == null) {
+            SessionClassifier.classify(scope.analysis, streams.heartRate, zoneSets.firstOrNull(), workout.summary.durationMillis)
+        } else {
+            null
+        }
+        scope.copy(splits = splits(scope.analysis), kind = kind)
+    }
 
     /** Splits of a steady run or walk; an interval session has its rep table instead. */
     private fun SessionPart.splits(analysis: SessionAnalysis): List<Split> {

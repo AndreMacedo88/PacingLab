@@ -2,6 +2,7 @@ package app.pacinglab.feature.workouts.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.pacinglab.core.data.repository.SessionKindRepository
 import app.pacinglab.core.data.repository.WorkoutRepository
 import app.pacinglab.core.data.sync.HealthSync
 import app.pacinglab.core.data.sync.SyncOutcome
@@ -25,10 +26,14 @@ data class WorkoutsUiState(
 }
 
 @HiltViewModel
-class WorkoutsViewModel @Inject constructor(repository: WorkoutRepository, healthSync: HealthSync, private val scheduler: SyncScheduler) :
-    ViewModel() {
+class WorkoutsViewModel @Inject constructor(
+    repository: WorkoutRepository,
+    kinds: SessionKindRepository,
+    healthSync: HealthSync,
+    private val scheduler: SyncScheduler,
+) : ViewModel() {
     val state: StateFlow<WorkoutsUiState> = combine(
-        repository.observeSessions().map { sessions -> sessions.map { it.toItem() } },
+        combine(repository.observeSessions(), kinds.observeKinds()) { sessions, byId -> sessions.map { it.toItem(byId[it.id]) } },
         healthSync.status,
         healthSync.lastOutcome,
     ) { sessions, status, outcome ->
