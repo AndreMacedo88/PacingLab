@@ -5,7 +5,9 @@ import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import app.pacinglab.core.analytics.load.HeartRateLoad
+import app.pacinglab.core.data.testPreferences
 import app.pacinglab.core.database.PacingLabDatabase
+import app.pacinglab.core.database.store.EffortStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
 import app.pacinglab.core.database.store.WorkoutStore
@@ -51,6 +53,7 @@ class TrainingLoadRepositoryTest {
     private lateinit var physiology: PhysiologyStore
     private lateinit var measurements: MeasurementStore
     private lateinit var repository: TrainingLoadRepository
+    private val preferences = testPreferences()
 
     @Before
     fun setUp() {
@@ -61,7 +64,15 @@ class TrainingLoadRepositoryTest {
         physiology = PhysiologyStore(database)
         measurements = MeasurementStore(database)
         val clock = Clock.fixed(now, cest)
-        repository = TrainingLoadRepository(workouts, physiology, NightRepository(measurements, clock), clock)
+        repository =
+            TrainingLoadRepository(
+                workouts,
+                physiology,
+                NightRepository(measurements, preferences, clock),
+                preferences,
+                EffortRepository(EffortStore(database)),
+                clock,
+            )
     }
 
     @After
@@ -86,6 +97,22 @@ class TrainingLoadRepositoryTest {
         val anchors = HeartRateAnchors(maxHr = 186, thresholdHr = 167, restingHr = 57)
         assertThat(loads.single().scores).isEqualTo(HeartRateLoad.of(heartRate(Instant.parse("2026-10-20T16:31:00Z"), 30, 165), anchors))
         assertThat(loads.single().date).isEqualTo(LocalDate.of(2026, 10, 20))
+    }
+
+    @Test
+    fun `a rated gym session takes its stress score from the rating, and gym sessions can be left out`() = runTest {
+        physiology.save(PhysiologyEntry(today.minusDays(30), maxHr = 186, restingHr = 57))
+        save(workout("gym", start = "2026-10-20T15:00:00Z", minutes = 60, sport = Sport.STRENGTH), bpm = 100)
+        save(workout("run", start = "2026-10-20T16:31:00Z", minutes = 30), bpm = 165)
+        EffortRepository(EffortStore(database)).rate("hc:gym", 6)
+
+        val gym = repository.observeWorkoutLoads().first().single { it.workoutId == "hc:gym" }
+        preferences.setStrengthInLoad(false)
+        val withoutGym = repository.observeWorkoutLoads().first()
+
+        assertThat(gym.effort).isEqualTo(6)
+        assertThat(gym.scores!!.stressScore).isEqualTo(70.0)
+        assertThat(withoutGym.map { it.workoutId }).containsExactly("hc:run")
     }
 
     @Test

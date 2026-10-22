@@ -24,7 +24,7 @@
     <string name="metric_max_hr">Max HR</string>
     <string name="metric_load">Load</string>
     <string name="load_title">Training load</string>
-    <string name="load_info" formatted="false">Three ways of turning heart rate into training load. All three need your maximum and resting heart rate and grow with both duration and intensity.\n\n# Stress score\nBanister\'s TRIMP scaled so that one hour at your threshold heart rate scores 100, which makes it comparable with the stress scores of other apps.\n\n# Banister TRIMP\nMinutes weighted by the share of your heart rate reserve you used, rising exponentially the way blood lactate does.\n\n# Edwards TRIMP\nMinutes in five bands of maximum heart rate, from 50–60 % up to 90–100 %, weighted 1 to 5.\n\n# Limits\nHeart rate reacts little to strength training, so lifting sessions score lower than they feel.</string>
+    <string name="load_info" formatted="false">Three ways of turning heart rate into training load. All three need your maximum and resting heart rate and grow with both duration and intensity.\n\n# Stress score\nBanister\'s TRIMP scaled so that one hour at your threshold heart rate scores 100, which makes it comparable with the stress scores of other apps.\n\n# Banister TRIMP\nMinutes weighted by the share of your heart rate reserve you used, rising exponentially the way blood lactate does.\n\n# Edwards TRIMP\nMinutes in five bands of maximum heart rate, from 50–60 % up to 90–100 %, weighted 1 to 5.\n\n# Limits\nHeart rate reacts little to strength training, so lifting sessions score lower than they feel. Rate a gym session on its effort card and it counts by the rating instead.</string>
     <string name="load_stress">Stress score</string>
     <string name="load_trimp">Banister TRIMP</string>
     <string name="load_edwards">Edwards TRIMP</string>
@@ -115,4 +115,7 @@
         <item quantity="one">%1$d lap</item>
         <item quantity="other">%1$d laps</item>
     </plurals>
+    <string name="effort_title">Effort</string>
+    <string name="effort_session_rpe">Session RPE</string>
+    <string name="effort_info">How hard the whole session felt, from 1 (very, very easy) to 10 (maximal), rated once afterwards. Heart rate reacts little to lifting, so gym sessions are the only ones that ask for a rating; runs count by heart rate.\n\n# Session RPE\nThe rating times the minutes (Foster 2001), in arbitrary units: the usual measure of strength training load.\n\n# Stress score\nTo add gym sessions to fitness and fatigue, PacingLab turns the rating into 10 × rating + 10 per hour, so an hour rated 9 scores 100 like an hour at threshold heart rate. This is a rule of thumb from coaching practice, not a validated conversion. Unrated gym sessions count by heart rate.\n\nTap the chosen value again to clear it.</string>
 </resources>

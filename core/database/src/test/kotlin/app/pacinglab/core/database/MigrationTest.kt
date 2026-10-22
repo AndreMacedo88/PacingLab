@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
+import app.pacinglab.core.database.store.EffortStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
 import app.pacinglab.core.database.store.WellnessStore
@@ -134,6 +135,25 @@ class MigrationTest {
         assertThat(workout.recordingMethod).isEqualTo(RecordingMethod.ACTIVE)
         assertThat(before.isEmpty()).isTrue()
         assertThat(after).isEqualTo(mapOf(LocalDate.of(2026, 10, 22) to 4))
+    }
+
+    @Test
+    fun `version 7 morning ratings survive the upgrade and workouts can then be rated`() = runTest {
+        val file = databaseFile()
+        createFromSchema(file, version = 7)
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("INSERT INTO wellness (epoch_day, rested) VALUES (20748, 4)")
+        }
+
+        val database = Room.databaseBuilder(context, PacingLabDatabase::class.java, file.path).setDriver(AndroidSQLiteDriver()).build()
+        val rested = WellnessStore(database).observeRested().first()
+        val efforts = EffortStore(database)
+        efforts.set("gym", 6)
+        val rated = efforts.observe().first()
+        database.close()
+
+        assertThat(rested).isEqualTo(mapOf(LocalDate.ofEpochDay(20748) to 4))
+        assertThat(rated).isEqualTo(mapOf("gym" to 6))
     }
 
     private fun databaseFile(): File = context.getDatabasePath("migration-test.db").apply {

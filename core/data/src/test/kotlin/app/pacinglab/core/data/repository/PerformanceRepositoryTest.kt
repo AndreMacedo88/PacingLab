@@ -5,7 +5,9 @@ import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import app.pacinglab.core.analytics.performance.Vo2MaxSource
+import app.pacinglab.core.data.testPreferences
 import app.pacinglab.core.database.PacingLabDatabase
+import app.pacinglab.core.database.store.EffortStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
 import app.pacinglab.core.database.store.WorkoutStore
@@ -59,7 +61,16 @@ class PerformanceRepositoryTest {
         measurements = MeasurementStore(database)
         val physiology = PhysiologyStore(database)
         val clock = Clock.fixed(now, cest)
-        val load = TrainingLoadRepository(workouts, physiology, NightRepository(measurements, clock), clock)
+        val preferences = testPreferences()
+        val load =
+            TrainingLoadRepository(
+                workouts,
+                physiology,
+                NightRepository(measurements, preferences, clock),
+                preferences,
+                EffortRepository(EffortStore(database)),
+                clock,
+            )
         repository = PerformanceRepository(workouts, measurements, load, clock)
         runTest { physiology.save(PhysiologyEntry(LocalDate.of(2026, 1, 1), maxHr = 190, thresholdHr = 170, restingHr = 50)) }
     }

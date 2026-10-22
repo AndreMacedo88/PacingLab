@@ -36,4 +36,14 @@
     <string name="hr_chart_hint">Touch the chart to read the heart rate</string>
     <string name="hr_chart_readout">%1$s  ·  %2$d bpm  ·  %3$s %4$s</string>
     <string name="settings_action">Settings</string>
+    <string name="effort_1">Very, very easy</string>
+    <string name="effort_2">Easy</string>
+    <string name="effort_3">Moderate</string>
+    <string name="effort_4">Somewhat hard</string>
+    <string name="effort_5">Hard</string>
+    <string name="effort_6">Hard to very hard</string>
+    <string name="effort_7">Very hard</string>
+    <string name="effort_8">Very, very hard</string>
+    <string name="effort_9">Nearly maximal</string>
+    <string name="effort_10">Maximal</string>
 </resources>

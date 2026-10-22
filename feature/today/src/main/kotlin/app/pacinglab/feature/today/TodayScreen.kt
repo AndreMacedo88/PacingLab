@@ -89,6 +89,7 @@ fun TodayRoute(
         refreshing = refreshing,
         onRefresh = viewModel::refresh,
         onRate = viewModel::rate,
+        onRateGym = viewModel::rateGym,
     )
 }
 
@@ -110,6 +111,7 @@ fun TodayScreen(
     refreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     onRate: (Int) -> Unit = {},
+    onRateGym: (List<String>, Int) -> Unit = { _, _ -> },
 ) {
     val locale = LocalConfiguration.current.locales[0]
     Scaffold(
@@ -153,6 +155,9 @@ fun TodayScreen(
                     }
                     item(key = "readiness") { ReadinessCard(state.readiness, state.readinessHistory, state.days(locale)) }
                     item(key = "rested") { RestedCard(state.rested, onRate) }
+                    state.gymToRate?.let { gym ->
+                        item(key = "gym") { GymEffortCard(gym, state.today, zoneId, onRate = { onRateGym(gym.workoutIds, it) }) }
+                    }
                     item(key = "night") {
                         TileRow {
                             SleepTile(state, onOpenSleep, Modifier.weight(1f))

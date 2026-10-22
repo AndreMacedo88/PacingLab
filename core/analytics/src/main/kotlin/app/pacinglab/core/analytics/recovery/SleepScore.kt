@@ -123,10 +123,13 @@ data class SleepScore(
             return (usual?.toLong() ?: MIN_NEED.toMillis()).coerceIn(MIN_NEED.toMillis(), MAX_NEED.toMillis())
         }
 
-        /** Every night's score, each against the need and regularity of the nights before it. */
-        fun all(nights: List<Night>): Map<LocalDate, SleepScore> {
+        /**
+         * Every night's score, each against the need and regularity of the nights before it; with
+         * [fixedNeedMillis], against that need instead of the one worked out from the nights.
+         */
+        fun all(nights: List<Night>, fixedNeedMillis: Long? = null): Map<LocalDate, SleepScore> {
             val sorted = nights.sortedBy { it.date }
-            return sorted.associate { it.date to of(it, need(sorted, it.date), sorted) }
+            return sorted.associate { it.date to of(it, fixedNeedMillis ?: need(sorted, it.date), sorted) }
         }
 
         /**

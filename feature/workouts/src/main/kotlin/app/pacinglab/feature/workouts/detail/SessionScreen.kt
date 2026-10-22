@@ -46,6 +46,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.intervals.PhaseKind
+import app.pacinglab.core.analytics.load.EffortLoad
 import app.pacinglab.core.designsystem.chart.ZoneLegend
 import app.pacinglab.core.designsystem.component.label
 import app.pacinglab.core.designsystem.format.Formats
@@ -68,13 +69,20 @@ import kotlin.math.roundToInt
 fun SessionRoute(sessionId: String, onBack: () -> Unit, onOpenPhysiology: () -> Unit, modifier: Modifier = Modifier) {
     val viewModel = hiltViewModel<SessionViewModel, SessionViewModel.Factory>(key = sessionId) { it.create(sessionId) }
     val state by viewModel.state.collectAsStateWithLifecycle()
-    SessionScreen(state = state, onBack = onBack, onOpenPhysiology = onOpenPhysiology, modifier = modifier)
+    SessionScreen(
+        state = state,
+        onBack = onBack,
+        onOpenPhysiology = onOpenPhysiology,
+        modifier = modifier,
+        onRateEffort = viewModel::rateEffort,
+    )
 }
 
 /**
  * A training session. Sessions of several recorded parts get a tab per part; every number, the map
  * and time in zones then describe the selected part only.
  *
+ * @param onRateEffort rates the given workouts of a gym session from 1 to 10.
  * @param initialScope tab selected on first display: 0 for the whole session, 1 for the first part.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,11 +92,13 @@ fun SessionScreen(
     onBack: () -> Unit,
     onOpenPhysiology: () -> Unit,
     modifier: Modifier = Modifier,
+    onRateEffort: (List<String>, Int) -> Unit = { _, _ -> },
     zoneId: ZoneId = ZoneId.systemDefault(),
     initialScope: Int = 0,
 ) {
     val locale = LocalConfiguration.current.locales[0]
-    var showSpeed by rememberSaveable { mutableStateOf(false) }
+    val speedByDefault = (state as? SessionUiState.Loaded)?.speedByDefault ?: false
+    var showSpeed by rememberSaveable(speedByDefault) { mutableStateOf(speedByDefault) }
     val toggle = SpeedToggle(
         showSpeed = showSpeed,
         label = stringResource(if (showSpeed) R.string.show_pace else R.string.show_speed),
@@ -128,6 +138,8 @@ fun SessionScreen(
             is SessionUiState.Loaded -> ScopeContent(
                 scope = scopes[index],
                 parts = if (index == 0) scopes.drop(1) else emptyList(),
+                effort = state.effortOf(scopes[index]),
+                onRateEffort = { onRateEffort(scopes[index].workoutIds, it) },
                 toggle = toggle,
                 onOpenPhysiology = onOpenPhysiology,
                 onSelectPart = { selected = it + 1 },
@@ -171,6 +183,8 @@ private fun ScopeTabs(scopes: List<DetailScope>, selected: Int, onSelect: (Int) 
 private fun ScopeContent(
     scope: DetailScope,
     parts: List<DetailScope>,
+    effort: Int?,
+    onRateEffort: (Int) -> Unit,
     toggle: SpeedToggle,
     onOpenPhysiology: () -> Unit,
     onSelectPart: (Int) -> Unit,
@@ -184,7 +198,16 @@ private fun ScopeContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item(key = "when") { When(scope, locale, zoneId) }
-        item(key = "metrics") { Metrics(scope, toggle, locale) }
+        // A rated gym session counts by its rating; session RPE takes the whole session, rests between sets included.
+        val rated = effort?.takeIf { scope.sport == Sport.STRENGTH }
+        val wholeMillis = scope.end.toEpochMilli() - scope.start.toEpochMilli()
+        val stressScore = rated?.let { EffortLoad.stressScore(it, wholeMillis) }
+            ?: scope.analysis.load?.takeIf { it.heartRateMillis > 0 }?.stressScore
+        item(key = "metrics") { Metrics(scope, stressScore, toggle, locale) }
+        // Heart rate says little about lifting, so a gym session leads with its effort.
+        if (scope.sport == Sport.STRENGTH && scope.workoutIds.isNotEmpty()) {
+            item(key = "effort") { EffortCard(effort, wholeMillis, onRateEffort) }
+        }
         if (scope.routes.isNotEmpty()) {
             item(key = "map") { RouteSection(scope) }
         }
@@ -195,7 +218,8 @@ private fun ScopeContent(
         if (scope.splits.isNotEmpty()) {
             item(key = "splits") { SplitsCard(scope.splits, toggle, locale) }
         }
-        scope.analysis.load?.takeIf { it.heartRateMillis > 0 }?.let { load ->
+        // The effort card shows the load of a rated gym session.
+        scope.analysis.load?.takeIf { it.heartRateMillis > 0 && rated == null }?.let { load ->
             item(key = "load") { LoadCard(load) }
         }
         if (parts.isNotEmpty()) {
@@ -242,7 +266,7 @@ private fun When(scope: DetailScope, locale: Locale, zoneId: ZoneId, modifier: M
 }
 
 @Composable
-private fun Metrics(scope: DetailScope, toggle: SpeedToggle, locale: Locale, modifier: Modifier = Modifier) {
+private fun Metrics(scope: DetailScope, stressScore: Double?, toggle: SpeedToggle, locale: Locale, modifier: Modifier = Modifier) {
     FlowRow(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -264,9 +288,7 @@ private fun Metrics(scope: DetailScope, toggle: SpeedToggle, locale: Locale, mod
         }
         scope.averageHr?.let { Metric(stringResource(R.string.metric_avg_hr), it.toString(), "bpm") }
         scope.maxHr?.let { Metric(stringResource(R.string.metric_max_hr), it.toString(), "bpm") }
-        scope.analysis.load?.takeIf { it.heartRateMillis > 0 }?.let {
-            Metric(stringResource(R.string.metric_load), it.stressScore.roundToInt().toString(), null)
-        }
+        stressScore?.let { Metric(stringResource(R.string.metric_load), it.roundToInt().toString(), null) }
     }
 }
 

@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -26,6 +27,8 @@ import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.Sport
 import app.pacinglab.core.model.ZoneModel
 import app.pacinglab.feature.workouts.list.SessionItem
+import assertk.assertThat
+import assertk.assertions.isEqualTo
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Rule
 import org.junit.Test
@@ -372,6 +375,62 @@ class SessionScreenScreenshotTest {
                 zonesAvailable = true,
             ),
         )
+    }
+
+    private val gym = warmUp.copy(
+        title = "Weights",
+        sport = Sport.STRENGTH,
+        end = start.plusSeconds(52 * 60L),
+        movingMillis = 52 * 60_000L,
+        distanceMeters = null,
+        averageHr = 104,
+        maxHr = 141,
+        routes = emptyList(),
+        recording = RecordingItem("com.fitbit.FitbitMobile", RecordingMethod.ACTIVE, "weightlifting", 3_100, 0, 0, 0),
+        workoutIds = listOf("w9"),
+    )
+
+    private val gymSession = session.copy(
+        sport = Sport.STRENGTH,
+        titles = listOf("Weights"),
+        parts = 1,
+        distanceMeters = null,
+        hasRoute = false,
+    )
+
+    @Test
+    @Config(qualifiers = "w384dp-h1400dp-xxhdpi")
+    fun ratedGymSession() = capture(SessionUiState.Loaded(gymSession, listOf(gym), zonesAvailable = true, efforts = mapOf("w9" to 7)))
+
+    @Test
+    fun ratingAGymSessionReportsItsWorkouts() {
+        var rated: Pair<List<String>, Int>? = null
+        compose.setContent {
+            PacingLabTheme {
+                SessionScreen(
+                    state = SessionUiState.Loaded(gymSession, listOf(gym), zonesAvailable = true),
+                    onBack = {},
+                    onOpenPhysiology = {},
+                    onRateEffort = { ids, effort -> rated = ids to effort },
+                    zoneId = ZoneOffset.UTC,
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("6, Hard to very hard").performScrollTo().performClick()
+
+        assertThat(rated).isEqualTo(listOf("w9") to 6)
+    }
+
+    @Test
+    fun theSpeedPreferenceShowsSpeedFirst() {
+        compose.setContent {
+            PacingLabTheme {
+                SessionScreen(state = loaded.copy(speedByDefault = true), onBack = {}, onOpenPhysiology = {}, zoneId = ZoneOffset.UTC)
+            }
+        }
+
+        compose.onAllNodesWithText("km/h", substring = true)[0].assertExists()
     }
 
     private fun capture(state: SessionUiState, darkTheme: Boolean = false, scope: Int = 0) {

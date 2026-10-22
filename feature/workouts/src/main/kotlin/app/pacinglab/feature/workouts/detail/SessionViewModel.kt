@@ -15,7 +15,9 @@ import app.pacinglab.core.analytics.session.Splits
 import app.pacinglab.core.analytics.workout.SpeedCleaning
 import app.pacinglab.core.analytics.workout.TrainingSession
 import app.pacinglab.core.analytics.zones.Zones
+import app.pacinglab.core.data.repository.EffortRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
+import app.pacinglab.core.data.repository.UserPreferencesRepository
 import app.pacinglab.core.data.repository.WorkoutRepository
 import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.HeartRateSeries
@@ -36,9 +38,12 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -56,6 +61,7 @@ import java.time.ZoneOffset
  * @property kind what the run was for; null for other sports.
  * @property role [PhaseKind.WARM_UP] or [PhaseKind.COOL_DOWN] for a recorded part that only warmed up or
  *   cooled down around the main part; null otherwise.
+ * @property workoutIds the recorded workouts the scope covers, which an effort rating applies to.
  */
 data class DetailScope(
     val title: String?,
@@ -75,6 +81,7 @@ data class DetailScope(
     val splits: List<Split> = emptyList(),
     val kind: SessionKind? = null,
     val role: PhaseKind? = null,
+    val workoutIds: List<String> = emptyList(),
 )
 
 /** Where a recorded part came from and how much data it carries. */
@@ -100,8 +107,19 @@ sealed interface SessionUiState {
      * @property scopes the whole session first, then each recorded part when there are several. Time in
      *   zones in each scope's analysis lists the five-zone model, then the polarized model.
      * @property zonesAvailable false until the athlete has set a maximal heart rate.
+     * @property efforts the athlete's effort ratings of the session's workouts, by workout id.
+     * @property speedByDefault running speed shows as km/h rather than pace until toggled.
      */
-    data class Loaded(val session: SessionItem, val scopes: List<DetailScope>, val zonesAvailable: Boolean) : SessionUiState
+    data class Loaded(
+        val session: SessionItem,
+        val scopes: List<DetailScope>,
+        val zonesAvailable: Boolean,
+        val efforts: Map<String, Int> = emptyMap(),
+        val speedByDefault: Boolean = false,
+    ) : SessionUiState {
+        /** The rating of the workouts in [scope] when they share one; null when unrated. */
+        fun effortOf(scope: DetailScope): Int? = scope.workoutIds.map { efforts[it] }.distinct().singleOrNull()
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -110,13 +128,40 @@ class SessionViewModel @AssistedInject constructor(
     @Assisted private val sessionId: String,
     private val repository: WorkoutRepository,
     trainingLoad: TrainingLoadRepository,
+    private val ratings: EffortRepository,
+    preferences: UserPreferencesRepository,
 ) : ViewModel() {
-    val state: StateFlow<SessionUiState> = combine(repository.observeSessions(), trainingLoad.anchors) { sessions, timeline ->
+    private val analysed = combine(repository.observeSessions(), trainingLoad.anchors) { sessions, timeline ->
         sessions.firstOrNull { it.id == sessionId } to timeline
     }
         .mapLatest { (session, timeline) -> if (session == null) SessionUiState.NotFound else load(session, timeline) }
         .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), SessionUiState.Loading)
+
+    // Ratings and preferences join after the analysis so that rating a session does not analyse it again.
+    val state: StateFlow<SessionUiState> = combine(
+        analysed,
+        ratings.observe(),
+        preferences.preferences.map { it.speedByDefault }.distinctUntilChanged(),
+    ) { state, rated, speed ->
+        if (state is SessionUiState.Loaded) {
+            val ids = state.scopes.first().workoutIds.toSet()
+            state.copy(efforts = rated.filterKeys { it in ids }, speedByDefault = speed)
+        } else {
+            state
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), SessionUiState.Loading)
+
+    /** Rates the workouts of a scope, or clears their rating when [effort] is the one they already have. */
+    fun rateEffort(workoutIds: List<String>, effort: Int) {
+        viewModelScope.launch {
+            val current = (state.value as? SessionUiState.Loaded)?.efforts
+            if (current != null && workoutIds.all { current[it] == effort }) {
+                workoutIds.forEach { ratings.clear(it) }
+            } else {
+                workoutIds.forEach { ratings.rate(it, effort) }
+            }
+        }
+    }
 
     private suspend fun load(session: TrainingSession, timeline: AnchorTimeline): SessionUiState.Loaded {
         val parts = session.workouts.map { SessionPart(it, repository.streams(it.id)) }
@@ -147,6 +192,7 @@ class SessionViewModel @AssistedInject constructor(
             recording = parts.singleOrNull()?.recording(),
             heartRate = joined,
             kind = kind,
+            workoutIds = session.workouts.map { it.id },
         ).let { scope -> parts.singleOrNull()?.let { scope.copy(splits = it.splits(scope.analysis)) } ?: scope }
         val scopes = if (parts.size == 1) listOf(whole) else listOf(whole) + parts.map { it.scope(zoneSets, anchors, it.roleIn(analysis)) }
         return SessionUiState.Loaded(session = item, scopes = scopes, zonesAvailable = zoneSets.isNotEmpty())
@@ -173,6 +219,7 @@ class SessionViewModel @AssistedInject constructor(
         recording = recording(),
         heartRate = streams.heartRate,
         role = role,
+        workoutIds = listOf(workout.id),
     ).let { scope ->
         val kind = if (workout.sport == Sport.RUN && role == null) {
             SessionClassifier.classify(scope.analysis, streams.heartRate, zoneSets.firstOrNull(), workout.summary.durationMillis)

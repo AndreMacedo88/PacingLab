@@ -4,6 +4,7 @@ import androidx.room3.Dao
 import androidx.room3.Query
 import androidx.room3.Transaction
 import androidx.room3.Upsert
+import app.pacinglab.core.database.entity.EffortEntity
 import app.pacinglab.core.database.entity.MeasurementEntity
 import app.pacinglab.core.database.entity.PhysiologyEntity
 import app.pacinglab.core.database.entity.SleepSessionEntity
@@ -109,6 +110,18 @@ interface SyncStateDao {
 
     @Query("SELECT * FROM sync_state")
     fun observeAll(): Flow<List<SyncStateEntity>>
+}
+
+@Dao
+interface EffortDao {
+    @Query("SELECT * FROM efforts")
+    fun observeAll(): Flow<List<EffortEntity>>
+
+    @Upsert
+    suspend fun upsert(entry: EffortEntity)
+
+    @Query("DELETE FROM efforts WHERE workout_id = :workoutId")
+    suspend fun delete(workoutId: String)
 }
 
 @Dao

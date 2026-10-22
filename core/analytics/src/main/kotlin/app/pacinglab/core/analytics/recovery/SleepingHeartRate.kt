@@ -52,9 +52,14 @@ data class SleepHistory(val nights: List<Night>, val scores: Map<LocalDate, Slee
     companion object {
         val EMPTY = SleepHistory(emptyList(), emptyMap(), emptyMap())
 
-        fun of(nights: List<Night>): SleepHistory {
+        /** The history of [nights]; with [fixedNeedMillis], every night is scored against that need. */
+        fun of(nights: List<Night>, fixedNeedMillis: Long? = null): SleepHistory {
             val sorted = nights.sortedBy { it.date }
-            return SleepHistory(sorted, SleepScore.all(sorted), sorted.associate { it.date to SleepScore.need(sorted, it.date) })
+            return SleepHistory(
+                sorted,
+                SleepScore.all(sorted, fixedNeedMillis),
+                sorted.associate { it.date to (fixedNeedMillis ?: SleepScore.need(sorted, it.date)) },
+            )
         }
     }
 }

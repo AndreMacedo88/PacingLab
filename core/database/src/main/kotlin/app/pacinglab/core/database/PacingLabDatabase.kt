@@ -3,12 +3,14 @@ package app.pacinglab.core.database
 import androidx.room3.AutoMigration
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
+import app.pacinglab.core.database.dao.EffortDao
 import app.pacinglab.core.database.dao.MeasurementDao
 import app.pacinglab.core.database.dao.PhysiologyDao
 import app.pacinglab.core.database.dao.SleepDao
 import app.pacinglab.core.database.dao.SyncStateDao
 import app.pacinglab.core.database.dao.WellnessDao
 import app.pacinglab.core.database.dao.WorkoutDao
+import app.pacinglab.core.database.entity.EffortEntity
 import app.pacinglab.core.database.entity.MeasurementEntity
 import app.pacinglab.core.database.entity.PhysiologyEntity
 import app.pacinglab.core.database.entity.SleepSessionEntity
@@ -26,8 +28,9 @@ import app.pacinglab.core.database.entity.WorkoutStreamEntity
         SyncStateEntity::class,
         PhysiologyEntity::class,
         WellnessEntity::class,
+        EffortEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
     autoMigrations = [
         // 2: workouts.route_pending
@@ -42,6 +45,8 @@ import app.pacinglab.core.database.entity.WorkoutStreamEntity
         AutoMigration(from = 5, to = 6),
         // 7: wellness (morning rating)
         AutoMigration(from = 6, to = 7),
+        // 8: efforts (session RPE)
+        AutoMigration(from = 7, to = 8),
     ],
 )
 abstract class PacingLabDatabase : RoomDatabase() {
@@ -56,6 +61,8 @@ abstract class PacingLabDatabase : RoomDatabase() {
     abstract fun physiologyDao(): PhysiologyDao
 
     abstract fun wellnessDao(): WellnessDao
+
+    abstract fun effortDao(): EffortDao
 
     companion object {
         const val FILE_NAME = "pacinglab.db"

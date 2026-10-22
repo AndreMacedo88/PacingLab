@@ -14,6 +14,7 @@ import app.pacinglab.core.analytics.recovery.SleepHistory
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.analytics.workout.TrainingSession
 import app.pacinglab.core.analytics.zones.Zones
+import app.pacinglab.core.data.repository.EffortRepository
 import app.pacinglab.core.data.repository.NightRepository
 import app.pacinglab.core.data.repository.SessionKindRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
@@ -62,6 +63,15 @@ data class LastWorkout(
     val kind: SessionKind? = null,
 )
 
+/** A recent gym session the athlete has not rated yet. */
+data class GymToRate(
+    val sessionId: String,
+    val workoutIds: List<String>,
+    val start: Instant,
+    val zoneOffset: ZoneOffset?,
+    val durationMillis: Long,
+)
+
 sealed interface TodayUiState {
     data object Loading : TodayUiState
 
@@ -76,6 +86,7 @@ sealed interface TodayUiState {
      * @property weekSessions training sessions this week; a warm-up and an interval workout make one.
      * @property heartRateValuesSet false until the athlete has entered a maximal heart rate.
      * @property rested how rested the athlete said they feel today, 1 to 5; null before they answer.
+     * @property gymToRate the newest gym session of today or yesterday when it has no effort rating yet.
      */
     data class Loaded(
         val today: LocalDate,
@@ -90,6 +101,7 @@ sealed interface TodayUiState {
         val heartRateValuesSet: Boolean,
         val readinessHistory: List<Readiness> = listOf(readiness),
         val rested: Int? = null,
+        val gymToRate: GymToRate? = null,
     ) : TodayUiState
 }
 
@@ -103,8 +115,9 @@ class TodayViewModel @Inject constructor(
     private val scheduler: SyncScheduler,
     private val kinds: SessionKindRepository,
     private val wellness: WellnessRepository,
+    private val ratings: EffortRepository,
 ) : ViewModel() {
-    val state: StateFlow<TodayUiState> = combine(
+    private val built = combine(
         nights.observeSleep(),
         trainingLoad.observeWorkoutLoads(),
         workouts.observeSessions(),
@@ -113,7 +126,10 @@ class TodayViewModel @Inject constructor(
     ) { sleep, loads, sessions, anchors, rested -> Inputs(sleep, loads, sessions, anchors, rested) }
         .mapLatest { build(it) }
         .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TodayUiState.Loading)
+
+    val state: StateFlow<TodayUiState> = combine(built, workouts.observeSessions(), ratings.observe()) { state, sessions, rated ->
+        state.copy(gymToRate = gymToRate(sessions, rated, state.today))
+    }.stateIn<TodayUiState>(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TodayUiState.Loading)
 
     val refreshing: StateFlow<Boolean> =
         scheduler.updating.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)
@@ -127,6 +143,26 @@ class TodayViewModel @Inject constructor(
             val current = (state.value as? TodayUiState.Loaded)?.rested
             if (current == rating) wellness.clearRested(today) else wellness.setRested(today, rating)
         }
+    }
+
+    /** Rates the workouts of a gym session from 1 to 10. */
+    fun rateGym(workoutIds: List<String>, effort: Int) {
+        viewModelScope.launch { workoutIds.forEach { ratings.rate(it, effort) } }
+    }
+
+    /** The newest gym session from yesterday or today, unless one of its workouts is rated. */
+    private fun gymToRate(sessions: List<TrainingSession>, rated: Map<String, Int>, today: LocalDate): GymToRate? {
+        val session = sessions.firstOrNull { it.sport == Sport.STRENGTH } ?: return null
+        val date = TrainingLoads.dateOf(session.workouts.first(), clock.zone)
+        if (date < today.minusDays(1) || session.workouts.any { it.id in rated }) return null
+        val end = session.workouts.maxOf { it.end }
+        return GymToRate(
+            sessionId = session.id,
+            workoutIds = session.workouts.map { it.id },
+            start = session.start,
+            zoneOffset = session.workouts.first().zoneOffset,
+            durationMillis = end.toEpochMilli() - session.start.toEpochMilli(),
+        )
     }
 
     private class Inputs(

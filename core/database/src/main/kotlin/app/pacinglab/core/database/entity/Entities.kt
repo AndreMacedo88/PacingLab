@@ -84,6 +84,10 @@ data class SyncStateEntity(@PrimaryKey val key: String, val value: String)
 @Entity(tableName = "wellness")
 class WellnessEntity(@PrimaryKey @ColumnInfo(name = "epoch_day") val epochDay: Long, @ColumnInfo(name = "rested") val rested: Int?)
 
+/** How hard the athlete rated a workout, 1 to 10 (session RPE). */
+@Entity(tableName = "efforts")
+class EffortEntity(@PrimaryKey @ColumnInfo(name = "workout_id") val workoutId: String, @ColumnInfo(name = "effort") val effort: Int)
+
 /** Heart rate values the athlete set, valid from a date (stored as epoch day) until the next entry. */
 @Entity(tableName = "physiology")
 class PhysiologyEntity(

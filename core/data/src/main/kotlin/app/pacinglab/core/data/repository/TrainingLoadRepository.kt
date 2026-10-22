@@ -2,6 +2,7 @@ package app.pacinglab.core.data.repository
 
 import app.pacinglab.core.analytics.geo.speeds
 import app.pacinglab.core.analytics.load.AnchorTimeline
+import app.pacinglab.core.analytics.load.EffortLoad
 import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.FormDay
 import app.pacinglab.core.analytics.load.HeartRateLoad
@@ -45,6 +46,8 @@ class TrainingLoadRepository @Inject constructor(
     private val workouts: WorkoutStore,
     physiology: PhysiologyStore,
     nights: NightRepository,
+    private val preferences: UserPreferencesRepository,
+    private val ratings: EffortRepository,
     private val clock: Clock,
 ) {
     private class Cached(val scores: LoadScores?, val intensity: ZoneDistribution?)
@@ -119,23 +122,44 @@ class TrainingLoadRepository @Inject constructor(
      * Load of every workout that counts, oldest first: duplicates, accidental starts and recordings
      * left running for days are left out.
      */
-    fun observeWorkoutLoads(): Flow<List<WorkoutLoad>> = combine(workouts.observeAll(), anchors) { all, timeline -> all to timeline }
-        .mapLatest { (all, timeline) -> loads(all, timeline) }
+    fun observeWorkoutLoads(): Flow<List<WorkoutLoad>> = combine(
+        workouts.observeAll(),
+        anchors,
+        preferences.preferences.map { it.strengthInLoad }.distinctUntilChanged(),
+        ratings.observe(),
+    ) { all, timeline, strength, rated -> LoadInputs(all, timeline, strength, rated) }
+        .mapLatest { loads(it) }
         .flowOn(Dispatchers.Default)
+
+    private class LoadInputs(val all: List<Workout>, val timeline: AnchorTimeline, val strength: Boolean, val efforts: Map<String, Int>)
 
     /** The fitness-fatigue model from the first day with load up to today. */
     fun observeFitness(): Flow<List<FormDay>> = observeWorkoutLoads().map { loads ->
         FitnessModel.series(TrainingLoads.daily(loads), until = LocalDate.now(clock))
     }
 
-    private suspend fun loads(all: List<Workout>, timeline: AnchorTimeline): List<WorkoutLoad> {
-        val counted = all.filter { TrainingLoads.counts(it) && Duration.between(it.start, it.end) >= TrainingSessions.MIN_DURATION }
+    /**
+     * Gym sessions are left out when the athlete chose so; a gym session they rated takes its stress score
+     * from the rating ([EffortLoad]), since heart rate barely reflects lifting.
+     */
+    private suspend fun loads(inputs: LoadInputs): List<WorkoutLoad> {
+        val counted = inputs.all.filter {
+            TrainingLoads.counts(it) && Duration.between(it.start, it.end) >= TrainingSessions.MIN_DURATION &&
+                (inputs.strength || it.sport != Sport.STRENGTH)
+        }
         return TrainingSessions.removeDuplicates(counted).sortedBy { it.start }.map { workout ->
             val date = TrainingLoads.dateOf(workout, clock.zone)
-            val anchors = timeline.at(date)
+            val anchors = inputs.timeline.at(date)
             val key = CacheKey(workout.id, workout.lastModified, anchors)
             val cached = cache[key] ?: score(workout, anchors).also { cache[key] = it }
-            WorkoutLoad(workout.id, date, Duration.between(workout.start, workout.end).toMillis(), cached.scores, cached.intensity)
+            val millis = Duration.between(workout.start, workout.end).toMillis()
+            val effort = inputs.efforts[workout.id]?.takeIf { workout.sport == Sport.STRENGTH }
+            val scores = if (effort == null) {
+                cached.scores
+            } else {
+                (cached.scores ?: LoadScores.ZERO).copy(stressScore = EffortLoad.stressScore(effort, millis))
+            }
+            WorkoutLoad(workout.id, date, millis, scores, cached.intensity, effort)
         }
     }
 

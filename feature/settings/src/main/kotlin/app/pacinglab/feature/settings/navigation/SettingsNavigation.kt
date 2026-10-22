@@ -2,7 +2,7 @@ package app.pacinglab.feature.settings.navigation
 
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
-import app.pacinglab.feature.settings.SettingsScreen
+import app.pacinglab.feature.settings.SettingsRoute
 import app.pacinglab.feature.settings.datasources.DataSourcesRoute
 import app.pacinglab.feature.settings.physiology.PhysiologyRoute
 import kotlinx.serialization.Serializable
@@ -19,9 +19,11 @@ data object PhysiologyKey : NavKey
 /** Registers the settings screens with the app's navigation. */
 fun EntryProviderScope<NavKey>.settingsEntries(navigateTo: (NavKey) -> Unit, navigateBack: () -> Unit) {
     entry<SettingsKey> {
-        SettingsScreen(onOpenPhysiology = {
-            navigateTo(PhysiologyKey)
-        }, onOpenDataSources = { navigateTo(DataSourcesKey) }, onBack = navigateBack)
+        SettingsRoute(
+            onOpenPhysiology = { navigateTo(PhysiologyKey) },
+            onOpenDataSources = { navigateTo(DataSourcesKey) },
+            onBack = navigateBack,
+        )
     }
     entry<PhysiologyKey> {
         PhysiologyRoute(onBack = navigateBack)

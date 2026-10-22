@@ -30,6 +30,7 @@ data class WorkoutLoad(
     val durationMillis: Long,
     val scores: LoadScores?,
     val intensity: ZoneDistribution? = null,
+    val effort: Int? = null,
 )
 
 /**

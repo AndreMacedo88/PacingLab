@@ -2,6 +2,7 @@ package app.pacinglab.feature.today
 
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -230,6 +231,32 @@ class TodayScreenScreenshotTest {
         compose.onNodeWithText("Run + Interval workout").performScrollTo().performClick()
 
         assertThat(opened).isEqualTo("s1")
+    }
+
+    private val gym = GymToRate("g1", listOf("w9"), today.minusDays(1).atTime(17, 30).toInstant(ZoneOffset.UTC), null, 52 * 60_000L)
+
+    @Test
+    fun gymSessionToRate() = capture(loaded(nights(40)).copy(rested = 4, gymToRate = gym))
+
+    @Test
+    fun ratingTheGymSessionReportsItsWorkouts() {
+        var rated: Pair<List<String>, Int>? = null
+        compose.setContent {
+            PacingLabTheme {
+                TodayScreen(
+                    loaded(nights(40)).copy(gymToRate = gym),
+                    onOpenSession = {},
+                    onOpenTrends = {},
+                    onOpenPhysiology = {},
+                    zoneId = ZoneOffset.UTC,
+                    onRateGym = { ids, effort -> rated = ids to effort },
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("8, Very, very hard").performScrollTo().performClick()
+
+        assertThat(rated).isEqualTo(listOf("w9") to 8)
     }
 
     private fun capture(state: TodayUiState, darkTheme: Boolean = false) {

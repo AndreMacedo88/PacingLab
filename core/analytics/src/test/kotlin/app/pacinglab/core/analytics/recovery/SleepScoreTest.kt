@@ -165,4 +165,15 @@ class SleepScoreTest {
         assertThat(SleepScore.need(long, day)).isEqualTo(9 * hour)
         assertThat(SleepScore.need(usual, day)).isBetween(7 * hour + 50 * 60_000, 8 * hour)
     }
+
+    @Test
+    fun `a fixed need replaces the usual sleep for every night`() {
+        val nights = (0..10).map { night(day.minusDays(it.toLong()), inBed = 7.2) }
+
+        val automatic = SleepHistory.of(nights)
+        val fixed = SleepHistory.of(nights, fixedNeedMillis = 9 * hour)
+
+        assertThat(fixed.needs.values.toSet()).isEqualTo(setOf(9 * hour))
+        assertThat(fixed.scores.getValue(day).score).isLessThan(automatic.scores.getValue(day).score)
+    }
 }

@@ -87,4 +87,7 @@
     <string name="rested_4">Rested</string>
     <string name="rested_5">Fully rested</string>
     <string name="rested_info">Your own answer, once in the morning, from 1 (exhausted) to 5 (fully rested).\n\nHow rested you feel is the one part of sleep health a watch cannot measure. In training research, simple daily ratings like this one follow training load at least as well as most measurements (Saw 2016).\n\nPacingLab keeps your answers with the night they follow; the sleep screen shows them. Once a few weeks have collected, they will show how well the sleep score matches how you feel. Tap your answer again to clear it.</string>
+    <string name="gym_effort_title">How hard was the gym session?</string>
+    <string name="gym_effort_when">%1$s %2$s, %3$s</string>
+    <string name="gym_effort_info">One tap for how hard the whole session felt, from 1 (very, very easy) to 10 (maximal).\n\nHeart rate reacts little to lifting, so the rating is what gives a gym session its training load: the rating times the minutes, known as session RPE (Foster 2001). Only gym sessions ask, and only until the day after. The rating can be changed on the session\'s page.</string>
 </resources>
