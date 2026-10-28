@@ -1,5 +1,6 @@
 package app.pacinglab.feature.performance
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -27,7 +31,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.performance.RaceDistance
+import app.pacinglab.core.data.repository.PlacedCard
 import app.pacinglab.core.designsystem.component.CardHeader
+import app.pacinglab.core.designsystem.component.DashboardEditAction
+import app.pacinglab.core.designsystem.component.DashboardEditor
+import app.pacinglab.core.designsystem.component.DashboardEntry
 import app.pacinglab.core.designsystem.component.SettingsAction
 import app.pacinglab.core.designsystem.format.Formats
 import java.time.LocalDate
@@ -51,6 +59,8 @@ fun PerformanceRoute(
         onOpenSettings = onOpenSettings,
         refreshing = refreshing,
         onRefresh = viewModel::refresh,
+        onArrange = viewModel::arrange,
+        onResetArrangement = viewModel::resetArrangement,
     )
 }
 
@@ -70,12 +80,39 @@ fun PerformanceScreen(
     refreshing: Boolean = false,
     onRefresh: () -> Unit = {},
     initialEffortRange: EffortRange = EffortRange.RECENT,
+    onArrange: (List<PlacedCard>) -> Unit = {},
+    onResetArrangement: () -> Unit = {},
+    initiallyEditing: Boolean = false,
 ) {
     val locale = LocalConfiguration.current.locales[0]
+    var editing by rememberSaveable { mutableStateOf(initiallyEditing) }
+    BackHandler(enabled = editing) { editing = false }
+    val loaded = state as? PerformanceUiState.Loaded
     Scaffold(
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.performance_title)) }, actions = { SettingsAction(onOpenSettings) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(if (editing) R.string.performance_edit_title else R.string.performance_title)) },
+                actions = {
+                    if (loaded != null) DashboardEditAction(editing, onEditingChange = { editing = it })
+                    if (!editing) SettingsAction(onOpenSettings)
+                },
+            )
+        },
     ) { scaffoldPadding ->
+        if (editing && loaded != null) {
+            DashboardEditor(
+                entries = loaded.cards.mapNotNull { placed ->
+                    PerformanceCardKind.of(placed.id)?.let {
+                        DashboardEntry(it.id, stringResource(it.title), stringResource(it.description), placed.visible)
+                    }
+                },
+                onChange = { changed -> onArrange(changed.map { PlacedCard(it.id, it.visible) }) },
+                onReset = onResetArrangement,
+                modifier = Modifier.fillMaxSize().padding(scaffoldPadding),
+            )
+            return@Scaffold
+        }
         PullToRefreshBox(
             isRefreshing = refreshing,
             onRefresh = onRefresh,
@@ -92,21 +129,37 @@ fun PerformanceScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     val running = state.running
-                    item(key = "vo2max") { Vo2MaxCard(state.vo2max, state.today, onSaveTest, onDeleteTest, locale) }
-                    if (running.predictions.any { it.fromVo2Max != null || it.fromCriticalSpeed != null }) {
-                        item(key = "races") { RaceCard(running.predictions, running.vo2max, locale) }
-                    }
-                    item(key = "critical-speed") { CriticalSpeedCard(running.criticalSpeed, onOpenWorkout, locale) }
-                    if (!running.allTime.isEmpty()) {
-                        item(key = "efforts") {
-                            BestEffortsCard(running.recent, running.allTime, initialEffortRange, onOpenWorkout, locale)
+                    for (card in state.cards.filter { it.visible }.mapNotNull { PerformanceCardKind.of(it.id) }) {
+                        when (card) {
+                            PerformanceCardKind.VO2MAX -> item(key = card.id) {
+                                Vo2MaxCard(state.vo2max, state.today, onSaveTest, onDeleteTest, locale)
+                            }
+
+                            PerformanceCardKind.RACES -> if (running.predictions.any {
+                                    it.fromVo2Max != null || it.fromCriticalSpeed != null
+                                }
+                            ) {
+                                item(key = card.id) { RaceCard(running.predictions, running.vo2max, locale) }
+                            }
+
+                            PerformanceCardKind.CRITICAL_SPEED -> item(key = card.id) {
+                                CriticalSpeedCard(running.criticalSpeed, onOpenWorkout, locale)
+                            }
+
+                            PerformanceCardKind.EFFORTS -> if (!running.allTime.isEmpty()) {
+                                item(key = card.id) {
+                                    BestEffortsCard(running.recent, running.allTime, initialEffortRange, onOpenWorkout, locale)
+                                }
+                            }
+
+                            PerformanceCardKind.EFFICIENCY -> if (state.efficiency.trend.isNotEmpty()) {
+                                item(key = card.id) { EfficiencyCard(state.efficiency, state.today, locale) }
+                            }
+
+                            PerformanceCardKind.DECOUPLING -> if (running.decoupling.isNotEmpty()) {
+                                item(key = card.id) { DecouplingCard(running.decoupling, onOpenWorkout, locale) }
+                            }
                         }
-                    }
-                    if (state.efficiency.trend.isNotEmpty()) {
-                        item(key = "efficiency") { EfficiencyCard(state.efficiency, state.today, locale) }
-                    }
-                    if (running.decoupling.isNotEmpty()) {
-                        item(key = "decoupling") { DecouplingCard(running.decoupling, onOpenWorkout, locale) }
                     }
                 }
             }

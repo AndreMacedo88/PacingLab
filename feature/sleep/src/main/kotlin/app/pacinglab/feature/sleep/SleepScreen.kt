@@ -1,6 +1,8 @@
 package app.pacinglab.feature.sleep
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -52,14 +55,21 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.recovery.Night
+import app.pacinglab.core.analytics.recovery.NightlyMetric
+import app.pacinglab.core.analytics.recovery.NightlyRange
 import app.pacinglab.core.analytics.recovery.Nights
 import app.pacinglab.core.analytics.recovery.Readiness
 import app.pacinglab.core.analytics.recovery.SleepMeasureKind
 import app.pacinglab.core.analytics.recovery.SleepRating
 import app.pacinglab.core.analytics.recovery.SleepScore
+import app.pacinglab.core.data.repository.PlacedCard
 import app.pacinglab.core.designsystem.chart.Sparkline
 import app.pacinglab.core.designsystem.chart.weekdayInitials
 import app.pacinglab.core.designsystem.component.CardHeader
+import app.pacinglab.core.designsystem.component.DashboardEditAction
+import app.pacinglab.core.designsystem.component.DashboardEditor
+import app.pacinglab.core.designsystem.component.DashboardEntry
+import app.pacinglab.core.designsystem.component.RangePill
 import app.pacinglab.core.designsystem.component.SettingsAction
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
@@ -76,6 +86,7 @@ import kotlin.math.roundToInt
 fun SleepRoute(
     initialDate: String?,
     onOpenSettings: () -> Unit,
+    onOpenMetric: (NightlyMetric) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SleepViewModel = hiltViewModel(),
 ) {
@@ -88,6 +99,9 @@ fun SleepRoute(
         modifier = modifier,
         refreshing = refreshing,
         onRefresh = viewModel::refresh,
+        onOpenMetric = onOpenMetric,
+        onArrange = viewModel::arrange,
+        onResetArrangement = viewModel::resetArrangement,
     )
 }
 
@@ -95,7 +109,8 @@ fun SleepRoute(
  * One night in depth, laid out like the sleep screen of Google Health: score and duration at the
  * top, the night's stages, the score's parts, sleep quality against published ranges, heart rate
  * through the night, the night's recovery measurements and key metrics over recent nights. Arrows
- * step from night to night. A top-level screen: settings sit at the right of the app bar.
+ * step from night to night. A top-level screen: settings sit at the right of the app bar, beside the
+ * pencil that switches to arranging the cards.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,8 +121,14 @@ fun SleepScreen(
     initialDate: LocalDate? = null,
     refreshing: Boolean = false,
     onRefresh: () -> Unit = {},
+    onOpenMetric: (NightlyMetric) -> Unit = {},
+    onArrange: (List<PlacedCard>) -> Unit = {},
+    onResetArrangement: () -> Unit = {},
+    initiallyEditing: Boolean = false,
 ) {
     val locale = LocalConfiguration.current.locales[0]
+    var editing by rememberSaveable { mutableStateOf(initiallyEditing) }
+    BackHandler(enabled = editing) { editing = false }
     val loaded = state as? SleepUiState.Loaded
     val nights = loaded?.nights.orEmpty()
     var selectedDay by rememberSaveable { mutableLongStateOf(initialDate?.toEpochDay() ?: Long.MAX_VALUE) }
@@ -117,11 +138,27 @@ fun SleepScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.sleep_title)) },
-                actions = { SettingsAction(onOpenSettings) },
+                title = { Text(stringResource(if (editing) R.string.sleep_edit_title else R.string.sleep_title)) },
+                actions = {
+                    if (loaded != null) DashboardEditAction(editing, onEditingChange = { editing = it })
+                    if (!editing) SettingsAction(onOpenSettings)
+                },
             )
         },
     ) { scaffoldPadding ->
+        if (editing && loaded != null) {
+            DashboardEditor(
+                entries = loaded.cards.mapNotNull { placed ->
+                    SleepCardKind.of(placed.id)?.let {
+                        DashboardEntry(it.id, stringResource(it.title), stringResource(it.description), placed.visible)
+                    }
+                },
+                onChange = { changed -> onArrange(changed.map { PlacedCard(it.id, it.visible) }) },
+                onReset = onResetArrangement,
+                modifier = Modifier.fillMaxSize().padding(scaffoldPadding),
+            )
+            return@Scaffold
+        }
         PullToRefreshBox(
             isRefreshing = refreshing,
             onRefresh = onRefresh,
@@ -154,14 +191,35 @@ fun SleepScreen(
                                 onNext = nights.getOrNull(index + 1)?.let { { selectedDay = it.date.toEpochDay() } },
                             )
                         }
-                        item(key = "tiles") { TopTiles(night, score, need, nights, loaded.scores, loaded.needs, locale) }
-                        item(key = "stages") { NightCard(night, score, locale, rested = loaded.rested[night.date]) }
-                        item(key = "score") { ScoreCard(night, score, need) }
-                        if (night.continuity != null) item(key = "quality") { QualityCard(night, score) }
-                        if (night.sleepingHeartRate != null) item(key = "heart") { HeartRateCard(night, locale) }
-                        item(key = "body") { BodyCard(nights, night) }
-                        item(key = "metrics") { KeyMetricsCard(nights, night.date, loaded.scores, loaded.needs, locale) }
-                        item(key = "feeling") { FeelingCard(loaded.feeling) }
+                        for (card in loaded.cards.filter { it.visible }.mapNotNull { SleepCardKind.of(it.id) }) {
+                            when (card) {
+                                SleepCardKind.TILES -> item(key = card.id) {
+                                    TopTiles(night, score, need, nights, loaded.scores, loaded.needs, locale)
+                                }
+
+                                SleepCardKind.NIGHT -> item(key = card.id) {
+                                    NightCard(night, score, locale, rested = loaded.rested[night.date])
+                                }
+
+                                SleepCardKind.SCORE -> item(key = card.id) { ScoreCard(night, score, need) }
+
+                                SleepCardKind.QUALITY -> if (night.continuity != null) item(key = card.id) { QualityCard(night, score) }
+
+                                SleepCardKind.HEART_RATE -> if (night.sleepingHeartRate != null) {
+                                    item(key = card.id) {
+                                        HeartRateCard(night, locale, onClick = { onOpenMetric(NightlyMetric.SLEEPING_HR) })
+                                    }
+                                }
+
+                                SleepCardKind.RECOVERY -> item(key = card.id) { BodyCard(nights, night, onOpenMetric) }
+
+                                SleepCardKind.KEY_METRICS -> item(key = card.id) {
+                                    KeyMetricsCard(nights, night.date, loaded.scores, loaded.needs, locale)
+                                }
+
+                                SleepCardKind.FEELING -> item(key = card.id) { FeelingCard(loaded.feeling) }
+                            }
+                        }
                     }
                 }
             }
@@ -475,9 +533,9 @@ private fun QualityRow(
 
 /** Heart rate through the night with its average, its lowest stretch and the night's resting value. */
 @Composable
-private fun HeartRateCard(night: Night, locale: Locale, modifier: Modifier = Modifier) {
+private fun HeartRateCard(night: Night, locale: Locale, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
     val sleeping = night.sleepingHeartRate ?: return
-    SleepCard(stringResource(R.string.sleep_heart_rate_title), stringResource(R.string.sleep_heart_rate_info), modifier) {
+    SleepCard(stringResource(R.string.sleep_heart_rate_title), stringResource(R.string.sleep_heart_rate_info), modifier, onClick) {
         Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
             Value(stringResource(R.string.sleep_heart_rate_average), stringResource(R.string.unit_bpm, sleeping.average.roundToInt()))
             Value(stringResource(R.string.sleep_heart_rate_lowest), stringResource(R.string.unit_bpm, sleeping.lowest.roundToInt()))
@@ -508,52 +566,48 @@ private fun Value(label: String, value: String, modifier: Modifier = Modifier) {
 }
 
 /**
- * HRV, resting heart rate and breathing rate of the night against the athlete's usual, with the last
- * week; each day's usual range is shaded behind its value.
+ * HRV, resting heart rate and breathing rate of the night against the athlete's own range, with the
+ * week before as sparklines over each night's range. Each row opens the measure's detail page.
  */
 @Composable
-private fun BodyCard(nights: List<Night>, night: Night, modifier: Modifier = Modifier) {
+private fun BodyCard(nights: List<Night>, night: Night, onOpenMetric: (NightlyMetric) -> Unit, modifier: Modifier = Modifier) {
     val locale = LocalConfiguration.current.locales[0]
     val colors = chartColors()
     val days = (WEEK - 1 downTo 0).map { night.date.minusDays(it) }
-    val history = remember(nights, night) { days.map { Readiness.of(nights, null, it) } }
-    val readiness = history.last()
     val labels = weekdayInitials(days, locale)
     val byDate = nights.associateBy { it.date }
-    fun series(value: (Night) -> Double?) = days.map { byDate[it]?.let(value) }
-    val earlierBreathing = nights.filter { it.date < night.date && it.date > night.date.minusDays(30) }.mapNotNull { it.respiratoryRate }
     SleepCard(stringResource(R.string.sleep_body_title), stringResource(R.string.sleep_body_info), modifier) {
-        BodyRow(
-            name = stringResource(R.string.sleep_hrv),
-            value = night.hrvMs?.let { stringResource(R.string.unit_ms, it.roundToInt()) },
-            usual = if (night.hrvPartial) {
-                stringResource(R.string.sleep_hrv_partial)
-            } else {
-                readiness.hrv?.let { stringResource(R.string.sleep_hrv_normal, it.normalLowMs.roundToInt(), it.normalHighMs.roundToInt()) }
-            },
-            values = series { it.hrvMs },
-            bands = history.map { day -> day.hrv?.let { it.normalLowMs..it.normalHighMs } },
-            color = colors.series[0],
-            labels = labels,
-        )
-        BodyRow(
-            name = stringResource(R.string.sleep_resting_hr),
-            value = night.restingHr?.let { stringResource(R.string.unit_bpm, it.roundToInt()) },
-            usual = readiness.restingHr?.let { stringResource(R.string.sleep_usual_bpm, it.usual.roundToInt()) },
-            values = series { it.restingHr },
-            bands = history.map { day -> day.restingHr?.let { it.normalLow..it.normalHigh } },
-            color = colors.restingHr,
-            labels = labels,
-        )
-        BodyRow(
-            name = stringResource(R.string.sleep_breathing),
-            value = night.respiratoryRate?.let { stringResource(R.string.unit_breaths, "%.1f".format(locale, it)) },
-            usual = Nights.median(earlierBreathing)?.let { stringResource(R.string.sleep_usual_breaths, "%.1f".format(locale, it)) },
-            values = series { it.respiratoryRate },
-            bands = history.map { day -> day.breathingUsual?.let { it - Readiness.BREATHING_MARGIN..it + Readiness.BREATHING_MARGIN } },
-            color = colors.series[2],
-            labels = labels,
-        )
+        for ((metric, color) in listOf(
+            NightlyMetric.HRV to colors.series[0],
+            NightlyMetric.RESTING_HR to colors.restingHr,
+            NightlyMetric.BREATHING_RATE to colors.series[2],
+        )) {
+            val ranges = remember(nights, night, metric) { days.map { NightlyRange.of(nights, metric, it) } }
+            val value = metric.value(night)
+            val range = ranges.last()
+            val partial = metric == NightlyMetric.HRV && night.hrvPartial
+            BodyRow(
+                name = stringResource(metric.label()),
+                value = value?.let { metric.formatted(it, locale) },
+                usual = when {
+                    partial -> stringResource(R.string.sleep_hrv_partial)
+
+                    range != null -> stringResource(
+                        R.string.sleep_range,
+                        metric.number(range.low, locale),
+                        metric.formatted(range.high, locale),
+                    )
+
+                    else -> null
+                },
+                values = days.map { byDate[it]?.let(metric.value) },
+                bands = ranges.map { it?.let { r -> r.low..r.high } },
+                color = color,
+                labels = labels,
+                status = value?.let { { RangePill(range?.standing(it)) } },
+                onClick = { onOpenMetric(metric) },
+            )
+        }
     }
 }
 
@@ -566,18 +620,40 @@ private fun BodyRow(
     bands: List<ClosedFloatingPointRange<Double>?>,
     color: Color,
     labels: List<String>,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    status: (@Composable () -> Unit)? = null,
 ) {
-    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
+    Row(modifier = modifier.fillMaxWidth().clickable(onClick = onClick), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value ?: DASH, style = MaterialTheme.typography.titleLarge.tabularNumbers())
             usual?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall.tabularNumbers(), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            status?.let { Box(Modifier.padding(top = 4.dp)) { it() } }
         }
         Box(Modifier.weight(1f)) { Sparkline(values = values, color = color, bands = bands, labels = labels) }
     }
+}
+
+private fun NightlyMetric.label(): Int = when (this) {
+    NightlyMetric.HRV -> R.string.sleep_hrv
+    NightlyMetric.RESTING_HR -> R.string.sleep_resting_hr
+    NightlyMetric.BREATHING_RATE -> R.string.sleep_breathing
+    NightlyMetric.SLEEPING_HR -> R.string.sleep_heart_rate_lowest
+}
+
+private fun NightlyMetric.number(value: Double, locale: Locale): String = when (this) {
+    NightlyMetric.BREATHING_RATE -> "%.1f".format(locale, value)
+    else -> value.roundToInt().toString()
+}
+
+@Composable
+private fun NightlyMetric.formatted(value: Double, locale: Locale): String = when (this) {
+    NightlyMetric.HRV -> stringResource(R.string.unit_ms, value.roundToInt())
+    NightlyMetric.RESTING_HR, NightlyMetric.SLEEPING_HR -> stringResource(R.string.unit_bpm, value.roundToInt())
+    NightlyMetric.BREATHING_RATE -> stringResource(R.string.unit_breaths, number(value, locale))
 }
 
 /** Key measures over the last week or month, ending with the selected night. */
@@ -670,11 +746,15 @@ private fun MetricRow(name: String, average: String?, modifier: Modifier = Modif
 private fun average(values: List<Double?>): Double? = values.filterNotNull().takeIf { it.isNotEmpty() }?.average()
 
 @Composable
-internal fun SleepCard(title: String, info: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) {
+internal fun SleepCard(
+    title: String,
+    info: String,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
+    val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+    val body: @Composable () -> Unit = {
         Column(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -682,6 +762,11 @@ internal fun SleepCard(title: String, info: String, modifier: Modifier = Modifie
             CardHeader(title = title, info = info)
             content()
         }
+    }
+    if (onClick == null) {
+        Card(modifier = modifier.fillMaxWidth(), colors = colors) { body() }
+    } else {
+        Card(onClick = onClick, modifier = modifier.fillMaxWidth(), colors = colors) { body() }
     }
 }
 

@@ -84,4 +84,34 @@ object PacingLabIcons {
     @DrawableRes val Distance = R.drawable.ic_straighten
 
     @DrawableRes val Speed = R.drawable.ic_speed
+
+    @DrawableRes val ArrowUp = R.drawable.ic_arrow_upward
+
+    @DrawableRes val ArrowDown = R.drawable.ic_arrow_downward
+
+    @DrawableRes val DragHandle = R.drawable.ic_drag_indicator
+
+    @DrawableRes val Visible = R.drawable.ic_visibility
+
+    @DrawableRes val Hidden = R.drawable.ic_visibility_off
+
+    @DrawableRes val Reset = R.drawable.ic_restart_alt
+
+    @DrawableRes val UploadFile = R.drawable.ic_upload_file
+
+    @DrawableRes val WeatherCloud = R.drawable.ic_cloud
+
+    @DrawableRes val WeatherPartlyCloudy = R.drawable.ic_partly_cloudy_day
+
+    @DrawableRes val WeatherRain = R.drawable.ic_rainy
+
+    @DrawableRes val WeatherSun = R.drawable.ic_sunny
+
+    @DrawableRes val WeatherSnow = R.drawable.ic_ac_unit
+
+    @DrawableRes val WeatherStorm = R.drawable.ic_thunderstorm
+
+    @DrawableRes val WeatherFog = R.drawable.ic_foggy
+
+    @DrawableRes val Wind = R.drawable.ic_air
 }

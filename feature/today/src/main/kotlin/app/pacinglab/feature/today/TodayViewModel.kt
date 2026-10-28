@@ -9,15 +9,27 @@ import app.pacinglab.core.analytics.load.TrainingLoads
 import app.pacinglab.core.analytics.load.WeekSummary
 import app.pacinglab.core.analytics.load.WorkoutLoad
 import app.pacinglab.core.analytics.recovery.Night
+import app.pacinglab.core.analytics.recovery.NightlyMetric
+import app.pacinglab.core.analytics.recovery.NightlyRange
 import app.pacinglab.core.analytics.recovery.Readiness
 import app.pacinglab.core.analytics.recovery.SleepHistory
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.analytics.workout.TrainingSession
 import app.pacinglab.core.analytics.zones.Zones
+import app.pacinglab.core.data.repository.Dashboard
+import app.pacinglab.core.data.repository.DashboardLayout
+import app.pacinglab.core.data.repository.DashboardRepository
+import app.pacinglab.core.data.repository.DayHeartRate
+import app.pacinglab.core.data.repository.DayHeartRateRepository
+import app.pacinglab.core.data.repository.EfficiencyHistory
 import app.pacinglab.core.data.repository.EffortRepository
 import app.pacinglab.core.data.repository.NightRepository
+import app.pacinglab.core.data.repository.PerformanceRepository
+import app.pacinglab.core.data.repository.PlacedCard
+import app.pacinglab.core.data.repository.RunningPerformance
 import app.pacinglab.core.data.repository.SessionKindRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
+import app.pacinglab.core.data.repository.Vo2MaxHistory
 import app.pacinglab.core.data.repository.WellnessRepository
 import app.pacinglab.core.data.repository.WorkoutRepository
 import app.pacinglab.core.data.sync.SyncScheduler
@@ -33,7 +45,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -72,6 +88,19 @@ data class GymToRate(
     val durationMillis: Long,
 )
 
+/**
+ * Data of the cards that come from other screens, read only while such a card is visible.
+ *
+ * @property heartRate today's heart rate, with the zones of today's anchors.
+ */
+data class TodayExtras(
+    val heartRate: DayHeartRate? = null,
+    val heartRateZones: ZoneSet? = null,
+    val vo2max: Vo2MaxHistory? = null,
+    val running: RunningPerformance? = null,
+    val efficiency: EfficiencyHistory? = null,
+)
+
 sealed interface TodayUiState {
     data object Loading : TodayUiState
 
@@ -87,6 +116,9 @@ sealed interface TodayUiState {
      * @property heartRateValuesSet false until the athlete has entered a maximal heart rate.
      * @property rested how rested the athlete said they feel today, 1 to 5; null before they answer.
      * @property gymToRate the newest gym session of today or yesterday when it has no effort rating yet.
+     * @property ranges each nightly metric's usual range on each of the last [TodayViewModel.TILE_DAYS]
+     *   days, oldest first; null before there are enough nights.
+     * @property cards the athlete's arrangement of Today, hidden cards included.
      */
     data class Loaded(
         val today: LocalDate,
@@ -102,7 +134,13 @@ sealed interface TodayUiState {
         val readinessHistory: List<Readiness> = listOf(readiness),
         val rested: Int? = null,
         val gymToRate: GymToRate? = null,
-    ) : TodayUiState
+        val ranges: Map<NightlyMetric, List<NightlyRange?>> = emptyMap(),
+        val cards: List<PlacedCard> = DashboardLayout().arrange(TodayCard.catalog),
+        val extras: TodayExtras = TodayExtras(),
+    ) : TodayUiState {
+        /** Last night's range of [metric]: the last of [ranges]. */
+        fun rangeTonight(metric: NightlyMetric): NightlyRange? = ranges[metric]?.lastOrNull()
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -116,7 +154,35 @@ class TodayViewModel @Inject constructor(
     private val kinds: SessionKindRepository,
     private val wellness: WellnessRepository,
     private val ratings: EffortRepository,
+    private val dashboards: DashboardRepository,
+    private val dayHeartRate: DayHeartRateRepository,
+    private val performance: PerformanceRepository,
 ) : ViewModel() {
+    private val trainingAnchors = trainingLoad.anchors
+
+    private val cards = dashboards.layout(Dashboard.TODAY).map { it.arrange(TodayCard.catalog) }
+
+    /** Cards from other screens cost nothing while hidden: their data is read only when shown. */
+    private val extras = cards.map { placed -> placed.filter { it.visible }.mapNotNull { TodayCard.of(it.id) }.toSet() }
+        .distinctUntilChanged()
+        .flatMapLatest { visible ->
+            combine(
+                if (TodayCard.HEART_RATE in visible) dayHeartRate.observeToday() else flowOf(null),
+                trainingAnchors,
+                if (TodayCard.VO2MAX in visible) performance.observeVo2Max() else flowOf(null),
+                if (TodayCard.RACE_5K in visible) performance.observeRunning() else flowOf(null),
+                if (TodayCard.EFFICIENCY in visible) performance.observeEfficiency() else flowOf(null),
+            ) { heartRate, anchors, vo2max, running, efficiency ->
+                TodayExtras(
+                    heartRate = heartRate,
+                    heartRateZones = anchors.at(LocalDate.now(clock))?.let { Zones.of(ZoneModel.LTHR_FIVE, it) },
+                    vo2max = vo2max,
+                    running = running,
+                    efficiency = efficiency,
+                )
+            }
+        }
+
     private val built = combine(
         nights.observeSleep(),
         trainingLoad.observeWorkoutLoads(),
@@ -127,9 +193,24 @@ class TodayViewModel @Inject constructor(
         .mapLatest { build(it) }
         .flowOn(Dispatchers.Default)
 
-    val state: StateFlow<TodayUiState> = combine(built, workouts.observeSessions(), ratings.observe()) { state, sessions, rated ->
-        state.copy(gymToRate = gymToRate(sessions, rated, state.today))
+    val state: StateFlow<TodayUiState> = combine(
+        built,
+        workouts.observeSessions(),
+        ratings.observe(),
+        cards,
+        extras,
+    ) { state, sessions, rated, placed, extra ->
+        state.copy(gymToRate = gymToRate(sessions, rated, state.today), cards = placed, extras = extra)
     }.stateIn<TodayUiState>(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TodayUiState.Loading)
+
+    /** Saves the athlete's arrangement of Today. */
+    fun arrange(cards: List<PlacedCard>) {
+        viewModelScope.launch { dashboards.save(Dashboard.TODAY, cards) }
+    }
+
+    fun resetArrangement() {
+        viewModelScope.launch { dashboards.reset(Dashboard.TODAY) }
+    }
 
     val refreshing: StateFlow<Boolean> =
         scheduler.updating.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)
@@ -200,6 +281,9 @@ class TodayViewModel @Inject constructor(
             lastWorkout = lastWorkout(inputs.sessions, inputs.loads, inputs.anchors),
             heartRateValuesSet = inputs.anchors.at(today) != null,
             rested = inputs.rested[today],
+            ranges = NightlyMetric.entries.associateWith { metric ->
+                (TILE_DAYS - 1 downTo 0).map { back -> NightlyRange.of(inputs.nights, metric, today.minusDays(back.toLong())) }
+            },
         )
     }
 

@@ -98,6 +98,14 @@ class HealthConnectDataSource @Inject constructor(private val gateway: HealthCon
         to,
     )
 
+    override suspend fun readHeartRate(from: Instant, to: Instant): HeartRateSeries {
+        val byOrigin = readAll(HeartRateRecord::class, from.minus(STREAM_PADDING), to).byOrigin { record ->
+            record.samples.map { it.time to it.beatsPerMinute }
+        }
+        val samples = byOrigin.values.maxByOrNull { it.size } ?: return HeartRateSeries.EMPTY
+        return heartRateSeries(samples, from, to)
+    }
+
     override suspend fun changesToken(channel: ChangeChannel): String = gateway.changesToken(recordType(channel))
 
     override suspend fun readChanges(channel: ChangeChannel, token: String): ChangeBatch {

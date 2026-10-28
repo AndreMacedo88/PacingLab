@@ -121,6 +121,9 @@ class FakeHealthDataSource : HealthDataSource {
         return HeartRateSeries(LongArray(inside.size) { series.times[inside[it]] }, IntArray(inside.size) { series.bpm[inside[it]] })
     }
 
+    override suspend fun readHeartRate(from: Instant, to: Instant): HeartRateSeries =
+        heartRate.keys.map { readHeartRate(from, to, it) }.maxByOrNull { it.size } ?: HeartRateSeries.EMPTY
+
     override suspend fun changesToken(channel: ChangeChannel): String = log.size.toString()
 
     override suspend fun readChanges(channel: ChangeChannel, token: String): ChangeBatch {

@@ -45,4 +45,8 @@
     <string name="recovery_hrv_description">Nightly HRV with its seven-day average and normal range</string>
     <string name="recovery_resting_description">Nightly resting heart rate with its seven-day average and usual range</string>
     <string name="recovery_info">How your body handles training over weeks and months, measured each night.\n\n# Reading the charts\n- Dots are single nights, the line is the average of the last seven days.\n- The shaded band is your own normal range on each day, the same one readiness uses; it moves as your baseline does.\n- The line turns orange while the week sits outside the band.\n\n# HRV\nThe normal range is the mean of the last 60 days, plus or minus half a standard deviation, on the log scale (Plews 2013). A week below the range is the clearest sign of accumulated fatigue, illness or stress; a rising range over months often comes with better fitness.\n\n# Resting heart rate\nThe usual range is the average of the last 30 nights, plus or minus one standard deviation, at least 3 bpm. A raised resting heart rate for several nights points the same way as low HRV.\n\nBoth need a week of nights before a range appears.</string>
+    <string name="trends_edit_title">Arrange Trends</string>
+    <string name="card_form">Fitness, fatigue and form</string>
+    <string name="card_recovery">HRV and resting heart rate over weeks</string>
+    <string name="card_weeks">Load, hours and intensity per week</string>
 </resources>

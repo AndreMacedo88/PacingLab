@@ -46,4 +46,17 @@
     <string name="effort_8">Very, very hard</string>
     <string name="effort_9">Nearly maximal</string>
     <string name="effort_10">Maximal</string>
+    <string name="dashboard_edit">Arrange cards</string>
+    <string name="dashboard_done">Done</string>
+    <string name="dashboard_edit_hint">Drag a card by its handle to move it. The eye hides or shows it.</string>
+    <string name="dashboard_drag">Drag to move</string>
+    <string name="dashboard_move_up">Move up</string>
+    <string name="dashboard_move_down">Move down</string>
+    <string name="dashboard_hide">Hide %1$s</string>
+    <string name="dashboard_show">Show %1$s</string>
+    <string name="dashboard_reset">Back to the default arrangement</string>
+    <string name="status_in_range">In range</string>
+    <string name="status_above">Above range</string>
+    <string name="status_below">Below range</string>
+    <string name="status_learning">Learning your range</string>
 </resources>

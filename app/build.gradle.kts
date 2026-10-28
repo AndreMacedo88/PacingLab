@@ -60,6 +60,7 @@ dependencies {
     implementation(projects.core.maps)
     implementation(projects.core.model)
     implementation(projects.core.data)
+    implementation(projects.feature.metrics)
     implementation(projects.feature.performance)
     implementation(projects.feature.settings)
     implementation(projects.feature.sleep)

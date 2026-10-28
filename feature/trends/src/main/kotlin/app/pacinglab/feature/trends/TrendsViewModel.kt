@@ -8,7 +8,11 @@ import app.pacinglab.core.analytics.load.TrainingLoads
 import app.pacinglab.core.analytics.load.WeekSummary
 import app.pacinglab.core.analytics.recovery.RecoveryDay
 import app.pacinglab.core.analytics.recovery.RecoveryTrend
+import app.pacinglab.core.data.repository.Dashboard
+import app.pacinglab.core.data.repository.DashboardLayout
+import app.pacinglab.core.data.repository.DashboardRepository
 import app.pacinglab.core.data.repository.NightRepository
+import app.pacinglab.core.data.repository.PlacedCard
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.sync.SyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,6 +23,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
@@ -38,6 +43,7 @@ sealed interface TrendsUiState {
         val weeks: List<WeekSummary>,
         val today: LocalDate,
         val recovery: List<RecoveryDay> = emptyList(),
+        val cards: List<PlacedCard> = DashboardLayout().arrange(TrendsCardKind.catalog),
     ) : TrendsUiState
 }
 
@@ -47,16 +53,27 @@ class TrendsViewModel @Inject constructor(
     nights: NightRepository,
     clock: Clock,
     private val scheduler: SyncScheduler,
+    private val dashboards: DashboardRepository,
 ) : ViewModel() {
     private val recovery = nights.observeSleep().map { sleep -> RecoveryTrend.of(sleep.nights, LocalDate.now(clock), sleep.scores) }
 
-    val state: StateFlow<TrendsUiState> = combine(repository.observeWorkoutLoads(), recovery) { loads, recoveryDays ->
+    val state: StateFlow<TrendsUiState> = combine(
+        repository.observeWorkoutLoads(),
+        recovery,
+        dashboards.layout(Dashboard.TRENDS),
+    ) { loads, recoveryDays, layout ->
         val today = LocalDate.now(clock)
         val days = FitnessModel.series(TrainingLoads.daily(loads), until = today)
         if (days.isEmpty() && loads.isNotEmpty()) {
             TrendsUiState.NeedsHeartRateValues
         } else {
-            TrendsUiState.Loaded(days, TrainingLoads.weeks(loads, until = today, count = WEEKS), today, recoveryDays)
+            TrendsUiState.Loaded(
+                days,
+                TrainingLoads.weeks(loads, until = today, count = WEEKS),
+                today,
+                recoveryDays,
+                layout.arrange(TrendsCardKind.catalog),
+            )
         }
     }
         .flowOn(Dispatchers.Default)
@@ -66,6 +83,14 @@ class TrendsViewModel @Inject constructor(
         scheduler.updating.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)
 
     fun refresh() = scheduler.syncNow()
+
+    fun arrange(cards: List<PlacedCard>) {
+        viewModelScope.launch { dashboards.save(Dashboard.TRENDS, cards) }
+    }
+
+    fun resetArrangement() {
+        viewModelScope.launch { dashboards.reset(Dashboard.TRENDS) }
+    }
 
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L

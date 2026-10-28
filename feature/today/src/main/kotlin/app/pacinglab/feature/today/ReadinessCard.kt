@@ -47,8 +47,15 @@ import kotlin.math.roundToInt
  * @param days weekday initials of [history].
  */
 @Composable
-internal fun ReadinessCard(readiness: Readiness, history: List<Readiness>, days: List<String>, modifier: Modifier = Modifier) {
+internal fun ReadinessCard(
+    readiness: Readiness,
+    history: List<Readiness>,
+    days: List<String>,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
+) {
     Card(
+        onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {

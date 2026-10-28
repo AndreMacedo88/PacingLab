@@ -25,6 +25,11 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import app.pacinglab.R
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
+import app.pacinglab.feature.metrics.navigation.HeartRateDayKey
+import app.pacinglab.feature.metrics.navigation.NightlyMetricKey
+import app.pacinglab.feature.metrics.navigation.ReadinessKey
+import app.pacinglab.feature.metrics.navigation.metricsEntries
+import app.pacinglab.feature.performance.navigation.PerformanceKey
 import app.pacinglab.feature.performance.navigation.performanceEntries
 import app.pacinglab.feature.settings.navigation.DataSourcesKey
 import app.pacinglab.feature.settings.navigation.PhysiologyKey
@@ -32,6 +37,7 @@ import app.pacinglab.feature.settings.navigation.SettingsKey
 import app.pacinglab.feature.settings.navigation.settingsEntries
 import app.pacinglab.feature.sleep.navigation.SleepKey
 import app.pacinglab.feature.sleep.navigation.sleepEntries
+import app.pacinglab.feature.today.TodayDestination
 import app.pacinglab.feature.today.navigation.TodayKey
 import app.pacinglab.feature.today.navigation.todayEntries
 import app.pacinglab.feature.trends.navigation.TrendsKey
@@ -102,13 +108,22 @@ fun PacingLabApp(modifier: Modifier = Modifier) {
             entryProvider = entryProvider {
                 val openSettings: () -> Unit = { backStack.add(SettingsKey) }
                 todayEntries(
-                    onOpenSession = { backStack.add(SessionKey(it)) },
-                    onOpenTrends = { backStack.replaceWith(TrendsKey) },
-                    onOpenSleep = { backStack.replaceWith(SleepKey()) },
-                    onOpenPhysiology = { backStack.add(PhysiologyKey) },
+                    onOpen = { destination ->
+                        when (destination) {
+                            is TodayDestination.Session -> backStack.add(SessionKey(destination.id))
+                            is TodayDestination.Metric -> backStack.add(NightlyMetricKey(destination.metric.name))
+                            TodayDestination.Readiness -> backStack.add(ReadinessKey)
+                            TodayDestination.HeartRate -> backStack.add(HeartRateDayKey)
+                            TodayDestination.Sleep -> backStack.replaceWith(SleepKey())
+                            TodayDestination.Trends -> backStack.replaceWith(TrendsKey)
+                            TodayDestination.Performance -> backStack.replaceWith(PerformanceKey)
+                            TodayDestination.Physiology -> backStack.add(PhysiologyKey)
+                        }
+                    },
                     onOpenSettings = openSettings,
                 )
-                sleepEntries(openSettings = openSettings)
+                metricsEntries(navigateBack = { backStack.removeLastOrNull() })
+                sleepEntries(openSettings = openSettings, openMetric = { backStack.add(NightlyMetricKey(it.name)) })
                 workoutsEntries(
                     navigateTo = { backStack.add(it) },
                     navigateBack = { backStack.removeLastOrNull() },

@@ -11,11 +11,20 @@ import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.FormDay
 import app.pacinglab.core.analytics.load.WeekStrain
 import app.pacinglab.core.analytics.load.WeekSummary
+import app.pacinglab.core.analytics.performance.Vo2MaxPoint
+import app.pacinglab.core.analytics.performance.Vo2MaxSource
+import app.pacinglab.core.analytics.performance.Vo2MaxTrend
 import app.pacinglab.core.analytics.recovery.Night
+import app.pacinglab.core.analytics.recovery.NightlyMetric
+import app.pacinglab.core.analytics.recovery.NightlyRange
 import app.pacinglab.core.analytics.recovery.Readiness
 import app.pacinglab.core.analytics.recovery.SleepContinuity
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.analytics.zones.Zones
+import app.pacinglab.core.data.repository.DashboardLayout
+import app.pacinglab.core.data.repository.DayHeartRate
+import app.pacinglab.core.data.repository.PlacedCard
+import app.pacinglab.core.data.repository.Vo2MaxHistory
 import app.pacinglab.core.designsystem.component.InfoDialog
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.model.HeartRateAnchors
@@ -179,7 +188,30 @@ class TodayScreenScreenshotTest {
         weekSessions = 2,
         lastWorkout = workout,
         heartRateValuesSet = true,
+        ranges = NightlyMetric.entries.associateWith { metric ->
+            (TodayViewModel.TILE_DAYS - 1 downTo 0).map { back -> NightlyRange.of(nights, metric, today.minusDays(back.toLong())) }
+        },
+        extras = TodayExtras(heartRate = dayHeartRate, heartRateZones = Zones.of(ZoneModel.LTHR_FIVE, anchors)),
     )
+
+    private val anchors = HeartRateAnchors(maxHr = 186, thresholdHr = 167, restingHr = 52)
+
+    /** Today until 19:30: a quiet night, a walk in the morning and a run in the late afternoon, a sample every 15 s. */
+    private val dayHeartRate: DayHeartRate = run {
+        val start = today.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val samples = (19 * 60 + 30) * 4
+        val bpm = IntArray(samples) { n ->
+            val m = n / 4
+            val hour = m / 60.0
+            when {
+                hour < 7 -> 50 + (3 * sin(m / 17.0)).toInt()
+                hour in 8.0..8.6 -> 95
+                hour in 17.0..17.75 -> if (hour < 17.15) 130 else 158
+                else -> 68 + (6 * sin(m / 23.0)).toInt()
+            }
+        }
+        DayHeartRate(today, ZoneOffset.UTC, HeartRateSeries(LongArray(samples) { start + it * 15_000L }, bpm))
+    }
 
     @Test
     fun learningTheNormalRange() = capture(loaded(nights(6)))
@@ -222,9 +254,7 @@ class TodayScreenScreenshotTest {
         var opened: String? = null
         compose.setContent {
             PacingLabTheme {
-                TodayScreen(loaded(nights(40)), onOpenSession = {
-                    opened = it
-                }, onOpenTrends = {}, onOpenPhysiology = {}, zoneId = ZoneOffset.UTC)
+                TodayScreen(loaded(nights(40)), onOpen = { opened = (it as? TodayDestination.Session)?.id }, zoneId = ZoneOffset.UTC)
             }
         }
 
@@ -245,9 +275,7 @@ class TodayScreenScreenshotTest {
             PacingLabTheme {
                 TodayScreen(
                     loaded(nights(40)).copy(gymToRate = gym),
-                    onOpenSession = {},
-                    onOpenTrends = {},
-                    onOpenPhysiology = {},
+                    onOpen = {},
                     zoneId = ZoneOffset.UTC,
                     onRateGym = { ids, effort -> rated = ids to effort },
                 )
@@ -259,10 +287,43 @@ class TodayScreenScreenshotTest {
         assertThat(rated).isEqualTo(listOf("w9") to 8)
     }
 
+    @Test
+    @Config(qualifiers = "w384dp-h2800dp-xxhdpi")
+    fun cardsFromOtherScreensCanJoinToday() {
+        val all = DashboardLayout().arrange(TodayCard.catalog).map { PlacedCard(it.id, true) }
+        val vo2 = (60L downTo 0L step 3).map { Vo2MaxPoint(today.minusDays(it), 52.0 + it % 5 * 0.4, Vo2MaxSource.FITBIT) }
+        capture(
+            loaded(nights(40)).let {
+                it.copy(cards = all, extras = it.extras.copy(vo2max = Vo2MaxHistory(vo2, Vo2MaxTrend.of(vo2, today))))
+            },
+        )
+    }
+
+    @Test
+    @Config(qualifiers = "w384dp-h1200dp-xxhdpi")
+    fun arrangingToday() {
+        compose.setContent {
+            PacingLabTheme { TodayScreen(loaded(nights(40)), onOpen = {}, zoneId = ZoneOffset.UTC, initiallyEditing = true) }
+        }
+        compose.onRoot().captureRoboImage()
+    }
+
+    @Test
+    fun aTileOpensItsDetailPage() {
+        var opened: TodayDestination? = null
+        compose.setContent {
+            PacingLabTheme { TodayScreen(loaded(nights(40)), onOpen = { opened = it }, zoneId = ZoneOffset.UTC) }
+        }
+
+        compose.onNodeWithText("HRV").performScrollTo().performClick()
+
+        assertThat(opened).isEqualTo(TodayDestination.Metric(NightlyMetric.HRV))
+    }
+
     private fun capture(state: TodayUiState, darkTheme: Boolean = false) {
         compose.setContent {
             PacingLabTheme(darkTheme = darkTheme) {
-                TodayScreen(state, onOpenSession = {}, onOpenTrends = {}, onOpenPhysiology = {}, zoneId = ZoneOffset.UTC)
+                TodayScreen(state, onOpen = {}, zoneId = ZoneOffset.UTC)
             }
         }
         compose.onRoot().captureRoboImage()

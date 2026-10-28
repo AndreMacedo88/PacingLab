@@ -31,6 +31,7 @@ navigation3 = "1.2.0"
 profileinstaller = "1.4.1"
 baselineprofile = "1.5.0"
 uiautomator = "2.4.0"
+reorderable = "3.1.0"
 robolectric = "4.17"
 roborazzi = "1.76.0"
 room = "3.0.3"
@@ -58,6 +59,7 @@ androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", vers
 androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
 androidx-benchmark-macro-junit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "baselineprofile" }
 androidx-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
+reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
 androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 androidx-health-connect-client = { module = "androidx.health.connect:connect-client", version.ref = "healthConnect" }
 androidx-room-runtime = { module = "androidx.room3:room3-runtime", version.ref = "room" }

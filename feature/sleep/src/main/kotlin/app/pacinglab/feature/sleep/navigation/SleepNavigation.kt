@@ -2,6 +2,7 @@ package app.pacinglab.feature.sleep.navigation
 
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import app.pacinglab.core.analytics.recovery.NightlyMetric
 import app.pacinglab.feature.sleep.SleepRoute
 import kotlinx.serialization.Serializable
 
@@ -9,6 +10,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SleepKey(val date: String? = null) : NavKey
 
-fun EntryProviderScope<NavKey>.sleepEntries(openSettings: () -> Unit) {
-    entry<SleepKey> { key -> SleepRoute(initialDate = key.date, onOpenSettings = openSettings) }
+fun EntryProviderScope<NavKey>.sleepEntries(openSettings: () -> Unit, openMetric: (NightlyMetric) -> Unit) {
+    entry<SleepKey> { key -> SleepRoute(initialDate = key.date, onOpenSettings = openSettings, onOpenMetric = openMetric) }
 }

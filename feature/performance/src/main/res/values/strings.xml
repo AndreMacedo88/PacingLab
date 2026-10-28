@@ -76,4 +76,11 @@
     <string name="decoupling_latest">Latest steady long run, %1$s</string>
     <string name="decoupling_chart_description">Decoupling of %1$d steady long runs against the 5 percent line</string>
     <string name="decoupling_info" formatted="false">On a long steady run, heart rate drifts up at an unchanged pace once aerobic endurance runs short. Decoupling compares speed per heartbeat in the second half of the run with the first (Friel). Under 5 % counts as good aerobic endurance for that duration.\n\n# Which runs count\nSteady runs of at least 40 minutes: the first 10 minutes are left out as warm-up, and the rest needs few stops and an even pace. Interval sessions never count.\n\n# Limits\nHills, heat and dehydration also raise heart rate.</string>
+    <string name="performance_edit_title">Arrange Performance</string>
+    <string name="card_vo2max">Trend from tests, Fitbit and your runs</string>
+    <string name="card_races">5 km to marathon</string>
+    <string name="card_critical_speed">Or the effort it still needs</string>
+    <string name="card_efforts">Speed-duration curve and distances</string>
+    <string name="card_efficiency">Easy pace at your reference heart rate</string>
+    <string name="card_decoupling">Heart rate drift on long steady runs</string>
 </resources>

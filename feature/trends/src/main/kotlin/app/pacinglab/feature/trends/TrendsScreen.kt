@@ -1,5 +1,6 @@
 package app.pacinglab.feature.trends
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,7 +50,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.FormDay
 import app.pacinglab.core.analytics.load.WeekSummary
+import app.pacinglab.core.data.repository.PlacedCard
 import app.pacinglab.core.designsystem.component.CardHeader
+import app.pacinglab.core.designsystem.component.DashboardEditAction
+import app.pacinglab.core.designsystem.component.DashboardEditor
+import app.pacinglab.core.designsystem.component.DashboardEntry
 import app.pacinglab.core.designsystem.component.SettingsAction
 import app.pacinglab.core.designsystem.component.zoneName
 import app.pacinglab.core.designsystem.format.Formats
@@ -78,6 +83,8 @@ fun TrendsRoute(
         onOpenPhysiology = onOpenPhysiology,
         onOpenSettings = onOpenSettings,
         modifier = modifier,
+        onArrange = viewModel::arrange,
+        onResetArrangement = viewModel::resetArrangement,
     )
 }
 
@@ -91,12 +98,39 @@ fun TrendsScreen(
     onOpenSettings: () -> Unit = {},
     refreshing: Boolean = false,
     onRefresh: () -> Unit = {},
+    onArrange: (List<PlacedCard>) -> Unit = {},
+    onResetArrangement: () -> Unit = {},
+    initiallyEditing: Boolean = false,
 ) {
     val locale = LocalConfiguration.current.locales[0]
+    var editing by rememberSaveable { mutableStateOf(initiallyEditing) }
+    BackHandler(enabled = editing) { editing = false }
+    val loaded = state as? TrendsUiState.Loaded
     Scaffold(
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.trends_title)) }, actions = { SettingsAction(onOpenSettings) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(if (editing) R.string.trends_edit_title else R.string.trends_title)) },
+                actions = {
+                    if (loaded != null) DashboardEditAction(editing, onEditingChange = { editing = it })
+                    if (!editing) SettingsAction(onOpenSettings)
+                },
+            )
+        },
     ) { scaffoldPadding ->
+        if (editing && loaded != null) {
+            DashboardEditor(
+                entries = loaded.cards.mapNotNull { placed ->
+                    TrendsCardKind.of(placed.id)?.let {
+                        DashboardEntry(it.id, stringResource(it.title), stringResource(it.description), placed.visible)
+                    }
+                },
+                onChange = { changed -> onArrange(changed.map { PlacedCard(it.id, it.visible) }) },
+                onReset = onResetArrangement,
+                modifier = Modifier.fillMaxSize().padding(scaffoldPadding),
+            )
+            return@Scaffold
+        }
         PullToRefreshBox(
             isRefreshing = refreshing,
             onRefresh = onRefresh,
@@ -127,11 +161,17 @@ fun TrendsScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        item(key = "form") { FormCard(state.days, state.today, initialRange, locale) }
-                        if (state.recovery.isNotEmpty()) {
-                            item(key = "recovery") { RecoveryCard(state.recovery, state.today, locale) }
+                        for (card in state.cards.filter { it.visible }.mapNotNull { TrendsCardKind.of(it.id) }) {
+                            when (card) {
+                                TrendsCardKind.FORM -> item(key = card.id) { FormCard(state.days, state.today, initialRange, locale) }
+
+                                TrendsCardKind.RECOVERY -> if (state.recovery.isNotEmpty()) {
+                                    item(key = card.id) { RecoveryCard(state.recovery, state.today, locale) }
+                                }
+
+                                TrendsCardKind.WEEKS -> item(key = card.id) { WeeksCard(state.weeks, state.today, locale) }
+                            }
                         }
-                        item(key = "weeks") { WeeksCard(state.weeks, state.today, locale) }
                     }
                 }
             }

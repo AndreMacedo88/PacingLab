@@ -79,6 +79,12 @@ interface HealthDataSource {
     /** Heart rate that [origin] recorded within [from, to], such as during a night's sleep. */
     suspend fun readHeartRate(from: Instant, to: Instant, origin: String): HeartRateSeries
 
+    /**
+     * Heart rate within [from, to] from the app that recorded most of it, normally the watch's: the
+     * all-day heart rate of a day, read on demand rather than stored.
+     */
+    suspend fun readHeartRate(from: Instant, to: Instant): HeartRateSeries
+
     /** A token marking "now" for [channel], to be passed to [readChanges] later. */
     suspend fun changesToken(channel: ChangeChannel): String
 
