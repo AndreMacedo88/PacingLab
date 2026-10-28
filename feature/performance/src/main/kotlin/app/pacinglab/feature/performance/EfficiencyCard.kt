@@ -107,20 +107,18 @@ private fun EfficiencyChart(
         val span = (today.toEpochDay() - first.toEpochDay()).coerceAtLeast(1)
         fun x(date: LocalDate) = (date.toEpochDay() - first.toEpochDay()).toFloat() / span * plotWidth
         fun y(speed: Double) = ((high - speed) / (high - low) * plotHeight).toFloat()
+        // The axis is linear in speed, so whole minutes of pace crowd together at slow paces: every line
+        // is drawn, but a label that would overlap the one above it is left out.
+        var labelsEnd = Float.NEGATIVE_INFINITY
         for (minutes in fastest..slowest) {
             val speed = 1000.0 / (minutes * 60)
             drawLine(colors.grid, Offset(0f, y(speed)), Offset(plotWidth, y(speed)), 1.dp.toPx())
             val layout = measurer.measure("$minutes:00", labelStyle)
-            drawText(
-                layout,
-                topLeft = Offset(
-                    plotWidth + 6.dp.toPx(),
-                    (y(speed) - layout.size.height / 2).coerceIn(
-                        0f,
-                        plotHeight - layout.size.height,
-                    ),
-                ),
-            )
+            val top = (y(speed) - layout.size.height / 2).coerceIn(0f, plotHeight - layout.size.height)
+            if (top >= labelsEnd) {
+                drawText(layout, topLeft = Offset(plotWidth + 6.dp.toPx(), top))
+                labelsEnd = top + layout.size.height + 2.dp.toPx()
+            }
         }
         for (point in history.points) {
             drawCircle(

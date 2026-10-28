@@ -1,10 +1,14 @@
 package app.pacinglab.feature.performance
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import app.pacinglab.core.analytics.performance.AerobicEfficiency
 import app.pacinglab.core.analytics.performance.BestPair
 import app.pacinglab.core.analytics.performance.CriticalSpeed
@@ -35,6 +39,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.time.LocalDate
+import java.util.Locale
 import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
@@ -157,6 +162,28 @@ class PerformanceScreenScreenshotTest {
         compose.onNodeWithText("3:48").performScrollTo().performClick()
 
         assertThat(opened).isEqualTo("w2")
+    }
+
+    /** Paces from about 5:00 to 9:00 /km, where whole-minute pace lines crowd at the slow end. */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun efficiencyWithSlowRuns() {
+        val points = listOf(380L to 1.95, 200L to 2.7, 150L to 3.2, 120L to 2.55, 100L to 2.4, 70L to 2.65).map { (back, speed) ->
+            EfficiencyPoint(today.minusDays(back), speed, 8)
+        }
+        compose.setContent {
+            PacingLabTheme {
+                Surface {
+                    EfficiencyCard(
+                        EfficiencyHistory(points, AerobicEfficiency.trend(points, today), referenceHr = 142),
+                        today,
+                        Locale.UK,
+                        Modifier.padding(16.dp),
+                    )
+                }
+            }
+        }
+        compose.onRoot().captureRoboImage()
     }
 
     private fun capture(state: PerformanceUiState, darkTheme: Boolean = false) {
