@@ -107,7 +107,7 @@ class HealthDataProbe @Inject constructor(
         }
         val recentDailyValues = recentDailyValues(granted, now, errors)
         val recentSleep = if (HealthPermission.getReadPermission(SleepSessionRecord::class) in granted) {
-            attempt(errors, "sleep") { recentSleep(now) }.orEmpty()
+            attempt(errors, "sleep") { recentSleep(now, granted) }.orEmpty()
         } else {
             emptyList()
         }
@@ -395,25 +395,56 @@ class HealthDataProbe @Inject constructor(
         return result
     }
 
-    private suspend fun recentSleep(now: Instant): List<SleepSummary> {
-        val sleeps = mutableListOf<SleepSummary>()
+    private suspend fun recentSleep(now: Instant, granted: Set<String>): List<SleepSummary> {
+        val records = mutableListOf<SleepSessionRecord>()
         client.readAll(SleepSessionRecord::class, TimeRangeFilter.between(now.minus(DAILY_WINDOW), now), ascending = false) {
-            it.forEach { sleep ->
-                if (sleeps.size < MAX_SLEEPS) {
-                    sleeps +=
-                        SleepSummary(
-                            start = sleep.startTime.toString(),
-                            end = sleep.endTime.toString(),
-                            stages = sleep.stages
-                                .groupingBy { stage -> stage.stage }
-                                .eachCount()
-                                .toSortedMap(),
-                            origin = sleep.metadata.dataOrigin.packageName,
-                        )
-                }
+            it.forEach { sleep -> if (records.size < MAX_SLEEPS) records += sleep }
+        }
+        return records.map { sleep ->
+            SleepSummary(
+                start = sleep.startTime.toString(),
+                end = sleep.endTime.toString(),
+                stages = sleep.stages
+                    .groupingBy { stage -> stage.stage }
+                    .eachCount()
+                    .toSortedMap(),
+                origin = sleep.metadata.dataOrigin.packageName,
+                hrv = nightly(HeartRateVariabilityRmssdRecord::class, granted, sleep.startTime, sleep.endTime) {
+                    it.time to it.heartRateVariabilityMillis
+                },
+                // Fitbit stamps the night's breathing rate at the end of the sleep; allow for a late stamp.
+                respiratoryRate = nightly(RespiratoryRateRecord::class, granted, sleep.startTime, sleep.endTime.plus(NIGHT_MARGIN)) {
+                    it.time to it.rate
+                },
+            )
+        }
+    }
+
+    /** Every [type] record between [from] and [to]: count, median, first and last time, and origins. */
+    private suspend fun <T : Record> nightly(
+        type: KClass<T>,
+        granted: Set<String>,
+        from: Instant,
+        to: Instant,
+        sample: (T) -> Pair<Instant, Double>,
+    ): NightlyValues? {
+        if (HealthPermission.getReadPermission(type) !in granted) return null
+        val values = mutableListOf<Pair<Instant, Double>>()
+        val origins = mutableMapOf<String, Int>()
+        client.readAll(type, TimeRangeFilter.between(from, to)) { page ->
+            page.forEach {
+                values += sample(it)
+                origins.increment(it.metadata.dataOrigin.packageName)
             }
         }
-        return sleeps
+        val sorted = values.sortedBy { it.first }
+        return NightlyValues(
+            records = sorted.size,
+            median = sorted.map { it.second }.takeIf { it.isNotEmpty() }?.median(),
+            first = sorted.firstOrNull()?.first?.toString(),
+            last = sorted.lastOrNull()?.first?.toString(),
+            origins = origins.toSortedMap(),
+        )
     }
 
     private fun appVersion(): String = context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "unknown"
@@ -430,7 +461,8 @@ class HealthDataProbe @Inject constructor(
     companion object {
         private const val RECENT_SESSIONS = 15
         private const val MAX_DAILY_VALUES = 60
-        private const val MAX_SLEEPS = 7
+        private const val MAX_SLEEPS = 14
+        private val NIGHT_MARGIN: Duration = Duration.ofHours(2)
         private val TYPE_WINDOW: Duration = Duration.ofDays(30)
         private val ALL_DAY_WINDOW: Duration = Duration.ofHours(48)
         private val DAILY_WINDOW: Duration = Duration.ofDays(14)

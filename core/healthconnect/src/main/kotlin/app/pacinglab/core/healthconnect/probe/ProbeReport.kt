@@ -24,7 +24,7 @@ data class ProbeReport(
     val errors: List<String>,
 ) {
     companion object {
-        const val FORMAT_VERSION = 1
+        const val FORMAT_VERSION = 2
     }
 }
 
@@ -123,4 +123,18 @@ data class IntervalSummary(val records: Int, val total: Double, val medianRecord
 data class TimedValue(val time: String, val value: Double?, val note: String? = null)
 
 @Serializable
-data class SleepSummary(val start: String, val end: String, val stages: Map<Int, Int>, val origin: String)
+data class SleepSummary(
+    val start: String,
+    val end: String,
+    val stages: Map<Int, Int>,
+    val origin: String,
+    val hrv: NightlyValues? = null,
+    val respiratoryRate: NightlyValues? = null,
+)
+
+/**
+ * The records of one kind inside a night, as Health Connect holds them, to compare with what
+ * PacingLab synced and with the watch maker's own daily values.
+ */
+@Serializable
+data class NightlyValues(val records: Int, val median: Double?, val first: String?, val last: String?, val origins: Map<String, Int>)
