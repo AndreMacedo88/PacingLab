@@ -9,6 +9,7 @@ import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNull
+import assertk.assertions.isTrue
 import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
@@ -47,7 +48,9 @@ class NightsTest {
             SleepStageType.REM to 140,
         )
         val nap = sleep("nap", "2026-10-21T12:00:00Z", "2026-10-21T13:00:00Z", SleepStageType.LIGHT to 60)
-        val hrv = hrv("2026-10-20T22:00:00Z", 50.0, 70.0, 57.6, 61.0, 44.0, 57.6, 60.0) +
+        // Seven hours of five-minute values around a median of 57.6.
+        val pattern = listOf(50.0, 70.0, 57.6, 61.0, 44.0, 57.6, 60.0)
+        val hrv = hrv("2026-10-20T21:20:00Z", *DoubleArray(84) { pattern[it % pattern.size] }) +
             // Daytime values do not belong to the night.
             hrv("2026-10-21T10:00:00Z", 20.0, 20.0, 20.0)
         val resting = listOf(
@@ -109,6 +112,28 @@ class NightsTest {
 
         assertThat(result.hrvMs).isNull()
         assertThat(result.asleepMillis).isEqualTo(8 * 3_600_000L)
+    }
+
+    @Test
+    fun `HRV covering only the start of a night gives no nightly value`() {
+        // As on 27 October 2026: Fitbit shared 14 values for a night of nine hours asleep.
+        val night = sleep("n", "2026-10-26T21:49:00Z", "2026-10-27T07:07:00Z", SleepStageType.LIGHT to 548)
+
+        val result = Nights.of(
+            listOf(night),
+            hrv(
+                "2026-10-26T21:50:00Z",
+                *DoubleArray(14) {
+                    33.0
+                },
+            ),
+            emptyList(),
+            emptyList(),
+            cest,
+        ).single()
+
+        assertThat(result.hrvMs).isNull()
+        assertThat(result.hrvPartial).isTrue()
     }
 
     @Test

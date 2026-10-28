@@ -526,8 +526,10 @@ private fun BodyCard(nights: List<Night>, night: Night, modifier: Modifier = Mod
         BodyRow(
             name = stringResource(R.string.sleep_hrv),
             value = night.hrvMs?.let { stringResource(R.string.unit_ms, it.roundToInt()) },
-            usual = readiness.hrv?.let {
-                stringResource(R.string.sleep_hrv_normal, it.normalLowMs.roundToInt(), it.normalHighMs.roundToInt())
+            usual = if (night.hrvPartial) {
+                stringResource(R.string.sleep_hrv_partial)
+            } else {
+                readiness.hrv?.let { stringResource(R.string.sleep_hrv_normal, it.normalLowMs.roundToInt(), it.normalHighMs.roundToInt()) }
             },
             values = series { it.hrvMs },
             bands = history.map { day -> day.hrv?.let { it.normalLowMs..it.normalHighMs } },

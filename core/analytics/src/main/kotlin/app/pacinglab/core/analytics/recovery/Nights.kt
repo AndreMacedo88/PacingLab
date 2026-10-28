@@ -16,7 +16,10 @@ import java.time.ZoneOffset
  * @property asleepMillis time asleep (light, deep, REM or unspecified sleep); the whole session when
  *   it has no stages.
  * @property hrvMs heart rate variability (RMSSD) of the night: the median of the watch's five-minute
- *   values during the sleep, which is how Fitbit reports its nightly HRV.
+ *   values during the sleep, which is how Fitbit reports its nightly HRV. Null when the values cover
+ *   less than [Nights.MIN_HRV_COVERAGE] of the time asleep.
+ * @property hrvPartial the watch shared five-minute HRV for only part of the night, too little for a
+ *   nightly value.
  * @property restingHr resting heart rate the watch derived from the sleep.
  * @property continuity how unbroken the sleep was; null when the watch recorded no stages.
  * @property zone where the night was spent, for clock times.
@@ -36,6 +39,7 @@ data class Night(
     val zone: ZoneId = ZoneOffset.UTC,
     val stages: List<SleepStage> = emptyList(),
     val sleepingHeartRate: SleepingHeartRate? = null,
+    val hrvPartial: Boolean = false,
 ) {
     /** Time in bed: from the start of the sleep record to its end. */
     val inBedMillis: Long get() = Duration.between(start, end).toMillis()
@@ -71,6 +75,17 @@ object Nights {
     const val MIN_HRV_SAMPLES = 6
 
     /**
+     * Share of the time asleep the five-minute HRV values must cover for a nightly value. On complete
+     * nights they cover 100-115 %. On 23 and 27 October 2026 Fitbit shared only the first one to three
+     * hours (37 and 14 values, in Health Connect and in its own cloud alike) while its app showed a
+     * value for the whole night; the median of those fragments was 46 and 33 ms against Fitbit's 71
+     * and 58. A night below this share has no HRV rather than a wrong one.
+     */
+    const val MIN_HRV_COVERAGE = 0.6
+
+    private const val HRV_WINDOW_MILLIS = 5 * 60_000L
+
+    /**
      * Fitbit stamps nightly values (resting heart rate, breathing rate) with the end of the sleep. A
      * resting heart rate stamped elsewhere was derived from daytime wear and runs 10 to 20 bpm higher,
      * so only values this close to the end of a sleep belong to it.
@@ -97,13 +112,16 @@ object Nights {
             .groupBy { (sleep, _) -> sleep.end.atZone(sleep.zoneOffset ?: zone).toLocalDate() }
             .map { (date, candidates) ->
                 val (sleep, asleep) = candidates.maxBy { it.second }
+                val hrvValues = hrvByTime.filter { it.time >= sleep.start && it.time <= sleep.end }.map { it.value }
+                val covered = hrvValues.size * HRV_WINDOW_MILLIS >= MIN_HRV_COVERAGE * asleep
                 Night(
                     date = date,
                     start = sleep.start,
                     end = sleep.end,
                     asleepMillis = asleep,
                     stageMillis = stageTotals(sleep),
-                    hrvMs = median(hrvByTime.filter { it.time >= sleep.start && it.time <= sleep.end }.map { it.value }, MIN_HRV_SAMPLES),
+                    hrvMs = if (covered) median(hrvValues, MIN_HRV_SAMPLES) else null,
+                    hrvPartial = hrvValues.isNotEmpty() && !covered,
                     restingHr = nearestToEnd(restingHr, sleep.end),
                     respiratoryRate = nearestToEnd(respiratoryRate, sleep.end),
                     continuity = continuity(sleep),
