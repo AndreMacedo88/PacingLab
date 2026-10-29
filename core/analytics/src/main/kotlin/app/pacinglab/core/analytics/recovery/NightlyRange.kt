@@ -57,8 +57,7 @@ data class NightlyRange(val low: Double, val high: Double, val nights: Int, val 
 
         /** The range for the night of [date], from the nights before it; null with fewer than [MIN_NIGHTS]. */
         fun of(nights: List<Night>, metric: NightlyMetric, date: LocalDate): NightlyRange? {
-            val from = date.minusDays(metric.windowDays)
-            val values = nights.filter { it.date < date && it.date >= from }.mapNotNull(metric.value).sorted()
+            val values = valuesBefore(nights, metric, date).sorted()
             if (values.size < MIN_NIGHTS) return null
             val median = quantile(values, 0.5)
             return NightlyRange(
@@ -67,6 +66,17 @@ data class NightlyRange(val low: Double, val high: Double, val nights: Int, val 
                 nights = values.size,
                 metric = metric,
             )
+        }
+
+        /**
+         * How many nights the range for the night of [date] draws on: the nights before it in the window, not
+         * the night itself. The range shows once this reaches [MIN_NIGHTS].
+         */
+        fun nightsBefore(nights: List<Night>, metric: NightlyMetric, date: LocalDate): Int = valuesBefore(nights, metric, date).size
+
+        private fun valuesBefore(nights: List<Night>, metric: NightlyMetric, date: LocalDate): List<Double> {
+            val from = date.minusDays(metric.windowDays)
+            return nights.filter { it.date < date && it.date >= from }.mapNotNull(metric.value)
         }
 
         /** Linear interpolation between the closest ranks of [sorted]. */

@@ -191,6 +191,7 @@ class TodayScreenScreenshotTest {
         ranges = NightlyMetric.entries.associateWith { metric ->
             (TodayViewModel.TILE_DAYS - 1 downTo 0).map { back -> NightlyRange.of(nights, metric, today.minusDays(back.toLong())) }
         },
+        rangeNights = NightlyMetric.entries.associateWith { NightlyRange.nightsBefore(nights, it, today) },
         extras = TodayExtras(heartRate = dayHeartRate, heartRateZones = Zones.of(ZoneModel.LTHR_FIVE, anchors)),
     )
 

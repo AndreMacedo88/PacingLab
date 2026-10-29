@@ -190,7 +190,7 @@ internal fun NightlyTile(state: TodayUiState.Loaded, metric: NightlyMetric, onCl
             else -> pluralStringResource(
                 R.plurals.tile_range_learning,
                 NightlyRange.MIN_NIGHTS,
-                state.nightsWith(metric),
+                state.rangeNights[metric] ?: 0,
                 NightlyRange.MIN_NIGHTS,
             )
         },
@@ -223,9 +223,6 @@ internal fun NightlyTile(state: TodayUiState.Loaded, metric: NightlyMetric, onCl
         )
     }
 }
-
-/** Recent nights with a value of [metric], towards the first range. */
-private fun TodayUiState.Loaded.nightsWith(metric: NightlyMetric): Int = nights.count { metric.value(it) != null }
 
 internal fun NightlyMetric.label(): Int = when (this) {
     NightlyMetric.HRV -> R.string.tile_hrv

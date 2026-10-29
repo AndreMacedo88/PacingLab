@@ -58,5 +58,5 @@
     <string name="status_in_range">In range</string>
     <string name="status_above">Above range</string>
     <string name="status_below">Below range</string>
-    <string name="status_learning">Learning your range</string>
+    <string name="status_learning">Learning</string>
 </resources>

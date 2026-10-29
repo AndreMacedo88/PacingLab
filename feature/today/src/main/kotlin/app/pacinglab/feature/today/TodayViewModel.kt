@@ -121,6 +121,8 @@ sealed interface TodayUiState {
      * @property gymToRate the newest gym session of today or yesterday when it has no effort rating yet.
      * @property ranges each nightly metric's usual range on each of the last [TodayViewModel.TILE_DAYS]
      *   days, oldest first; null before there are enough nights.
+     * @property rangeNights how many nights last night's range of each metric draws on, towards
+     *   [NightlyRange.MIN_NIGHTS]; last night itself does not count.
      * @property cards the athlete's arrangement of Today, hidden cards included.
      */
     data class Loaded(
@@ -138,6 +140,7 @@ sealed interface TodayUiState {
         val rested: Int? = null,
         val gymToRate: GymToRate? = null,
         val ranges: Map<NightlyMetric, List<NightlyRange?>> = emptyMap(),
+        val rangeNights: Map<NightlyMetric, Int> = emptyMap(),
         val cards: List<PlacedCard> = DashboardLayout().arrange(TodayCard.catalog),
         val extras: TodayExtras = TodayExtras(),
     ) : TodayUiState {
@@ -296,6 +299,7 @@ class TodayViewModel @Inject constructor(
             ranges = NightlyMetric.entries.associateWith { metric ->
                 (TILE_DAYS - 1 downTo 0).map { back -> NightlyRange.of(inputs.nights, metric, today.minusDays(back.toLong())) }
             },
+            rangeNights = NightlyMetric.entries.associateWith { NightlyRange.nightsBefore(inputs.nights, it, today) },
         )
     }
 

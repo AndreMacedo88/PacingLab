@@ -44,6 +44,7 @@ class NightlyRangeTest {
         val nights = (0L..13L).map { night(it, hrv = 60.0) } + night(70, hrv = 10.0)
 
         assertThat(NightlyRange.of(nights, NightlyMetric.HRV, today)).isNull()
+        assertThat(NightlyRange.nightsBefore(nights, NightlyMetric.HRV, today)).isEqualTo(13)
         assertThat(NightlyRange.of(nights + night(14, hrv = 60.0), NightlyMetric.HRV, today)).isNotNull()
     }
 

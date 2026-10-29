@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.pacinglab.core.designsystem.R
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
@@ -38,13 +39,19 @@ fun StatusPill(text: String, color: Color, @DrawableRes icon: Int, modifier: Mod
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Icon(painterResource(icon), contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
-        Text(text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+        Text(
+            text,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
 /**
  * A night's value against the athlete's usual range: "In range" in the good green, above or below in
- * the out-of-range orange with an arrow, "Learning your range" while there are too few nights.
+ * the out-of-range orange with an arrow, "Learning" while there are too few nights.
  */
 @Composable
 fun RangePill(standing: RangeStanding?, modifier: Modifier = Modifier) {
