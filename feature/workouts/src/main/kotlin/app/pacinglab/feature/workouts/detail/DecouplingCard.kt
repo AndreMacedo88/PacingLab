@@ -49,7 +49,7 @@ internal fun DecouplingCard(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            CardHeader(title = stringResource(R.string.decoupling_title), info = stringResource(R.string.decoupling_info))
+            CardHeader(title = stringResource(R.string.decoupling_title), info = stringResource(R.string.session_decoupling_info))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
                     text = stringResource(R.string.decoupling_value, "%.1f".format(locale, decoupling.percent)),

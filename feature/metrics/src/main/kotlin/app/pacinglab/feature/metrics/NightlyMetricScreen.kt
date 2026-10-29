@@ -173,7 +173,7 @@ fun NightlyMetricScreen(
                 item(key = "nights") { NightList(metric, period, values, ranges, byDate, locale) }
             }
             item(key = "about") {
-                About(stringResource(R.string.about_title, stringResource(metric.title())), stringResource(metric.about()))
+                About(stringResource(R.string.metric_about_title, stringResource(metric.title())), stringResource(metric.about()))
             }
         }
     }
@@ -336,8 +336,8 @@ internal fun NightlyMetric.number(value: Double, locale: Locale): String = when 
 @Composable
 internal fun NightlyMetric.formatted(value: Double, locale: Locale): String = stringResource(
     when (this) {
-        NightlyMetric.HRV -> R.string.unit_ms
-        NightlyMetric.RESTING_HR, NightlyMetric.SLEEPING_HR -> R.string.unit_bpm
+        NightlyMetric.HRV -> R.string.metric_unit_ms
+        NightlyMetric.RESTING_HR, NightlyMetric.SLEEPING_HR -> R.string.metric_unit_bpm
         NightlyMetric.BREATHING_RATE -> R.string.unit_breaths
         NightlyMetric.OXYGEN_SATURATION -> R.string.unit_percent
         NightlyMetric.SKIN_TEMPERATURE -> R.string.unit_celsius

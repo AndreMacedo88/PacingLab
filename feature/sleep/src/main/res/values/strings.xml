@@ -154,7 +154,7 @@
     <string name="card_health">Regularity, duration, efficiency and timing over two weeks</string>
     <string name="card_quality">Continuity and stages against published ranges</string>
     <string name="card_heart_rate">Heart rate through the night</string>
-    <string name="card_recovery">HRV, resting heart rate, breathing, SpO2 and skin temperature against your range</string>
+    <string name="sleep_card_recovery">HRV, resting heart rate, breathing, SpO2 and skin temperature against your range</string>
     <string name="card_key_metrics">The last 7 or 30 nights</string>
     <string name="card_feeling">The morning question, and your answers against the score</string>
     <string name="sleep_range">Range %1$s–%2$s</string>

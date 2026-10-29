@@ -147,7 +147,7 @@ fun ReadinessScreen(state: ReadinessState?, onBack: () -> Unit, modifier: Modifi
             shown?.let { index -> item(key = "contributors") { Contributors(days[index]) } }
             item(key = "about") {
                 About(
-                    stringResource(R.string.about_title, stringResource(R.string.readiness_title)),
+                    stringResource(R.string.metric_about_title, stringResource(R.string.readiness_title)),
                     stringResource(R.string.about_readiness),
                 )
             }
@@ -157,11 +157,11 @@ fun ReadinessScreen(state: ReadinessState?, onBack: () -> Unit, modifier: Modifi
 
 @Composable
 private fun levels() = listOf(
-    ChartLevel(0.0..Readiness.MODERATE_FROM.toDouble(), StatusColors.Serious, stringResource(R.string.readiness_level_low)),
+    ChartLevel(0.0..Readiness.MODERATE_FROM.toDouble(), StatusColors.Serious, stringResource(R.string.readiness_detail_level_low)),
     ChartLevel(
         Readiness.MODERATE_FROM.toDouble()..Readiness.READY_FROM.toDouble(),
         StatusColors.Warning,
-        stringResource(R.string.readiness_level_moderate),
+        stringResource(R.string.readiness_detail_level_moderate),
     ),
     ChartLevel(Readiness.READY_FROM.toDouble()..100.0, StatusColors.Good, stringResource(R.string.readiness_level_ready)),
 )
@@ -198,8 +198,14 @@ private fun ReadinessReadout(readiness: Readiness?, today: LocalDate, locale: Lo
 private fun LevelPill(level: ReadinessLevel) {
     when (level) {
         ReadinessLevel.READY -> StatusPill(stringResource(R.string.readiness_level_ready), StatusColors.Good, PacingLabIcons.CheckCircle)
-        ReadinessLevel.MODERATE -> StatusPill(stringResource(R.string.readiness_level_moderate), StatusColors.Warning, PacingLabIcons.Info)
-        ReadinessLevel.LOW -> StatusPill(stringResource(R.string.readiness_level_low), StatusColors.Serious, PacingLabIcons.Warning)
+
+        ReadinessLevel.MODERATE -> StatusPill(
+            stringResource(R.string.readiness_detail_level_moderate),
+            StatusColors.Warning,
+            PacingLabIcons.Info,
+        )
+
+        ReadinessLevel.LOW -> StatusPill(stringResource(R.string.readiness_detail_level_low), StatusColors.Serious, PacingLabIcons.Warning)
     }
 }
 
@@ -207,10 +213,10 @@ private fun LevelPill(level: ReadinessLevel) {
 @Composable
 private fun Contributors(readiness: Readiness, modifier: Modifier = Modifier) {
     val rows = listOfNotNull(
-        readiness.hrv?.let { Triple(R.string.readiness_hrv, Readiness.HRV_WEIGHT, it.score to it.standing) },
+        readiness.hrv?.let { Triple(R.string.readiness_detail_hrv, Readiness.HRV_WEIGHT, it.score to it.standing) },
         readiness.sleep?.let { Triple(R.string.readiness_sleep, Readiness.SLEEP_WEIGHT, it.score to it.standing) },
         readiness.restingHr?.let { Triple(R.string.readiness_resting, Readiness.RESTING_HR_WEIGHT, it.score to it.standing) },
-        readiness.training?.let { Triple(R.string.readiness_training, Readiness.TRAINING_WEIGHT, it.score to it.standing) },
+        readiness.training?.let { Triple(R.string.readiness_detail_training, Readiness.TRAINING_WEIGHT, it.score to it.standing) },
     )
     if (rows.isEmpty()) return
     Column(modifier) {
@@ -236,7 +242,7 @@ private fun Contributors(readiness: Readiness, modifier: Modifier = Modifier) {
         }
         if (readiness.breathingElevated) {
             StatusPill(
-                stringResource(R.string.readiness_breathing_raised),
+                stringResource(R.string.readiness_detail_breathing_raised),
                 StatusColors.Serious,
                 PacingLabIcons.Warning,
                 Modifier.padding(top = 12.dp),

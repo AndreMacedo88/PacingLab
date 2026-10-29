@@ -11,7 +11,7 @@ enum class SleepCardKind(val id: String, @param:StringRes val title: Int, @param
     HEALTH("health", R.string.sleep_health_title, R.string.card_health),
     QUALITY("quality", R.string.sleep_quality_title, R.string.card_quality),
     HEART_RATE("heart", R.string.sleep_heart_rate_title, R.string.card_heart_rate),
-    RECOVERY("body", R.string.sleep_body_title, R.string.card_recovery),
+    RECOVERY("body", R.string.sleep_body_title, R.string.sleep_card_recovery),
     KEY_METRICS("metrics", R.string.sleep_metrics_title, R.string.card_key_metrics),
     FEELING("feeling", R.string.feeling_title, R.string.card_feeling),
     ;

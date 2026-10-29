@@ -7,8 +7,8 @@
     <string name="span_year">Year</string>
     <string name="period_previous">Earlier</string>
     <string name="period_next">Later</string>
-    <string name="unit_ms">%1$s ms</string>
-    <string name="unit_bpm">%1$s bpm</string>
+    <string name="metric_unit_ms">%1$s ms</string>
+    <string name="metric_unit_bpm">%1$s bpm</string>
     <string name="unit_breaths">%1$s /min</string>
     <string name="last_night">Last night</string>
     <string name="night_of">Night to %1$s</string>
@@ -23,7 +23,7 @@
     <string name="metric_lowest">Lowest</string>
     <string name="metric_highest">Highest</string>
     <string name="metric_in_range">In range</string>
-    <string name="about_title">About %1$s</string>
+    <string name="metric_about_title">About %1$s</string>
     <string name="about_hrv" formatted="false">The variation in time between successive heartbeats (RMSSD), a window on the nervous system that steers recovery. The watch measures it in five-minute windows while you sleep; the night\'s value is their median, as Fitbit reports it. With the Google Health API connected (Settings, Data sources), the night takes Fitbit\'s own nightly value instead, so both apps agree. Otherwise, when Fitbit shares the values for less than 60 % of the time asleep, the night has none rather than a wrong one.\n\nHRV differs a lot between people, so it is judged against your own nights: your range is where 80 % of the nights in the 60 days before fell (10th to 90th percentile). Lower than usual often follows hard training, illness, alcohol, stress or short sleep; higher than usual usually means good recovery. Readiness judges the 7-day average against a narrower band, the smallest change worth noticing (Plews 2013).</string>
     <string name="about_resting_hr" formatted="false">The heart rate the watch derives from the night, a steady measure of how hard the heart works at rest. Your range is where 80 % of the 30 nights before fell, at least 2 bpm either side of the usual value because the watch reports whole beats.\n\nA few beats above usual can follow hard training, illness, alcohol, heat or poor sleep. A lower resting heart rate over months is one sign of improving aerobic fitness.</string>
     <string name="about_breathing" formatted="false">Breaths per minute during sleep, as Fitbit reports it for the night. It is one of the steadiest measures the watch takes; your range is where 80 % of the 30 nights before fell, at least half a breath either side of the usual value.\n\nA rise of a breath or more above usual, with lower HRV or a higher resting heart rate, is a common early sign of illness, which is why readiness takes it into account.</string>
@@ -31,23 +31,23 @@
     <string name="readiness_title">Readiness</string>
     <string name="readiness_chart_description">Readiness, %1$s, on the levels low, moderate and ready</string>
     <string name="readiness_level_ready">Ready</string>
-    <string name="readiness_level_moderate">Moderate</string>
-    <string name="readiness_level_low">Low</string>
+    <string name="readiness_detail_level_moderate">Moderate</string>
+    <string name="readiness_detail_level_low">Low</string>
     <string name="readiness_provisional">Provisional: the HRV baseline has fewer than 14 nights</string>
     <string name="readiness_none">No score on this day</string>
     <string name="readiness_contributors">What it rested on</string>
-    <string name="readiness_hrv">HRV, 7-day average</string>
+    <string name="readiness_detail_hrv">HRV, 7-day average</string>
     <string name="readiness_sleep">Sleep</string>
     <string name="readiness_resting">Resting heart rate</string>
-    <string name="readiness_training">Training form</string>
+    <string name="readiness_detail_training">Training form</string>
     <string name="readiness_weight">%1$d %% of the score</string>
-    <string name="readiness_breathing_raised">Breathing raised: capped</string>
+    <string name="readiness_detail_breathing_raised">Breathing raised: capped</string>
     <string name="about_readiness" formatted="false">A score from 0 to 100 for how ready the body is to train, from what the watch measured overnight and from recent training, each against your own normal: HRV\'s 7-day average (35 %), last night\'s sleep (25 %), resting heart rate (20 %) and form (20 %). A contributor without data leaves its weight to the others. HRV below its range keeps the score below ready, and raised breathing together with low HRV or a raised resting heart rate caps it at 40.\n\nFrom 70 the body is ready for hard training; below 50 an easy day is usually the better choice. The score is a guide, not an instruction: how you feel counts too.</string>
     <string name="heart_rate_title">Heart rate</string>
     <string name="heart_rate_today">Today</string>
-    <string name="heart_rate_none">No heart rate from the watch on this day.</string>
-    <string name="heart_rate_chart">Heart rate over the day, from %1$d to %2$d beats a minute</string>
-    <string name="heart_rate_resting">Resting</string>
+    <string name="metric_heart_rate_none">No heart rate from the watch on this day.</string>
+    <string name="metric_heart_rate_chart">Heart rate over the day, from %1$d to %2$d beats a minute</string>
+    <string name="metric_heart_rate_resting">Resting</string>
     <string name="heart_rate_zones">Time in zones</string>
     <string name="about_heart_rate" formatted="false">All-day heart rate as the watch recorded it, read from Health Connect when you open this page rather than stored. The watch\'s app passes heart rate on when it syncs with the watch, so today\'s line can stop some minutes before now.\n\nThe line is coloured by your heart rate zones, anchored on your threshold heart rate; touch it to read a time. Resting heart rate is the watch\'s value for the night that ended on this day.</string>
     <string name="metric_oxygen">Oxygen saturation</string>

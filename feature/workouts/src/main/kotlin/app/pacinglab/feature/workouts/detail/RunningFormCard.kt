@@ -36,33 +36,33 @@ internal fun RunningFormCard(form: RunningFormView, locale: Locale, modifier: Mo
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            CardHeader(title = stringResource(R.string.form_title), info = stringResource(R.string.form_info))
+            CardHeader(title = stringResource(R.string.running_form_title), info = stringResource(R.string.running_form_info))
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 Figure(
-                    stringResource(R.string.form_cadence),
-                    stringResource(R.string.form_cadence_value, form.overall.cadence.roundToInt()),
+                    stringResource(R.string.running_form_cadence),
+                    stringResource(R.string.running_form_cadence_value, form.overall.cadence.roundToInt()),
                 )
                 Figure(
-                    stringResource(R.string.form_stride),
-                    stringResource(R.string.form_stride_value, "%.2f".format(locale, form.overall.strideMeters)),
+                    stringResource(R.string.running_form_stride),
+                    stringResource(R.string.running_form_stride_value, "%.2f".format(locale, form.overall.strideMeters)),
                 )
             }
             form.reps?.let { reps ->
                 Text(
-                    stringResource(R.string.form_reps, reps.cadence.roundToInt(), "%.2f".format(locale, reps.strideMeters)),
+                    stringResource(R.string.running_form_reps, reps.cadence.roundToInt(), "%.2f".format(locale, reps.strideMeters)),
                     style = MaterialTheme.typography.bodyMedium.tabularNumbers(),
                 )
             }
             if (form.minutes.size > 1) {
                 Text(
-                    stringResource(R.string.form_by_minute),
+                    stringResource(R.string.running_form_by_minute),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Sparkline(values = form.minutes.map { it.cadence }, color = chartColors().series[0])
             }
             Text(
-                pluralStringResource(R.plurals.form_minutes, form.overall.minutes, form.overall.minutes),
+                pluralStringResource(R.plurals.running_form_minutes, form.overall.minutes, form.overall.minutes),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

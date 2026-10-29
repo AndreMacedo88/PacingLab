@@ -138,29 +138,29 @@ fun HeartRateDayScreen(state: HeartRateDayState?, onBack: () -> Unit, onDay: (Lo
                 )
             }
             if (day.series.isEmpty()) {
-                item(key = "none") { Text(stringResource(R.string.heart_rate_none), style = MaterialTheme.typography.bodyLarge) }
+                item(key = "none") { Text(stringResource(R.string.metric_heart_rate_none), style = MaterialTheme.typography.bodyLarge) }
             } else {
                 item(key = "stats") {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Stat(
                             stringResource(R.string.metric_lowest),
-                            stringResource(R.string.unit_bpm, day.lowest.toString()),
+                            stringResource(R.string.metric_unit_bpm, day.lowest.toString()),
                             Modifier.weight(1f),
                         )
                         Stat(
                             stringResource(R.string.metric_average),
-                            stringResource(R.string.unit_bpm, day.average.toString()),
+                            stringResource(R.string.metric_unit_bpm, day.average.toString()),
                             Modifier.weight(1f),
                         )
                         Stat(
                             stringResource(R.string.metric_highest),
-                            stringResource(R.string.unit_bpm, day.highest.toString()),
+                            stringResource(R.string.metric_unit_bpm, day.highest.toString()),
                             Modifier.weight(1f),
                         )
                         state.restingHr?.let {
                             Stat(
-                                stringResource(R.string.heart_rate_resting),
-                                stringResource(R.string.unit_bpm, it.toInt().toString()),
+                                stringResource(R.string.metric_heart_rate_resting),
+                                stringResource(R.string.metric_unit_bpm, it.toInt().toString()),
                                 Modifier.weight(1f),
                             )
                         }
@@ -172,7 +172,7 @@ fun HeartRateDayScreen(state: HeartRateDayState?, onBack: () -> Unit, onDay: (Lo
                             heartRate = day.series,
                             zones = zones,
                             zoneId = day.zone,
-                            description = stringResource(R.string.heart_rate_chart, day.lowest ?: 0, day.highest ?: 0),
+                            description = stringResource(R.string.metric_heart_rate_chart, day.lowest ?: 0, day.highest ?: 0),
                             height = 220.dp,
                         )
                     }
@@ -181,7 +181,7 @@ fun HeartRateDayScreen(state: HeartRateDayState?, onBack: () -> Unit, onDay: (Lo
             }
             item(key = "about") {
                 About(
-                    stringResource(R.string.about_title, stringResource(R.string.heart_rate_title)),
+                    stringResource(R.string.metric_about_title, stringResource(R.string.heart_rate_title)),
                     stringResource(R.string.about_heart_rate),
                 )
             }
