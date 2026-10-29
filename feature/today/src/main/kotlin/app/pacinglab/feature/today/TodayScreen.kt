@@ -36,7 +36,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -77,6 +79,7 @@ import app.pacinglab.core.designsystem.theme.tabularNumbers
 import app.pacinglab.core.maps.RouteMap
 import app.pacinglab.core.model.SleepStageType
 import app.pacinglab.core.model.Sport
+import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -174,6 +177,18 @@ fun TodayScreen(
     val locale = LocalConfiguration.current.locales[0]
     var editing by rememberSaveable { mutableStateOf(initiallyEditing) }
     BackHandler(enabled = editing) { editing = false }
+    // The morning question leaves Today once answered, after a moment in which the answer shows.
+    var answers by remember { mutableIntStateOf(0) }
+    LaunchedEffect(answers) {
+        if (answers > 0) {
+            delay(ANSWER_SHOWN_MILLIS)
+            answers = 0
+        }
+    }
+    val rate: (Int) -> Unit = {
+        answers++
+        onRate(it)
+    }
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -234,12 +249,22 @@ fun TodayScreen(
                     if (!state.heartRateValuesSet) {
                         item(key = "values") { SetValuesCard(onOpenPhysiology = { onOpen(TodayDestination.Physiology) }) }
                     }
-                    for (row in state.rows()) {
+                    for (row in state.rows(answering = answers > 0)) {
                         item(key = row.joinToString("+") { it.id }) {
                             if (row.size == 1 && row.single().wide) {
-                                WideCard(row.single(), state, onOpen, onRate, onRateGym, weatherAccess, locale, zoneId)
+                                WideCard(
+                                    card = row.single(),
+                                    state = state,
+                                    onOpen = onOpen,
+                                    onRate = rate,
+                                    onRateGym = onRateGym,
+                                    weatherAccess = weatherAccess,
+                                    locale = locale,
+                                    zoneId = zoneId,
+                                    modifier = Modifier.animateItem(),
+                                )
                             } else {
-                                TileRow {
+                                TileRow(Modifier.animateItem()) {
                                     row.forEach { TileCard(it, state, onOpen, Modifier.weight(1f)) }
                                     if (row.size == 1) EmptyTile()
                                 }
@@ -254,11 +279,13 @@ fun TodayScreen(
 
 /**
  * The visible cards that have something to show, in the athlete's order, as rows: a wide card alone,
- * tiles two at a time.
+ * tiles two at a time. The morning question shows until answered, or while [answering].
  */
-private fun TodayUiState.Loaded.rows(): List<List<TodayCard>> {
+private fun TodayUiState.Loaded.rows(answering: Boolean = false): List<List<TodayCard>> {
     val shown = cards.filter { it.visible }.mapNotNull { TodayCard.of(it.id) }.filter { card ->
         when (card) {
+            TodayCard.RESTED -> rested == null || answering
+
             TodayCard.GYM_EFFORT -> gymToRate != null
 
             TodayCard.LAST_WORKOUT -> lastWorkout != null
@@ -309,7 +336,8 @@ private fun WideCard(
     weatherAccess: WeatherAccess,
     locale: Locale,
     zoneId: ZoneId,
-) {
+    modifier: Modifier = Modifier,
+) = Box(modifier) {
     when (card) {
         TodayCard.READINESS -> ReadinessCard(
             state.readiness,
@@ -497,3 +525,6 @@ private fun SetValuesCard(onOpenPhysiology: () -> Unit, modifier: Modifier = Mod
         }
     }
 }
+
+/** How long the morning question stays on Today after an answer, so that the answer is seen. */
+private const val ANSWER_SHOWN_MILLIS = 1_500L

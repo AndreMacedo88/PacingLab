@@ -1,5 +1,8 @@
 package app.pacinglab.feature.today
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -262,6 +265,25 @@ class TodayScreenScreenshotTest {
         compose.onNodeWithText("Run + Interval workout").performScrollTo().performClick()
 
         assertThat(opened).isEqualTo("s1")
+    }
+
+    @Test
+    fun theMorningQuestionLeavesOnceAnsweredAfterAMoment() {
+        var state by mutableStateOf(loaded(nights(40)))
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            PacingLabTheme {
+                TodayScreen(state, onOpen = {}, zoneId = ZoneOffset.UTC, onRate = { state = state.copy(rested = it) })
+            }
+        }
+        compose.mainClock.advanceTimeByFrame()
+
+        compose.onNodeWithContentDescription("3, Okay").performClick()
+        compose.mainClock.advanceTimeBy(500)
+        compose.onNodeWithText("How rested do you feel?").assertExists()
+
+        compose.mainClock.advanceTimeBy(2_000)
+        compose.onNodeWithText("How rested do you feel?").assertDoesNotExist()
     }
 
     private val gym = GymToRate("g1", listOf("w9"), today.minusDays(1).atTime(17, 30).toInstant(ZoneOffset.UTC), null, 52 * 60_000L)

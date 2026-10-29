@@ -36,6 +36,11 @@
     <string name="hr_chart_hint">Touch the chart to read the heart rate</string>
     <string name="hr_chart_readout">%1$s  ·  %2$d bpm  ·  %3$s %4$s</string>
     <string name="settings_action">Settings</string>
+    <string name="rested_1">Exhausted</string>
+    <string name="rested_2">Tired</string>
+    <string name="rested_3">Okay</string>
+    <string name="rested_4">Rested</string>
+    <string name="rested_5">Fully rested</string>
     <string name="effort_1">Very, very easy</string>
     <string name="effort_2">Easy</string>
     <string name="effort_3">Moderate</string>

@@ -191,7 +191,11 @@ class SleepScreenScreenshotTest {
     private fun captureFeeling(darkTheme: Boolean) {
         compose.setContent {
             PacingLabTheme(darkTheme = darkTheme) {
-                Surface { FeelingCard(agreement, Modifier.padding(16.dp)) }
+                // The newest morning is shown and rated, so its dot is ringed.
+                val morning = agreement.mornings.last()
+                Surface {
+                    FeelingCard(agreement, morning.date, morning.rested, onRate = {}, Modifier.padding(16.dp), today = morning.date)
+                }
             }
         }
         compose.onRoot().captureRoboImage()

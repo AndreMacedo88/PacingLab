@@ -105,7 +105,9 @@
         <item>fully rested</item>
     </string-array>
     <string name="feeling_title">How you felt and the score</string>
-    <string name="feeling_info">Each dot is a morning: the sleep score of the night across, how rested you said you felt on Today up the side. The tick in a row marks its median score.\n\n# Agreement\nSpearman\'s rank correlation between score and answer, from −1 to 1. Near 1 the score rises with how rested you feel, near 0 it does not follow your feeling, below 0 it runs against it. It uses only the order of your answers, not equal steps between them. The words follow Evans (1996): from 0.2 weak, from 0.4 moderate, from 0.6 strong.\n\nIt shows from 10 mornings. With few mornings it is uncertain: at ten it takes about 0.65 to rule out chance, at thirty about 0.36.\n\nA weak agreement means the score misses something you feel, such as stress, illness or a late meal, or weighs something you do not notice. The score\'s parts and weights come from published sleep health criteria, not from your answers.</string>
+    <string name="feeling_ask_today">How rested do you feel this morning?</string>
+    <string name="feeling_ask_day">How rested did you feel on %1$s?</string>
+    <string name="feeling_info">The question at the top is for the morning after the night shown: Today asks it until you answer, and here you can change an answer or give one you missed. Tap your answer again to clear it.\n\nEach dot is a morning: the sleep score of the night across, how rested you said you felt up the side. The ringed dot is the morning shown. The tick in a row marks its median score.\n\n# Agreement\nSpearman\'s rank correlation between score and answer, from −1 to 1. Near 1 the score rises with how rested you feel, near 0 it does not follow your feeling, below 0 it runs against it. It uses only the order of your answers, not equal steps between them. The words follow Evans (1996): from 0.2 weak, from 0.4 moderate, from 0.6 strong.\n\nIt shows from 10 mornings. With few mornings it is uncertain: at ten it takes about 0.65 to rule out chance, at thirty about 0.36.\n\nA weak agreement means the score misses something you feel, such as stress, illness or a late meal, or weighs something you do not notice. The score\'s parts and weights come from published sleep health criteria, not from your answers.</string>
     <plurals name="feeling_progress">
         <item quantity="one">%1$d rated morning so far; the agreement shows from %2$d</item>
         <item quantity="other">%1$d rated mornings so far; the agreement shows from %2$d</item>
@@ -135,7 +137,7 @@
     <string name="card_heart_rate">Heart rate through the night</string>
     <string name="card_recovery">HRV, resting heart rate and breathing against your range</string>
     <string name="card_key_metrics">The last 7 or 30 nights</string>
-    <string name="card_feeling">Your morning answers against the score</string>
+    <string name="card_feeling">The morning question, and your answers against the score</string>
     <string name="sleep_range">Range %1$s–%2$s</string>
     <string name="sleep_oxygen">SpO2</string>
     <string name="sleep_skin_temperature">Skin temperature</string>

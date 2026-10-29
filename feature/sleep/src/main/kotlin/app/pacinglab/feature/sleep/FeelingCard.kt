@@ -1,18 +1,22 @@
 package app.pacinglab.feature.sleep
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringArrayResource
@@ -23,21 +27,44 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import app.pacinglab.core.analytics.recovery.FeelingAgreement
+import app.pacinglab.core.designsystem.component.RestedPicker
 import app.pacinglab.core.designsystem.theme.chartColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.floor
 
 /**
- * Whether the sleep score follows how rested the athlete says they feel: a dot per rated morning, its
- * score across and the answer up the side, with each answer's median score marked. The rank correlation
- * joins from [FeelingAgreement.MIN_MORNINGS] mornings; until then the card counts towards it.
+ * How rested the athlete felt on the [morning] shown, and whether the sleep score follows that feeling:
+ * the 1 to 5 question for that morning (Today asks it only until answered, so this is where an answer
+ * is changed or a forgotten one given), then a dot per rated morning, its score across and the answer up
+ * the side, with each answer's median score marked and the shown morning's dot ringed. The rank
+ * correlation joins from [FeelingAgreement.MIN_MORNINGS] mornings; until then the card counts towards it.
  */
 @Composable
-internal fun FeelingCard(agreement: FeelingAgreement, modifier: Modifier = Modifier) {
+internal fun FeelingCard(
+    agreement: FeelingAgreement,
+    morning: LocalDate,
+    rating: Int?,
+    onRate: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    today: LocalDate? = null,
+) {
     val locale = LocalConfiguration.current.locales[0]
     val count = agreement.mornings.size
     SleepCard(stringResource(R.string.feeling_title), stringResource(R.string.feeling_info), modifier) {
+        val question = if (morning == today) {
+            stringResource(R.string.feeling_ask_today)
+        } else {
+            val date = remember(locale) { DateTimeFormatter.ofPattern("EEEE d MMMM", locale) }
+            stringResource(R.string.feeling_ask_day, date.format(morning))
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(question, style = MaterialTheme.typography.titleSmall)
+            RestedPicker(rating, onRate)
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         val rho = agreement.rho
         when {
             rho != null -> Row(verticalAlignment = Alignment.Bottom) {
@@ -74,12 +101,12 @@ internal fun FeelingCard(agreement: FeelingAgreement, modifier: Modifier = Modif
                 )
             }
         }
-        if (count > 0) FeelingStrip(agreement, locale)
+        if (count > 0) FeelingStrip(agreement, morning, locale)
     }
 }
 
 @Composable
-private fun FeelingStrip(agreement: FeelingAgreement, locale: Locale, modifier: Modifier = Modifier) {
+private fun FeelingStrip(agreement: FeelingAgreement, morning: LocalDate, locale: Locale, modifier: Modifier = Modifier) {
     val dot = chartColors().series[0]
     val grid = chartColors().grid
     val ink = MaterialTheme.colorScheme.onSurfaceVariant
@@ -106,11 +133,17 @@ private fun FeelingStrip(agreement: FeelingAgreement, locale: Locale, modifier: 
         for (rating in 1..RATINGS) {
             val label = labels[rating - 1]
             drawText(label, topLeft = Offset(0f, y(rating) - label.size.height / 2f))
-            val scores = agreement.mornings.filter { it.rested == rating }.map { it.score }.sorted()
+            val rated = agreement.mornings.filter { it.rested == rating }
+            val scores = rated.map { it.score }.sorted()
             for (score in scores) {
                 // A ring in the card's colour keeps overlapping dots apart.
                 drawCircle(ring, DOT_RADIUS.toPx() + 1.5.dp.toPx(), Offset(x(score), y(rating)))
                 drawCircle(dot.copy(alpha = DOT_ALPHA), DOT_RADIUS.toPx(), Offset(x(score), y(rating)))
+            }
+            rated.firstOrNull { it.date == morning }?.let { shown ->
+                val centre = Offset(x(shown.score), y(rating))
+                drawCircle(dot, DOT_RADIUS.toPx(), centre)
+                drawCircle(median, DOT_RADIUS.toPx() + 2.5.dp.toPx(), centre, style = Stroke(1.5.dp.toPx()))
             }
             if (scores.size >= 2) {
                 val middle = if (scores.size % 2 ==

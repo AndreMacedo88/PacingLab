@@ -102,6 +102,7 @@ fun SleepRoute(
         onOpenMetric = onOpenMetric,
         onArrange = viewModel::arrange,
         onResetArrangement = viewModel::resetArrangement,
+        onRate = viewModel::rate,
     )
 }
 
@@ -125,6 +126,7 @@ fun SleepScreen(
     onArrange: (List<PlacedCard>) -> Unit = {},
     onResetArrangement: () -> Unit = {},
     initiallyEditing: Boolean = false,
+    onRate: (LocalDate, Int) -> Unit = { _, _ -> },
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var editing by rememberSaveable { mutableStateOf(initiallyEditing) }
@@ -217,7 +219,15 @@ fun SleepScreen(
                                     KeyMetricsCard(nights, night.date, loaded.scores, loaded.needs, locale)
                                 }
 
-                                SleepCardKind.FEELING -> item(key = card.id) { FeelingCard(loaded.feeling) }
+                                SleepCardKind.FEELING -> item(key = card.id) {
+                                    FeelingCard(
+                                        agreement = loaded.feeling,
+                                        morning = night.date,
+                                        rating = loaded.rested[night.date],
+                                        onRate = { onRate(night.date, it) },
+                                        today = loaded.today,
+                                    )
+                                }
                             }
                         }
                     }
