@@ -1,6 +1,6 @@
 # PacingLab privacy policy
 
-Last updated: 21 October 2026
+Last updated: 28 October 2026
 
 PacingLab is a training analysis app for Android. This policy explains what data it uses and where that
 data goes.
@@ -37,6 +37,8 @@ shown, as any map does, but contain none of your health data.
 
 - You can review or revoke PacingLab's access at any time in Health Connect's settings, and for the
   Google Health API in your Google account's security settings.
+- Settings > Back up your entries saves what you entered by hand (heart rate values, tests, ratings
+  and settings) to a file you choose; PacingLab never sends it anywhere.
 - Uninstalling PacingLab deletes everything it stored on your phone.
 
 ## Contact

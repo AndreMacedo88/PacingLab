@@ -1,5 +1,7 @@
 package app.pacinglab.feature.settings
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,19 +29,25 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.pacinglab.core.data.repository.BackupRepository
 import app.pacinglab.core.data.repository.DarkMode
 import app.pacinglab.core.data.repository.Sex
 import app.pacinglab.core.data.repository.ThemeChoice
@@ -60,8 +68,14 @@ fun SettingsRoute(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val preferences by viewModel.preferences.collectAsStateWithLifecycle()
+    val backupMessage by viewModel.backupMessage.collectAsStateWithLifecycle()
+    val saveBackup = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(BackupRepository.MIME_TYPE)) { uri ->
+        uri?.let(viewModel::backUp)
+    }
+    val openBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(viewModel::restore) }
     SettingsScreen(
         preferences = preferences,
+        backupMessage = backupMessage,
         actions = SettingsActions(
             onTheme = viewModel::setTheme,
             onDarkMode = viewModel::setDarkMode,
@@ -70,6 +84,9 @@ fun SettingsRoute(
             onSpeedByDefault = viewModel::setSpeedByDefault,
             onSleepNeed = viewModel::setSleepNeed,
             onSex = viewModel::setSex,
+            onBackUp = { saveBackup.launch(viewModel.backupFileName()) },
+            onRestore = { openBackup.launch(arrayOf(BackupRepository.MIME_TYPE, "text/plain", "application/octet-stream")) },
+            onBackupMessageShown = viewModel::backupMessageShown,
         ),
         onOpenPhysiology = onOpenPhysiology,
         onOpenDataSources = onOpenDataSources,
@@ -88,6 +105,9 @@ class SettingsActions(
     val onSpeedByDefault: (Boolean) -> Unit = {},
     val onSleepNeed: (Duration?) -> Unit = {},
     val onSex: (Sex) -> Unit = {},
+    val onBackUp: () -> Unit = {},
+    val onRestore: () -> Unit = {},
+    val onBackupMessageShown: () -> Unit = {},
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -100,9 +120,19 @@ fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenAbout: () -> Unit = {},
+    backupMessage: BackupMessage? = null,
 ) {
+    val snackbar = remember { SnackbarHostState() }
+    val messageText = backupMessage?.text()
+    LaunchedEffect(backupMessage) {
+        if (messageText != null) {
+            snackbar.showSnackbar(messageText, withDismissAction = true)
+            actions.onBackupMessageShown()
+        }
+    }
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
@@ -189,6 +219,22 @@ fun SettingsScreen(
                     summary = stringResource(R.string.settings_data_sources_summary),
                     icon = PacingLabIcons.Database,
                     onClick = onOpenDataSources,
+                )
+            }
+            item {
+                SettingsItem(
+                    title = stringResource(R.string.settings_backup),
+                    summary = stringResource(R.string.settings_backup_summary),
+                    icon = PacingLabIcons.Download,
+                    onClick = actions.onBackUp,
+                )
+            }
+            item {
+                SettingsItem(
+                    title = stringResource(R.string.settings_restore),
+                    summary = stringResource(R.string.settings_restore_summary),
+                    icon = PacingLabIcons.UploadFile,
+                    onClick = actions.onRestore,
                 )
             }
             item {
@@ -304,6 +350,23 @@ private fun SettingsItem(title: String, summary: String, @DrawableRes icon: Int,
         leadingContent = { Icon(painterResource(icon), contentDescription = null) },
         trailingContent = { Icon(painterResource(PacingLabIcons.ChevronRight), contentDescription = null) },
         modifier = modifier.clickable(onClick = onClick),
+    )
+}
+
+@Composable
+private fun BackupMessage.text(): String = when (this) {
+    is BackupMessage.Saved -> pluralStringResource(R.plurals.backup_saved, entries, entries)
+
+    is BackupMessage.Restored -> pluralStringResource(R.plurals.backup_restored, entries, entries)
+
+    is BackupMessage.Failed -> stringResource(
+        when (problem) {
+            BackupProblem.NOT_SAVED -> R.string.backup_not_saved
+            BackupProblem.NOT_OPENED -> R.string.backup_not_opened
+            BackupProblem.NOT_A_BACKUP -> R.string.backup_not_a_backup
+            BackupProblem.NEWER_VERSION -> R.string.backup_newer_version
+            BackupProblem.UNREADABLE_VALUE -> R.string.backup_unreadable_value
+        },
     )
 }
 

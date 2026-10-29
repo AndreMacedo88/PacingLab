@@ -73,6 +73,24 @@ class SettingsScreenScreenshotTest {
         assertThat(chosen).isEqualTo(ThemeChoice.GREEN)
     }
 
+    @Test
+    fun aRestoreReportsWhatCameBack() {
+        compose.setContent {
+            PacingLabTheme {
+                SettingsScreen(
+                    preferences,
+                    SettingsActions(),
+                    onOpenPhysiology = {},
+                    onOpenDataSources = {},
+                    onBack = {},
+                    backupMessage = BackupMessage.Restored(entries = 12),
+                )
+            }
+        }
+
+        compose.onNodeWithText("Restored 12 entries and the settings").assertExists()
+    }
+
     private fun capture(preferences: UserPreferences, palette: ThemePalette, dark: Boolean) {
         compose.setContent {
             PacingLabTheme(darkTheme = dark, palette = palette) {

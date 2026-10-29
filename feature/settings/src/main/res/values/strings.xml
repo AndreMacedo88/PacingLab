@@ -185,6 +185,23 @@
     <string name="settings_sex_summary">Sets how heart rate is weighted in training load: Banister fitted it to blood lactate separately for men and women</string>
     <string name="sex_male">Male</string>
     <string name="sex_female">Female</string>
+    <string name="settings_backup">Back up your entries</string>
+    <string name="settings_backup_summary">Heart rate values, VO2max tests, ratings and settings, saved to a file you choose</string>
+    <string name="settings_restore">Restore from a backup</string>
+    <string name="settings_restore_summary">Brings back the entries and settings in a backup file</string>
+    <plurals name="backup_saved">
+        <item quantity="one">Backup saved with %1$d entry and your settings</item>
+        <item quantity="other">Backup saved with %1$d entries and your settings</item>
+    </plurals>
+    <plurals name="backup_restored">
+        <item quantity="one">Restored %1$d entry and the settings</item>
+        <item quantity="other">Restored %1$d entries and the settings</item>
+    </plurals>
+    <string name="backup_not_saved">The backup could not be saved there</string>
+    <string name="backup_not_opened">The file could not be opened</string>
+    <string name="backup_not_a_backup">This file is not a PacingLab backup</string>
+    <string name="backup_newer_version">This backup comes from a newer version of PacingLab</string>
+    <string name="backup_unreadable_value">The backup is damaged; nothing was changed</string>
     <string name="settings_about_summary">Version, licence, privacy and credits</string>
     <string name="about_title">About</string>
     <string name="about_app">PacingLab</string>
