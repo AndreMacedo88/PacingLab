@@ -8,15 +8,18 @@ import app.pacinglab.core.analytics.zones.ThresholdHeartRateEstimate
 import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.data.repository.PhysiologyRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
+import app.pacinglab.core.data.repository.UserPreferencesRepository
 import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.PhysiologyEntry
 import app.pacinglab.core.model.PhysiologyHistory
+import app.pacinglab.core.model.ZoneBoundaries
 import app.pacinglab.core.model.ZoneModel
 import app.pacinglab.core.model.ZoneSet
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -52,6 +55,7 @@ sealed interface PhysiologyUiState {
         val measuredRestingHr: Int? = null,
         val estimatedMax: MaxHeartRateEstimate? = null,
         val estimatedThreshold: ThresholdHeartRateEstimate? = null,
+        val boundaries: ZoneBoundaries = ZoneBoundaries(),
     ) : PhysiologyUiState
 }
 
@@ -60,8 +64,13 @@ class PhysiologyViewModel @Inject constructor(
     private val repository: PhysiologyRepository,
     trainingLoad: TrainingLoadRepository,
     private val clock: Clock,
+    private val preferences: UserPreferencesRepository,
 ) : ViewModel() {
-    val state: StateFlow<PhysiologyUiState> = combine(repository.observeHistory(), trainingLoad.anchors) { history, timeline ->
+    val state: StateFlow<PhysiologyUiState> = combine(
+        repository.observeHistory(),
+        trainingLoad.anchors,
+        preferences.preferences.map { it.zoneBoundaries },
+    ) { history, timeline, boundaries ->
         val today = LocalDate.now(clock)
         PhysiologyUiState.Loaded(
             entries = history.entries.reversed(),
@@ -70,12 +79,23 @@ class PhysiologyViewModel @Inject constructor(
             measuredRestingHr = timeline.measuredRestingAt(today),
             estimatedMax = timeline.estimatedMax,
             estimatedThreshold = timeline.estimatedThresholdAt(today),
+            boundaries = boundaries,
         )
     }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), PhysiologyUiState.Loading)
 
     fun save(entry: PhysiologyEntry, replacing: LocalDate?) {
         viewModelScope.launch { repository.save(entry, replacing) }
+    }
+
+    /** Sets the athlete's own boundaries for [model], or with null goes back to working them out. */
+    fun setZones(model: ZoneModel, starts: List<Int>?) {
+        viewModelScope.launch {
+            val current = (state.value as? PhysiologyUiState.Loaded)?.boundaries ?: ZoneBoundaries()
+            preferences.setZoneBoundaries(
+                if (model == ZoneModel.POLARIZED_THREE) current.copy(polarized = starts) else current.copy(five = starts),
+            )
+        }
     }
 
     fun delete(effectiveFrom: LocalDate) {

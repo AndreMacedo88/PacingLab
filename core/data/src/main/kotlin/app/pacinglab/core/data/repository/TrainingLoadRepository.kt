@@ -114,8 +114,17 @@ class TrainingLoadRepository @Inject constructor(
         nights.observeNights(),
         estimatedMax,
         thresholdEfforts,
-    ) { history, nightly, max, thresholds ->
-        AnchorTimeline(history, nightly.mapNotNull { night -> night.restingHr?.let { night.date to it } }.toMap(), max, thresholds)
+        preferences.preferences.map { it.zoneBoundaries }.distinctUntilChanged(),
+    ) { history, nightly, max, thresholds, boundaries ->
+        AnchorTimeline(
+            history,
+            nightly.mapNotNull { night ->
+                night.restingHr?.let { night.date to it }
+            }.toMap(),
+            max,
+            thresholds,
+            boundaries,
+        )
     }
 
     private suspend fun thresholdEffort(workout: Workout): Double? {

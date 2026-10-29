@@ -10,6 +10,7 @@ import app.pacinglab.core.model.PhysiologyHistory
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Sport
 import app.pacinglab.core.model.Workout
+import app.pacinglab.core.model.ZoneBoundaries
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
@@ -124,6 +125,7 @@ class AnchorTimeline(
     measuredResting: Map<LocalDate, Double>,
     val estimatedMax: MaxHeartRateEstimate? = null,
     private val thresholdEfforts: List<ThresholdEffort> = emptyList(),
+    private val boundaries: ZoneBoundaries? = null,
 ) {
     private val resting = measuredResting.toSortedMap()
 
@@ -136,7 +138,14 @@ class AnchorTimeline(
             ?: ThresholdEstimates.thresholdFromMax(max)
         val restingHr = (entry?.restingHr ?: measuredRestingAt(date))
             ?.takeIf { it in HeartRateAnchors.RESTING_HR_RANGE && it < threshold }
-        return HeartRateAnchors(maxHr = max, thresholdHr = threshold, restingHr = restingHr)
+        return HeartRateAnchors(
+            maxHr = max,
+            thresholdHr = threshold,
+            restingHr = restingHr,
+            boundaries = boundaries?.takeUnless {
+                it.isEmpty
+            },
+        )
     }
 
     /** The threshold PacingLab found in the runs up to [date], whether or not the athlete set one; null without a hard enough run. */

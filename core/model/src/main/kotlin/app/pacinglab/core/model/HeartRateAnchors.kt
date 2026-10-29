@@ -6,8 +6,9 @@ package app.pacinglab.core.model
  * @property maxHr maximal heart rate, bpm.
  * @property thresholdHr lactate threshold heart rate (LTHR), bpm.
  * @property restingHr resting heart rate, bpm; only models based on heart rate reserve need it.
+ * @property boundaries zone boundaries the athlete set, which replace the derived ones; null for none.
  */
-data class HeartRateAnchors(val maxHr: Int, val thresholdHr: Int, val restingHr: Int? = null) {
+data class HeartRateAnchors(val maxHr: Int, val thresholdHr: Int, val restingHr: Int? = null, val boundaries: ZoneBoundaries? = null) {
     init {
         require(maxHr in MAX_HR_RANGE) { "maxHr $maxHr outside $MAX_HR_RANGE" }
         restingHr?.let { require(it in RESTING_HR_RANGE) { "restingHr $it outside $RESTING_HR_RANGE" } }

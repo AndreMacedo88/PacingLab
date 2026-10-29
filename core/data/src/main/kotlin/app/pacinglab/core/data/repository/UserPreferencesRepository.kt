@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import app.pacinglab.core.analytics.load.BanisterWeighting
 import app.pacinglab.core.analytics.workout.TrainingSessions
+import app.pacinglab.core.model.ZoneBoundaries
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Duration
@@ -42,6 +43,7 @@ enum class DarkMode {
  * @property sleepNeed a fixed sleep need; null lets PacingLab work it out from the athlete's nights.
  * @property strengthInLoad gym sessions count towards training load, fitness and fatigue.
  * @property sex the athlete's, for the weighting of training load.
+ * @property zoneBoundaries zone boundaries the athlete set; empty to work them out from threshold heart rate.
  */
 data class UserPreferences(
     val sessionMergeGap: Duration = TrainingSessions.DEFAULT_MAX_GAP,
@@ -51,6 +53,7 @@ data class UserPreferences(
     val sleepNeed: Duration? = null,
     val strengthInLoad: Boolean = true,
     val sex: Sex = Sex.MALE,
+    val zoneBoundaries: ZoneBoundaries = ZoneBoundaries(),
 )
 
 @Singleton
@@ -65,6 +68,10 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
             sleepNeed = values[SLEEP_NEED_MINUTES]?.let { Duration.ofMinutes(it.toLong()) },
             strengthInLoad = values[STRENGTH_IN_LOAD] ?: true,
             sex = values[SEX]?.let { name -> Sex.entries.firstOrNull { it.name == name } } ?: Sex.MALE,
+            zoneBoundaries = ZoneBoundaries(
+                five = values[FIVE_ZONES]?.let { boundaries(it, 4) },
+                polarized = values[POLARIZED_ZONES]?.let { boundaries(it, 2) },
+            ),
         )
     }
 
@@ -95,6 +102,18 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         dataStore.edit { it[STRENGTH_IN_LOAD] = count }
     }
 
+    /** Sets or, with nulls, clears the athlete's own zone boundaries. */
+    suspend fun setZoneBoundaries(boundaries: ZoneBoundaries) {
+        dataStore.edit {
+            boundaries.five?.let { five -> it[FIVE_ZONES] = five.joinToString(",") } ?: it.remove(FIVE_ZONES)
+            boundaries.polarized?.let { polarized -> it[POLARIZED_ZONES] = polarized.joinToString(",") } ?: it.remove(POLARIZED_ZONES)
+        }
+    }
+
+    /** Stored boundaries read back; null when they no longer make a valid set. */
+    private fun boundaries(stored: String, count: Int): List<Int>? = stored.split(",").mapNotNull { it.toIntOrNull() }
+        .takeIf { it.size == count && it.zipWithNext().all { (a, b) -> b > a } }
+
     suspend fun setSex(sex: Sex) {
         dataStore.edit { it[SEX] = sex.name }
     }
@@ -110,5 +129,7 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         private val SLEEP_NEED_MINUTES = intPreferencesKey("sleep_need_minutes")
         private val STRENGTH_IN_LOAD = booleanPreferencesKey("strength_in_load")
         private val SEX = stringPreferencesKey("sex")
+        private val FIVE_ZONES = stringPreferencesKey("zones_five")
+        private val POLARIZED_ZONES = stringPreferencesKey("zones_polarized")
     }
 }

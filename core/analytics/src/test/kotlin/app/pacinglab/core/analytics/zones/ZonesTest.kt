@@ -2,6 +2,7 @@ package app.pacinglab.core.analytics.zones
 
 import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.PhysiologyEntry
+import app.pacinglab.core.model.ZoneBoundaries
 import app.pacinglab.core.model.ZoneModel
 import assertk.assertFailure
 import assertk.assertThat
@@ -26,6 +27,14 @@ class ZonesTest {
         assertThat(zones.zones.map { it.lowerBpm }).containsExactly(0, 145, 153, 162, 175)
         assertThat(zones.zones.map { it.label })
             .containsExactly("Recovery", "Aerobic", "Tempo", "Threshold", "VO2max")
+    }
+
+    @Test
+    fun `boundaries the athlete set replace the derived ones of their model only`() {
+        val custom = anchors.copy(boundaries = ZoneBoundaries(five = listOf(140, 150, 160, 172)))
+
+        assertThat(Zones.of(ZoneModel.LTHR_FIVE, custom).zones.map { it.lowerBpm }).containsExactly(0, 140, 150, 160, 172)
+        assertThat(Zones.of(ZoneModel.POLARIZED_THREE, custom)).isEqualTo(Zones.of(ZoneModel.POLARIZED_THREE, anchors))
     }
 
     @Test

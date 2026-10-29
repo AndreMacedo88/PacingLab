@@ -198,4 +198,15 @@
     <string name="about_maps_summary">Tiles from OpenFreeMap. © OpenMapTiles, data © OpenStreetMap contributors</string>
     <string name="about_libraries">Built with</string>
     <string name="about_libraries_summary">Jetpack Compose, Room, Hilt, WorkManager, DataStore and the Health Connect client (Apache License 2.0); MapLibre Native (BSD 2-clause)</string>
+    <string name="zones_set_own">Set your own boundaries</string>
+    <string name="zones_edit_own">Change your boundaries</string>
+    <string name="zones_custom_caption">Boundaries you set, used for every session and chart. Change them back to automatic to follow your threshold heart rate again.</string>
+    <string name="zones_edit_title">Zone boundaries</string>
+    <string name="zones_edit_hint">Where each zone starts, for example from a lab or field test. The first zone is everything below the second.</string>
+    <string name="zones_edit_field">Zone %1$d, %2$s, from</string>
+    <string name="zones_bpm">bpm</string>
+    <string name="zones_edit_invalid">Each zone must start higher than the one before, between 60 and 230 bpm.</string>
+    <string name="zones_save">Save</string>
+    <string name="zones_automatic">Automatic</string>
+    <string name="zones_cancel">Cancel</string>
 </resources>

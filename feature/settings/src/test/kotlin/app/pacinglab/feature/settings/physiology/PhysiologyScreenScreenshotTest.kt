@@ -2,13 +2,17 @@ package app.pacinglab.feature.settings.physiology
 
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import app.pacinglab.core.analytics.zones.MaxHeartRateEstimate
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.model.PhysiologyEntry
+import app.pacinglab.core.model.ZoneBoundaries
 import app.pacinglab.feature.settings.PHONE
 import app.pacinglab.feature.settings.TALL_PHONE
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -59,6 +63,30 @@ class PhysiologyScreenScreenshotTest {
     @Test
     @Config(qualifiers = TALL_PHONE)
     fun historyDark() = capture(PhysiologyUiState.Loaded(listOf(latest, first), current(latest), today), darkTheme = true)
+
+    @Test
+    @OptIn(ExperimentalRoborazziApi::class)
+    fun zoneBoundariesDialog() {
+        compose.setContent {
+            PacingLabTheme {
+                ZoneBoundariesDialog(zones = current(latest)!!.fiveZones, custom = true, onSave = {}, onDismiss = {})
+            }
+        }
+        captureScreenRoboImage()
+    }
+
+    @Test
+    fun customZonesAreLabelledAsYours() {
+        val custom = PhysiologyUiState.Loaded(
+            listOf(latest, first),
+            current(latest),
+            today,
+            boundaries = ZoneBoundaries(five = listOf(140, 150, 160, 172)),
+        )
+        compose.setContent { PacingLabTheme { PhysiologyScreen(custom, onBack = {}, onSave = { _, _ -> }, onDelete = {}) } }
+
+        compose.onNodeWithText("Change your boundaries").assertExists()
+    }
 
     @Test
     fun editorForNewValues() {

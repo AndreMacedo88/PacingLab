@@ -15,6 +15,8 @@ import kotlin.math.roundToInt
  *
  * The polarized model approximates VT1 by the top of Friel's zone 2 (90 % LTHR) and VT2 by
  * LTHR itself (Seiler & Kjerland 2006 use ventilatory thresholds measured in the lab).
+ *
+ * Boundaries the athlete set ([HeartRateAnchors.boundaries]) replace the derived ones of their model.
  */
 object Zones {
     private val LTHR_FIVE = listOf(
@@ -40,15 +42,24 @@ object Zones {
     )
 
     fun of(model: ZoneModel, anchors: HeartRateAnchors): ZoneSet = when (model) {
-        ZoneModel.LTHR_FIVE -> build(model, LTHR_FIVE) { anchors.thresholdHr * it }
+        ZoneModel.LTHR_FIVE -> anchors.boundaries?.five?.let { custom(model, LTHR_FIVE, it) }
+            ?: build(model, LTHR_FIVE) { anchors.thresholdHr * it }
 
-        ZoneModel.POLARIZED_THREE -> build(model, POLARIZED_THREE) { anchors.thresholdHr * it }
+        ZoneModel.POLARIZED_THREE -> anchors.boundaries?.polarized?.let { custom(model, POLARIZED_THREE, it) }
+            ?: build(model, POLARIZED_THREE) { anchors.thresholdHr * it }
 
         ZoneModel.HEART_RATE_RESERVE_FIVE -> {
             val resting = requireNotNull(anchors.restingHr) { "Heart rate reserve zones need a resting heart rate" }
             build(model, HRR_FIVE) { resting + (anchors.maxHr - resting) * it }
         }
     }
+
+    private fun custom(model: ZoneModel, spec: List<Pair<String, Double>>, starts: List<Int>): ZoneSet = ZoneSet(
+        model = model,
+        zones = spec.mapIndexed { index, (label, _) ->
+            IntensityZone(number = index + 1, label = label, lowerBpm = if (index == 0) 0 else starts[index - 1])
+        },
+    )
 
     private inline fun build(model: ZoneModel, spec: List<Pair<String, Double>>, bpmAt: (Double) -> Double): ZoneSet = ZoneSet(
         model = model,

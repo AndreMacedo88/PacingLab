@@ -28,11 +28,13 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -55,6 +57,8 @@ import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import app.pacinglab.core.designsystem.theme.zoneColors
 import app.pacinglab.core.model.PhysiologyEntry
+import app.pacinglab.core.model.ZoneBoundaries
+import app.pacinglab.core.model.ZoneModel
 import app.pacinglab.core.model.ZoneSet
 import app.pacinglab.feature.settings.R
 import java.time.LocalDate
@@ -65,7 +69,14 @@ import java.util.Locale
 @Composable
 fun PhysiologyRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: PhysiologyViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    PhysiologyScreen(state = state, onBack = onBack, onSave = viewModel::save, onDelete = viewModel::delete, modifier = modifier)
+    PhysiologyScreen(
+        state = state,
+        onBack = onBack,
+        onSave = viewModel::save,
+        onDelete = viewModel::delete,
+        modifier = modifier,
+        onSetZones = viewModel::setZones,
+    )
 }
 
 /** Which entry the editor shows: none, a new one, or the entry starting on a given day. */
@@ -80,6 +91,7 @@ fun PhysiologyScreen(
     onSave: (PhysiologyEntry, LocalDate?) -> Unit,
     onDelete: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
+    onSetZones: (ZoneModel, List<Int>?) -> Unit = { _, _ -> },
 ) {
     var editor by rememberSaveable { mutableLongStateOf(EDITOR_CLOSED) }
     val loaded = state as? PhysiologyUiState.Loaded
@@ -114,6 +126,7 @@ fun PhysiologyScreen(
                 state = state,
                 onAdd = { editor = EDITOR_NEW },
                 onEdit = { editor = it.effectiveFrom.toEpochDay() },
+                onSetZones = onSetZones,
                 contentPadding = padding,
             )
         }
@@ -149,6 +162,7 @@ private fun PhysiologyContent(
     state: PhysiologyUiState.Loaded,
     onAdd: () -> Unit,
     onEdit: (PhysiologyEntry) -> Unit,
+    onSetZones: (ZoneModel, List<Int>?) -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
@@ -164,7 +178,7 @@ private fun PhysiologyContent(
             return@LazyColumn
         }
         item { CurrentCard(current, estimatedThreshold = state.estimatedThreshold) }
-        item { ZonesCard(current) }
+        item { ZonesCard(current, state.boundaries, onSetZones) }
         if (state.entries.isNotEmpty()) {
             item { SectionHeading(stringResource(R.string.physiology_history)) }
             items(state.entries, key = { it.effectiveFrom.toEpochDay() }) { entry ->
@@ -248,9 +262,27 @@ private fun Value(label: String, value: String, note: String?, modifier: Modifie
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ZonesCard(current: CurrentPhysiology, modifier: Modifier = Modifier) {
+private fun ZonesCard(
+    current: CurrentPhysiology,
+    boundaries: ZoneBoundaries,
+    onSetZones: (ZoneModel, List<Int>?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var selected by rememberSaveable { mutableIntStateOf(0) }
+    var editing by rememberSaveable { mutableStateOf(false) }
     val zones = if (selected == 0) current.fiveZones else current.threeZones
+    val custom = if (selected == 0) boundaries.five != null else boundaries.polarized != null
+    if (editing) {
+        ZoneBoundariesDialog(
+            zones = zones,
+            custom = custom,
+            onSave = {
+                onSetZones(zones.model, it)
+                editing = false
+            },
+            onDismiss = { editing = false },
+        )
+    }
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -269,17 +301,18 @@ private fun ZonesCard(current: CurrentPhysiology, modifier: Modifier = Modifier)
             ZoneTable(zones)
             Text(
                 text = stringResource(
-                    if (selected ==
-                        0
-                    ) {
-                        R.string.physiology_zones_five_caption
-                    } else {
-                        R.string.physiology_zones_three_caption
+                    when {
+                        custom -> R.string.zones_custom_caption
+                        selected == 0 -> R.string.physiology_zones_five_caption
+                        else -> R.string.physiology_zones_three_caption
                     },
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            TextButton(onClick = { editing = true }) {
+                Text(stringResource(if (custom) R.string.zones_edit_own else R.string.zones_set_own))
+            }
         }
     }
 }
