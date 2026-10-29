@@ -5,12 +5,10 @@
     <!-- Basemap tiles are downloaded. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- MapLibre declares these for its location component, which PacingLab does not use. -->
+    <!-- MapLibre declares these for its location component, which PacingLab does not use. Approximate
+         location is declared by core/data for the weather card. -->
     <uses-permission
         android:name="android.permission.ACCESS_FINE_LOCATION"
-        tools:node="remove" />
-    <uses-permission
-        android:name="android.permission.ACCESS_COARSE_LOCATION"
         tools:node="remove" />
     <uses-permission
         android:name="android.permission.ACCESS_WIFI_STATE"

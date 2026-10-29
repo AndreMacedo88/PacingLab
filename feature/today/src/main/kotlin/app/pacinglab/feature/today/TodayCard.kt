@@ -26,6 +26,7 @@ enum class TodayCard(
     FORM("form", false, R.string.tile_form, R.string.card_form),
     WEEK_LOAD("week", false, R.string.tile_week, R.string.card_week),
     LAST_WORKOUT("workout", true, R.string.workout_title, R.string.card_workout),
+    WEATHER("weather", true, R.string.weather_title, R.string.card_weather),
     SLEEPING_HR("sleeping_hr", false, R.string.tile_sleeping_hr, R.string.card_sleeping_hr, hiddenByDefault = true),
     VO2MAX("vo2max", false, R.string.tile_vo2max, R.string.card_vo2max, hiddenByDefault = true),
     RACE_5K("race_5k", false, R.string.tile_race_5k, R.string.card_race_5k, hiddenByDefault = true),

@@ -29,14 +29,21 @@ including the Limited Use requirements.
 
 ## Network requests
 
-Besides the Google Health API when you use it, PacingLab only downloads map tiles from
-[OpenFreeMap](https://openfreemap.org) to draw route maps. These requests reveal the map area being
-shown, as any map does, but contain none of your health data.
+Besides the Google Health API when you use it, PacingLab makes two kinds of requests, neither of which
+contains health data:
+
+- Map tiles from [OpenFreeMap](https://openfreemap.org) to draw route maps. These requests reveal the
+  map area being shown, as any map does.
+- Weather forecasts from [Open-Meteo](https://open-meteo.com), only if you show the weather card and
+  allow approximate location. The request contains your approximate position rounded to two decimal
+  places (about 1 km) and nothing else. Your location is not stored, apart from the last forecast,
+  which is kept on the phone.
 
 ## Your control
 
 - You can review or revoke PacingLab's access at any time in Health Connect's settings, and for the
-  Google Health API in your Google account's security settings.
+  Google Health API in your Google account's security settings. Location access can be revoked in
+  Android's app settings.
 - Settings > Back up your entries saves what you entered by hand (heart rate values, tests, ratings
   and settings) to a file you choose; PacingLab never sends it anywhere.
 - Uninstalling PacingLab deletes everything it stored on your phone.

@@ -33,6 +33,8 @@ import app.pacinglab.core.data.repository.Vo2MaxHistory
 import app.pacinglab.core.data.repository.WellnessRepository
 import app.pacinglab.core.data.repository.WorkoutRepository
 import app.pacinglab.core.data.sync.SyncScheduler
+import app.pacinglab.core.data.weather.WeatherRepository
+import app.pacinglab.core.data.weather.WeatherState
 import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.SessionKind
@@ -99,6 +101,7 @@ data class TodayExtras(
     val vo2max: Vo2MaxHistory? = null,
     val running: RunningPerformance? = null,
     val efficiency: EfficiencyHistory? = null,
+    val weather: WeatherState? = null,
 )
 
 sealed interface TodayUiState {
@@ -157,6 +160,7 @@ class TodayViewModel @Inject constructor(
     private val dashboards: DashboardRepository,
     private val dayHeartRate: DayHeartRateRepository,
     private val performance: PerformanceRepository,
+    private val weather: WeatherRepository,
 ) : ViewModel() {
     private val trainingAnchors = trainingLoad.anchors
 
@@ -166,19 +170,21 @@ class TodayViewModel @Inject constructor(
     private val extras = cards.map { placed -> placed.filter { it.visible }.mapNotNull { TodayCard.of(it.id) }.toSet() }
         .distinctUntilChanged()
         .flatMapLatest { visible ->
-            combine(
-                if (TodayCard.HEART_RATE in visible) dayHeartRate.observeToday() else flowOf(null),
-                trainingAnchors,
+            val performanceCards = combine(
                 if (TodayCard.VO2MAX in visible) performance.observeVo2Max() else flowOf(null),
                 if (TodayCard.RACE_5K in visible) performance.observeRunning() else flowOf(null),
                 if (TodayCard.EFFICIENCY in visible) performance.observeEfficiency() else flowOf(null),
-            ) { heartRate, anchors, vo2max, running, efficiency ->
-                TodayExtras(
+            ) { vo2max, running, efficiency -> TodayExtras(vo2max = vo2max, running = running, efficiency = efficiency) }
+            combine(
+                if (TodayCard.HEART_RATE in visible) dayHeartRate.observeToday() else flowOf(null),
+                trainingAnchors,
+                performanceCards,
+                if (TodayCard.WEATHER in visible) weather.observe() else flowOf(null),
+            ) { heartRate, anchors, fromPerformance, weatherNow ->
+                fromPerformance.copy(
                     heartRate = heartRate,
                     heartRateZones = anchors.at(LocalDate.now(clock))?.let { Zones.of(ZoneModel.LTHR_FIVE, it) },
-                    vo2max = vo2max,
-                    running = running,
-                    efficiency = efficiency,
+                    weather = weatherNow,
                 )
             }
         }
@@ -215,7 +221,13 @@ class TodayViewModel @Inject constructor(
     val refreshing: StateFlow<Boolean> =
         scheduler.updating.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)
 
-    fun refresh() = scheduler.syncNow()
+    fun refresh() {
+        scheduler.syncNow()
+        weather.refresh()
+    }
+
+    /** Looks up the weather again, for instance once the athlete allowed location. */
+    fun refreshWeather() = weather.refresh()
 
     /** Records how rested the athlete feels today, or forgets the answer when they pick it again. */
     fun rate(rating: Int) {

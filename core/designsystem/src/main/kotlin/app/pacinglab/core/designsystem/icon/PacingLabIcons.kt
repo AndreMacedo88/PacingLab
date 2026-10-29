@@ -107,6 +107,10 @@ object PacingLabIcons {
 
     @DrawableRes val WeatherSun = R.drawable.ic_sunny
 
+    @DrawableRes val WeatherClearNight = R.drawable.ic_clear_night
+
+    @DrawableRes val WeatherPartlyCloudyNight = R.drawable.ic_partly_cloudy_night
+
     @DrawableRes val WeatherSnow = R.drawable.ic_ac_unit
 
     @DrawableRes val WeatherStorm = R.drawable.ic_thunderstorm

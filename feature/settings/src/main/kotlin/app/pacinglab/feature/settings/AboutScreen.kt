@@ -77,6 +77,11 @@ fun AboutScreen(onBack: () -> Unit, modifier: Modifier = Modifier, version: Stri
                 })
             }
             item {
+                Link(stringResource(R.string.about_weather), stringResource(R.string.about_weather_summary), onClick = {
+                    uris.openUri(OPEN_METEO_URL)
+                })
+            }
+            item {
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.about_libraries)) },
                     supportingContent = { Text(stringResource(R.string.about_libraries_summary)) },
@@ -99,3 +104,4 @@ private fun Link(title: String, summary: String, onClick: () -> Unit, modifier: 
 private const val SOURCE_URL = "https://github.com/AndreMacedo88/PacingLab"
 private const val PRIVACY_URL = "https://andremacedo88.github.io/PacingLab/privacy.html"
 private const val OSM_COPYRIGHT_URL = "https://www.openstreetmap.org/copyright"
+private const val OPEN_METEO_URL = "https://open-meteo.com"

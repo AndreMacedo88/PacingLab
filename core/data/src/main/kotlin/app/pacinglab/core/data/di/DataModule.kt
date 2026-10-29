@@ -7,6 +7,12 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import app.pacinglab.core.data.sync.AppVisibility
 import app.pacinglab.core.data.sync.ProcessAppVisibility
+import app.pacinglab.core.data.weather.ApproximateLocation
+import app.pacinglab.core.data.weather.FileWeatherCache
+import app.pacinglab.core.data.weather.OpenMeteoService
+import app.pacinglab.core.data.weather.PlatformApproximateLocation
+import app.pacinglab.core.data.weather.WeatherCache
+import app.pacinglab.core.data.weather.WeatherService
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -23,6 +29,15 @@ import javax.inject.Singleton
 interface DataBindings {
     @Binds
     fun visibility(visibility: ProcessAppVisibility): AppVisibility
+
+    @Binds
+    fun weather(service: OpenMeteoService): WeatherService
+
+    @Binds
+    fun location(location: PlatformApproximateLocation): ApproximateLocation
+
+    @Binds
+    fun weatherCache(cache: FileWeatherCache): WeatherCache
 }
 
 @Module

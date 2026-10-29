@@ -1,6 +1,12 @@
 package app.pacinglab.feature.today
 
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,12 +44,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.NightlyMetric
@@ -103,6 +111,16 @@ fun TodayRoute(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var locationRefused by rememberSaveable { mutableStateOf(false) }
+    val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) viewModel.refreshWeather() else locationRefused = true
+    }
+    // Location may have been allowed in the system settings meanwhile.
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshWeather()
+        onPauseOrDispose {}
+    }
     TodayScreen(
         state = state,
         onOpen = onOpen,
@@ -114,6 +132,19 @@ fun TodayRoute(
         onRateGym = viewModel::rateGym,
         onArrange = viewModel::arrange,
         onResetArrangement = viewModel::resetArrangement,
+        weatherAccess = WeatherAccess(
+            locationRefused = locationRefused,
+            onAllowLocation = {
+                if (locationRefused) {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
+                    )
+                } else {
+                    askLocation.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+                }
+            },
+            onRetry = viewModel::refreshWeather,
+        ),
     )
 }
 
@@ -138,6 +169,7 @@ fun TodayScreen(
     onArrange: (List<PlacedCard>) -> Unit = {},
     onResetArrangement: () -> Unit = {},
     initiallyEditing: Boolean = false,
+    weatherAccess: WeatherAccess = WeatherAccess(),
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var editing by rememberSaveable { mutableStateOf(initiallyEditing) }
@@ -205,7 +237,7 @@ fun TodayScreen(
                     for (row in state.rows()) {
                         item(key = row.joinToString("+") { it.id }) {
                             if (row.size == 1 && row.single().wide) {
-                                WideCard(row.single(), state, onOpen, onRate, onRateGym, locale, zoneId)
+                                WideCard(row.single(), state, onOpen, onRate, onRateGym, weatherAccess, locale, zoneId)
                             } else {
                                 TileRow {
                                     row.forEach { TileCard(it, state, onOpen, Modifier.weight(1f)) }
@@ -264,6 +296,7 @@ private fun WideCard(
     onOpen: (TodayDestination) -> Unit,
     onRate: (Int) -> Unit,
     onRateGym: (List<String>, Int) -> Unit,
+    weatherAccess: WeatherAccess,
     locale: Locale,
     zoneId: ZoneId,
 ) {
@@ -293,6 +326,8 @@ private fun WideCard(
         TodayCard.LAST_WORKOUT -> state.lastWorkout?.let { workout ->
             LastWorkoutCard(workout, state.today, locale, zoneId, onClick = { onOpen(TodayDestination.Session(workout.sessionId)) })
         }
+
+        TodayCard.WEATHER -> WeatherCard(state.extras.weather, locale, weatherAccess)
 
         else -> Unit
     }

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Weather for where the phone roughly is; asked for only when the weather card is shown. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Forecasts are downloaded from Open-Meteo. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+</manifest>
