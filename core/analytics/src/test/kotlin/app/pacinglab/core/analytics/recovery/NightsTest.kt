@@ -1,5 +1,6 @@
 package app.pacinglab.core.analytics.recovery
 
+import app.pacinglab.core.model.DailyVitals
 import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
 import app.pacinglab.core.model.SleepSession
@@ -7,7 +8,9 @@ import app.pacinglab.core.model.SleepStage
 import app.pacinglab.core.model.SleepStageType
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import org.junit.jupiter.api.Test
@@ -157,5 +160,30 @@ class NightsTest {
     fun `the median of an even count is the mean of the middle pair`() {
         assertThat(Nights.median(listOf(63.0, 64.1, 60.0, 70.0))).isEqualTo(63.55)
         assertThat(Nights.median(emptyList())).isNull()
+    }
+
+    @Test
+    fun `the watch app's own values replace the HRV median, fill gaps and add SpO2 and skin temperature`() {
+        val partial = sleep("p", "2026-10-22T20:30:00Z", "2026-10-23T04:30:00Z", SleepStageType.LIGHT to 480)
+        val complete = sleep("c", "2026-10-23T20:30:00Z", "2026-10-24T04:30:00Z", SleepStageType.LIGHT to 480)
+        val hrv = hrv("2026-10-22T21:00:00Z", 60.0, 62.0, 64.0, 66.0, 68.0, 70.0) +
+            hrv("2026-10-23T20:30:00Z", *DoubleArray(96) { 50.0 })
+        val nights = Nights.of(listOf(partial, complete), hrv, emptyList(), emptyList(), cest)
+        val vitals = listOf(
+            DailyVitals(LocalDate.of(2026, 10, 23), hrvMs = 64.8, restingHr = 55.0, oxygenSaturation = 96.1),
+            DailyVitals(LocalDate.of(2026, 10, 25), hrvMs = 80.0),
+            DailyVitals(LocalDate.of(2026, 10, 24), skinTemperature = 33.1, skinTemperatureBaseline = 33.5),
+        )
+
+        val (first, second) = Nights.withVitals(nights, vitals)
+
+        assertThat(nights.first().hrvPartial).isTrue()
+        assertThat(first.hrvMs).isEqualTo(64.8)
+        assertThat(first.hrvPartial).isFalse()
+        assertThat(first.restingHr).isEqualTo(55.0)
+        assertThat(first.oxygenSaturation).isEqualTo(96.1)
+        assertThat(second.hrvMs).isEqualTo(50.0)
+        assertThat(second.skinTemperature!!).isCloseTo(-0.4, 1e-9)
+        assertThat(second.oxygenSaturation).isNull()
     }
 }

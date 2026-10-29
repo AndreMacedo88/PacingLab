@@ -35,6 +35,14 @@ class ChartColors(
     val outOfRange: Color,
     /** Resting heart rate in mini charts: purple, apart from the orange of out-of-range values. */
     val restingHr: Color,
+    /**
+     * SpO2 (raspberry) and skin temperature (cyan) in mini charts. Against the out-of-range orange they
+     * keep at least 13.2 (light) and 15.8 (dark) in OKLab under simulated protanopia and deuteranopia,
+     * and 4:1 contrast against the card. Cyan is the closest to HRV blue (10.8 light, 12.9 dark in
+     * normal vision); the two never share a chart and every chart carries its name.
+     */
+    val oxygenSaturation: Color,
+    val skinTemperature: Color,
 ) {
     companion object {
         val Light = ChartColors(
@@ -50,6 +58,8 @@ class ChartColors(
             awake = Color(0xFFEB6834),
             outOfRange = Color(0xFFD9480F),
             restingHr = Color(0xFF6250D6),
+            oxygenSaturation = Color(0xFFB5285C),
+            skinTemperature = Color(0xFF0B8299),
         )
 
         val Dark = ChartColors(
@@ -65,6 +75,8 @@ class ChartColors(
             awake = Color(0xFFD95926),
             outOfRange = Color(0xFFFF922B),
             restingHr = Color(0xFF9085E9),
+            oxygenSaturation = Color(0xFFE86A97),
+            skinTemperature = Color(0xFF2FB0CC),
         )
     }
 }

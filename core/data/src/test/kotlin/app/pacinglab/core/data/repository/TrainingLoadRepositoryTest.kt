@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.pacinglab.core.analytics.load.HeartRateLoad
 import app.pacinglab.core.data.testPreferences
 import app.pacinglab.core.database.PacingLabDatabase
+import app.pacinglab.core.database.store.DailyVitalsStore
 import app.pacinglab.core.database.store.EffortStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
@@ -68,7 +69,7 @@ class TrainingLoadRepositoryTest {
             TrainingLoadRepository(
                 workouts,
                 physiology,
-                NightRepository(measurements, preferences, clock),
+                NightRepository(measurements, DailyVitalsStore(database), preferences, clock),
                 preferences,
                 EffortRepository(EffortStore(database)),
                 clock,

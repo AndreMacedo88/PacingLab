@@ -4,6 +4,8 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -47,6 +50,7 @@ import androidx.core.content.FileProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.pacinglab.core.data.repository.GoogleHealthProblem
 import app.pacinglab.core.data.sync.SyncStatus
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.tabularNumbers
@@ -66,6 +70,16 @@ fun DataSourcesRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewMode
     val context = LocalContext.current
     val contract = remember(viewModel) { viewModel.permissionContract }
     val permissionLauncher = rememberLauncherForActivityResult(contract) { viewModel.onPermissionsResult() }
+    val consent by viewModel.consent.collectAsStateWithLifecycle()
+    val consentLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+        viewModel.onConsentResult(result.resultCode, result.data)
+    }
+    LaunchedEffect(consent) {
+        consent?.let {
+            viewModel.consentStarted()
+            consentLauncher.launch(IntentSenderRequest.Builder(it).build())
+        }
+    }
     // Permissions can change in Health Connect's own settings while the app is in the background.
     LifecycleResumeEffect(viewModel) {
         viewModel.refresh()
@@ -90,6 +104,8 @@ fun DataSourcesRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewMode
         onExport = viewModel::exportRawSessions,
         onShareFile = context::shareJson,
         modifier = modifier,
+        onConnectGoogleHealth = viewModel::connectGoogleHealth,
+        onDisconnectGoogleHealth = viewModel::disconnectGoogleHealth,
     )
 }
 
@@ -107,6 +123,8 @@ fun DataSourcesScreen(
     onShareFile: (File) -> Unit,
     modifier: Modifier = Modifier,
     zoneId: ZoneId = ZoneId.systemDefault(),
+    onConnectGoogleHealth: () -> Unit = {},
+    onDisconnectGoogleHealth: () -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier,
@@ -131,6 +149,7 @@ fun DataSourcesScreen(
             }
             if (state.availability == HealthConnectAvailability.AVAILABLE) {
                 item { SyncCard(state.sync, onSyncNow, zoneId) }
+                item { GoogleHealthCard(state.googleHealth, onConnectGoogleHealth, onDisconnectGoogleHealth, zoneId) }
                 item { ProbeCard(state.probe, onRunProbe, onShareFile) }
                 val probe = state.probe
                 if (probe is ProbeState.Finished) {
@@ -263,6 +282,70 @@ private fun SyncCard(sync: SyncCardState, onSyncNow: () -> Unit, zoneId: ZoneId)
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         OutlinedButton(onClick = onSyncNow, enabled = sync.status == SyncStatus.Idle) { Text(stringResource(R.string.sync_now)) }
+    }
+}
+
+/** The Google Health API as a secondary source: what it adds, whether it is connected and how the last read went. */
+@Composable
+private fun GoogleHealthCard(card: GoogleHealthCardState, onConnect: () -> Unit, onDisconnect: () -> Unit, zoneId: ZoneId) {
+    val locale = LocalConfiguration.current.locales[0]
+    val time = remember(locale, zoneId) { DateTimeFormatter.ofPattern("d MMM, HH:mm", locale).withZone(zoneId) }
+    val day = remember(locale) { DateTimeFormatter.ofPattern("d MMM", locale) }
+    val status = card.status
+    SectionCard(title = stringResource(R.string.google_health_title)) {
+        Text(
+            stringResource(R.string.google_health_description),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        when {
+            card.connecting -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+
+            !status.connected -> card.failure?.let {
+                StatusLine(PacingLabIcons.Warning, MaterialTheme.colorScheme.tertiary, stringResource(R.string.google_health_failed, it))
+            }
+
+            status.problem == GoogleHealthProblem.SIGN_IN_NEEDED -> StatusLine(
+                PacingLabIcons.Warning,
+                MaterialTheme.colorScheme.tertiary,
+                stringResource(R.string.google_health_sign_in_needed),
+            )
+
+            status.problem == GoogleHealthProblem.UNREACHABLE -> StatusLine(
+                PacingLabIcons.Schedule,
+                MaterialTheme.colorScheme.onSurfaceVariant,
+                stringResource(R.string.google_health_unreachable),
+            )
+
+            status.lastSync != null -> StatusLine(
+                PacingLabIcons.CheckCircle,
+                MaterialTheme.colorScheme.primary,
+                stringResource(R.string.google_health_last, time.format(status.lastSync)),
+            )
+
+            else -> StatusLine(
+                PacingLabIcons.Sync,
+                MaterialTheme.colorScheme.onSurfaceVariant,
+                stringResource(R.string.google_health_waiting),
+            )
+        }
+        if (status.connected && status.newest != null) {
+            Text(
+                pluralStringResource(R.plurals.google_health_days, status.days, status.days, day.format(status.newest)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (!status.connected || status.problem == GoogleHealthProblem.SIGN_IN_NEEDED) {
+                Button(onClick = onConnect, enabled = !card.connecting) {
+                    Text(stringResource(if (status.connected) R.string.google_health_sign_in else R.string.google_health_connect))
+                }
+            }
+            if (status.connected) {
+                OutlinedButton(onClick = onDisconnect) { Text(stringResource(R.string.google_health_disconnect)) }
+            }
+        }
     }
 }
 

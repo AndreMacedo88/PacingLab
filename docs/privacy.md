@@ -1,6 +1,6 @@
 # PacingLab privacy policy
 
-Last updated: 28 October 2026
+Last updated: 29 October 2026
 
 PacingLab is a training analysis app for Android. This policy explains what data it uses and where that
 data goes.
@@ -11,8 +11,9 @@ With your permission, PacingLab reads health and fitness data:
 
 - From Health Connect on your phone: workouts, heart rate, speed, distance, routes, heart rate
   variability, resting heart rate, breathing rate, oxygen saturation, VO2max, weight and sleep.
-- From the Google Health API, if you sign in with your Google account: the same kinds of data recorded
-  by your Fitbit device, read only.
+- From the Google Health API, only if you connect it in Settings > Data sources and sign in with your
+  Google account: the nightly HRV, oxygen saturation, skin temperature, breathing rate and resting
+  heart rate that the Fitbit app derives from your device, read only.
 
 PacingLab uses this data only to show you analyses of your own training, recovery and sleep.
 

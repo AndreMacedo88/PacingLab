@@ -5,11 +5,13 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
+import app.pacinglab.core.database.store.DailyVitalsStore
 import app.pacinglab.core.database.store.EffortStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
 import app.pacinglab.core.database.store.WellnessStore
 import app.pacinglab.core.database.store.WorkoutStore
+import app.pacinglab.core.model.DailyVitals
 import app.pacinglab.core.model.PhysiologyEntry
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Workout
@@ -154,6 +156,29 @@ class MigrationTest {
 
         assertThat(rested).isEqualTo(mapOf(LocalDate.ofEpochDay(20748) to 4))
         assertThat(rated).isEqualTo(mapOf("gym" to 6))
+    }
+
+    @Test
+    fun `version 8 gym ratings survive the upgrade and nightly values merge into the new table`() = runTest {
+        val file = databaseFile()
+        createFromSchema(file, version = 8)
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("INSERT INTO efforts (workout_id, effort) VALUES ('gym', 7)")
+        }
+
+        val database = Room.databaseBuilder(context, PacingLabDatabase::class.java, file.path).setDriver(AndroidSQLiteDriver()).build()
+        val rated = EffortStore(database).observe().first()
+        val vitals = DailyVitalsStore(database)
+        val day = LocalDate.of(2026, 10, 23)
+        vitals.merge(listOf(DailyVitals(day, hrvMs = 64.8)))
+        vitals.merge(listOf(DailyVitals(day, oxygenSaturation = 96.1), DailyVitals(day.plusDays(1), hrvMs = 63.0)))
+        val stored = vitals.observe().first()
+        database.close()
+
+        assertThat(rated).isEqualTo(mapOf("gym" to 7))
+        assertThat(stored).isEqualTo(
+            listOf(DailyVitals(day, hrvMs = 64.8, oxygenSaturation = 96.1), DailyVitals(day.plusDays(1), hrvMs = 63.0)),
+        )
     }
 
     private fun databaseFile(): File = context.getDatabasePath("migration-test.db").apply {

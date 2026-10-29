@@ -206,7 +206,7 @@
     <string name="about_title">About</string>
     <string name="about_app">PacingLab</string>
     <string name="about_version">Version %1$s</string>
-    <string name="about_purpose">Training analysis from your watch\'s data in Health Connect, with published methods. Everything is computed and kept on this phone; it downloads only map tiles and, for the weather card, forecasts.</string>
+    <string name="about_purpose">Training analysis from your watch\'s data in Health Connect, with published methods. Everything is computed and kept on this phone; it downloads only map tiles, forecasts for the weather card and, if you connect it, your nightly values from the Google Health API.</string>
     <string name="about_source">Source code</string>
     <string name="about_licence">Free software under the Apache License 2.0, on GitHub</string>
     <string name="about_privacy">Privacy policy</string>
@@ -216,7 +216,7 @@
     <string name="about_weather">Weather</string>
     <string name="about_weather_summary">Forecasts by Open-Meteo.com, under CC BY 4.0</string>
     <string name="about_libraries">Built with</string>
-    <string name="about_libraries_summary">Jetpack Compose, Room, Hilt, WorkManager, DataStore and the Health Connect client (Apache License 2.0); MapLibre Native (BSD 2-clause)</string>
+    <string name="about_libraries_summary">Jetpack Compose, Room, Hilt, WorkManager, DataStore and the Health Connect client (Apache License 2.0); MapLibre Native (BSD 2-clause); Google Play services for signing in to Google Health</string>
     <string name="zones_set_own">Set your own boundaries</string>
     <string name="zones_edit_own">Change your boundaries</string>
     <string name="zones_custom_caption">Boundaries you set, used for every session and chart. Change them back to automatic to follow your threshold heart rate again.</string>
@@ -228,4 +228,18 @@
     <string name="zones_save">Save</string>
     <string name="zones_automatic">Automatic</string>
     <string name="zones_cancel">Cancel</string>
+    <string name="google_health_title">Google Health API</string>
+    <string name="google_health_description">Adds Fitbit\'s own nightly HRV, SpO2 and skin temperature, which Health Connect lacks or has only in part. Read only, straight from Google to this phone, with your Google account.</string>
+    <string name="google_health_connect">Connect</string>
+    <string name="google_health_sign_in">Sign in again</string>
+    <string name="google_health_disconnect">Disconnect</string>
+    <string name="google_health_failed">Could not connect: %1$s</string>
+    <string name="google_health_sign_in_needed">Access has to be confirmed again</string>
+    <string name="google_health_unreachable">Google could not be reached; the next sync tries again</string>
+    <string name="google_health_last">Last read %1$s</string>
+    <string name="google_health_waiting">Connected, waiting for the first read</string>
+    <plurals name="google_health_days">
+        <item quantity="one">%1$d morning with values, newest %2$s</item>
+        <item quantity="other">%1$d mornings with values, newest %2$s</item>
+    </plurals>
 </resources>

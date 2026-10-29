@@ -577,11 +577,14 @@ private fun BodyCard(nights: List<Night>, night: Night, onOpenMetric: (NightlyMe
     val labels = weekdayInitials(days, locale)
     val byDate = nights.associateBy { it.date }
     SleepCard(stringResource(R.string.sleep_body_title), stringResource(R.string.sleep_body_info), modifier) {
-        for ((metric, color) in listOf(
+        val rows = listOf(
             NightlyMetric.HRV to colors.series[0],
             NightlyMetric.RESTING_HR to colors.restingHr,
             NightlyMetric.BREATHING_RATE to colors.series[2],
-        )) {
+            NightlyMetric.OXYGEN_SATURATION to colors.oxygenSaturation,
+            NightlyMetric.SKIN_TEMPERATURE to colors.skinTemperature,
+        ).filter { (metric, _) -> metric !in SECONDARY_ONLY || days.any { day -> byDate[day]?.let(metric.value) != null } }
+        for ((metric, color) in rows) {
             val ranges = remember(nights, night, metric) { days.map { NightlyRange.of(nights, metric, it) } }
             val value = metric.value(night)
             val range = ranges.last()
@@ -600,7 +603,7 @@ private fun BodyCard(nights: List<Night>, night: Night, onOpenMetric: (NightlyMe
 
                     else -> null
                 },
-                values = days.map { byDate[it]?.let(metric.value) },
+                values = days.map { day -> byDate[day]?.let(metric.value)?.let(metric::rounded) },
                 bands = ranges.map { it?.let { r -> r.low..r.high } },
                 color = color,
                 labels = labels,
@@ -637,15 +640,21 @@ private fun BodyRow(
     }
 }
 
+/** Measures only the Google Health API supplies; their rows show once a recent night has a value. */
+private val SECONDARY_ONLY = setOf(NightlyMetric.OXYGEN_SATURATION, NightlyMetric.SKIN_TEMPERATURE)
+
 private fun NightlyMetric.label(): Int = when (this) {
     NightlyMetric.HRV -> R.string.sleep_hrv
     NightlyMetric.RESTING_HR -> R.string.sleep_resting_hr
     NightlyMetric.BREATHING_RATE -> R.string.sleep_breathing
     NightlyMetric.SLEEPING_HR -> R.string.sleep_heart_rate_lowest
+    NightlyMetric.OXYGEN_SATURATION -> R.string.sleep_oxygen
+    NightlyMetric.SKIN_TEMPERATURE -> R.string.sleep_skin_temperature
 }
 
 private fun NightlyMetric.number(value: Double, locale: Locale): String = when (this) {
-    NightlyMetric.BREATHING_RATE -> "%.1f".format(locale, value)
+    NightlyMetric.BREATHING_RATE, NightlyMetric.OXYGEN_SATURATION -> "%.1f".format(locale, value)
+    NightlyMetric.SKIN_TEMPERATURE -> "%+.1f".format(locale, value)
     else -> value.roundToInt().toString()
 }
 
@@ -654,6 +663,8 @@ private fun NightlyMetric.formatted(value: Double, locale: Locale): String = whe
     NightlyMetric.HRV -> stringResource(R.string.unit_ms, value.roundToInt())
     NightlyMetric.RESTING_HR, NightlyMetric.SLEEPING_HR -> stringResource(R.string.unit_bpm, value.roundToInt())
     NightlyMetric.BREATHING_RATE -> stringResource(R.string.unit_breaths, number(value, locale))
+    NightlyMetric.OXYGEN_SATURATION -> stringResource(R.string.unit_percent, number(value, locale))
+    NightlyMetric.SKIN_TEMPERATURE -> stringResource(R.string.unit_celsius, number(value, locale))
 }
 
 /** Key measures over the last week or month, ending with the selected night. */

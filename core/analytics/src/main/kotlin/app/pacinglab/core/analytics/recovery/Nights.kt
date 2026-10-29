@@ -1,5 +1,6 @@
 package app.pacinglab.core.analytics.recovery
 
+import app.pacinglab.core.model.DailyVitals
 import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.SleepSession
 import app.pacinglab.core.model.SleepStage
@@ -15,9 +16,10 @@ import java.time.ZoneOffset
  *
  * @property asleepMillis time asleep (light, deep, REM or unspecified sleep); the whole session when
  *   it has no stages.
- * @property hrvMs heart rate variability (RMSSD) of the night: the median of the watch's five-minute
- *   values during the sleep, which is how Fitbit reports its nightly HRV. Null when the values cover
- *   less than [Nights.MIN_HRV_COVERAGE] of the time asleep.
+ * @property hrvMs heart rate variability (RMSSD) of the night: the watch app's own nightly value when the
+ *   Google Health API supplies it, else the median of the watch's five-minute values during the sleep,
+ *   which is how Fitbit reports its nightly HRV. Null when the values cover less than
+ *   [Nights.MIN_HRV_COVERAGE] of the time asleep and the app's value is missing.
  * @property hrvPartial the watch shared five-minute HRV for only part of the night, too little for a
  *   nightly value.
  * @property restingHr resting heart rate the watch derived from the sleep.
@@ -25,6 +27,9 @@ import java.time.ZoneOffset
  * @property zone where the night was spent, for clock times.
  * @property stages the stages as the watch recorded them, in time order.
  * @property sleepingHeartRate heart rate during the sleep; null when it was not recorded.
+ * @property oxygenSaturation average SpO2 of the night in per cent, from the Google Health API.
+ * @property skinTemperature skin temperature relative to the watch app's baseline in degrees Celsius,
+ *   from the Google Health API.
  */
 data class Night(
     val date: LocalDate,
@@ -40,6 +45,8 @@ data class Night(
     val stages: List<SleepStage> = emptyList(),
     val sleepingHeartRate: SleepingHeartRate? = null,
     val hrvPartial: Boolean = false,
+    val oxygenSaturation: Double? = null,
+    val skinTemperature: Double? = null,
 ) {
     /** Time in bed: from the start of the sleep record to its end. */
     val inBedMillis: Long get() = Duration.between(start, end).toMillis()
@@ -131,6 +138,27 @@ object Nights {
                 )
             }
             .sortedBy { it.date }
+    }
+
+    /**
+     * [nights] with the watch app's own values of the same mornings: its HRV replaces the median of the
+     * 5-minute values (so both apps show the same number, partial nights included), its resting heart
+     * rate and breathing rate fill gaps, and SpO2 and skin temperature are added.
+     */
+    fun withVitals(nights: List<Night>, vitals: List<DailyVitals>): List<Night> {
+        if (vitals.isEmpty()) return nights
+        val byDate = vitals.associateBy { it.date }
+        return nights.map { night ->
+            val day = byDate[night.date] ?: return@map night
+            night.copy(
+                hrvMs = day.hrvMs ?: night.hrvMs,
+                hrvPartial = night.hrvPartial && day.hrvMs == null,
+                restingHr = night.restingHr ?: day.restingHr,
+                respiratoryRate = night.respiratoryRate ?: day.breathingRate,
+                oxygenSaturation = day.oxygenSaturation,
+                skinTemperature = day.skinTemperatureDeviation,
+            )
+        }
     }
 
     private fun asleep(sleep: SleepSession): Long = if (sleep.stages.isEmpty()) {

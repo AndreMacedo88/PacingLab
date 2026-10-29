@@ -260,10 +260,20 @@ private fun TodayUiState.Loaded.rows(): List<List<TodayCard>> {
     val shown = cards.filter { it.visible }.mapNotNull { TodayCard.of(it.id) }.filter { card ->
         when (card) {
             TodayCard.GYM_EFFORT -> gymToRate != null
+
             TodayCard.LAST_WORKOUT -> lastWorkout != null
+
             TodayCard.VO2MAX -> extras.vo2max?.trend != null
+
             TodayCard.RACE_5K -> extras.running?.predictions?.any { it.fromVo2Max != null || it.fromCriticalSpeed != null } == true
+
             TodayCard.EFFICIENCY -> !extras.efficiency?.trend.isNullOrEmpty()
+
+            // Only the Google Health API supplies these.
+            TodayCard.OXYGEN_SATURATION -> nights.any { it.oxygenSaturation != null }
+
+            TodayCard.SKIN_TEMPERATURE -> nights.any { it.skinTemperature != null }
+
             else -> true
         }
     }
@@ -370,6 +380,20 @@ private fun TileCard(card: TodayCard, state: TodayUiState.Loaded, onOpen: (Today
         TodayCard.RACE_5K -> RaceTile(state, onClick = { onOpen(TodayDestination.Performance) }, modifier)
 
         TodayCard.EFFICIENCY -> EfficiencyTile(state, onClick = { onOpen(TodayDestination.Performance) }, modifier)
+
+        TodayCard.OXYGEN_SATURATION -> NightlyTile(
+            state,
+            NightlyMetric.OXYGEN_SATURATION,
+            onClick = { onOpen(TodayDestination.Metric(NightlyMetric.OXYGEN_SATURATION)) },
+            modifier,
+        )
+
+        TodayCard.SKIN_TEMPERATURE -> NightlyTile(
+            state,
+            NightlyMetric.SKIN_TEMPERATURE,
+            onClick = { onOpen(TodayDestination.Metric(NightlyMetric.SKIN_TEMPERATURE)) },
+            modifier,
+        )
 
         else -> Unit
     }

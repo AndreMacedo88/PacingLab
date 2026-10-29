@@ -2,6 +2,8 @@ package app.pacinglab.feature.settings.datasources
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
+import app.pacinglab.core.data.repository.GoogleHealthProblem
+import app.pacinglab.core.data.repository.GoogleHealthStatus
 import app.pacinglab.core.data.sync.SyncStatus
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.healthconnect.HealthConnectAvailability
@@ -15,6 +17,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 
 @RunWith(RobolectricTestRunner::class)
@@ -40,6 +44,33 @@ class DataSourcesScreenScreenshotTest {
     @Test
     fun importing() =
         capture(SampleProbe.available.copy(sync = SyncCardState(status = SyncStatus.Importing(null, 0.35f), workoutCount = 120)))
+
+    @Test
+    @Config(qualifiers = TALL_PHONE)
+    fun googleHealthConnected() = capture(
+        SampleProbe.available.copy(
+            grantedCount = 22,
+            requestedCount = 22,
+            googleHealth = GoogleHealthCardState(
+                GoogleHealthStatus(
+                    connected = true,
+                    lastSync = Instant.parse("2026-10-29T07:12:00Z"),
+                    days = 15,
+                    newest = LocalDate.of(2026, 10, 29),
+                ),
+            ),
+        ),
+    )
+
+    @Test
+    @Config(qualifiers = TALL_PHONE)
+    fun googleHealthNeedsSignIn() = capture(
+        SampleProbe.available.copy(
+            grantedCount = 22,
+            requestedCount = 22,
+            googleHealth = GoogleHealthCardState(GoogleHealthStatus(connected = true, problem = GoogleHealthProblem.SIGN_IN_NEEDED)),
+        ),
+    )
 
     @Test
     fun unavailable() = capture(DataSourcesUiState(availability = HealthConnectAvailability.UNAVAILABLE))

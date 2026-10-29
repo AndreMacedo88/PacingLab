@@ -3,6 +3,7 @@ package app.pacinglab.core.data.repository
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.Nights
 import app.pacinglab.core.analytics.recovery.SleepHistory
+import app.pacinglab.core.database.store.DailyVitalsStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.model.MeasurementKind
 import kotlinx.coroutines.Dispatchers
@@ -16,10 +17,14 @@ import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Nights of sleep with the HRV, resting heart rate and breathing rate measured during them. */
+/**
+ * Nights of sleep with the HRV, resting heart rate and breathing rate measured during them, and the
+ * watch app's own nightly values when the Google Health API is connected.
+ */
 @Singleton
 class NightRepository @Inject constructor(
     private val measurements: MeasurementStore,
+    private val vitals: DailyVitalsStore,
     private val preferences: UserPreferencesRepository,
     private val clock: Clock,
 ) {
@@ -29,7 +34,8 @@ class NightRepository @Inject constructor(
         measurements.observeMeasurements(MeasurementKind.HRV_RMSSD, Instant.EPOCH, FAR_FUTURE),
         measurements.observeMeasurements(MeasurementKind.RESTING_HEART_RATE, Instant.EPOCH, FAR_FUTURE),
         measurements.observeMeasurements(MeasurementKind.RESPIRATORY_RATE, Instant.EPOCH, FAR_FUTURE),
-    ) { sleeps, hrv, resting, breathing -> Nights.of(sleeps, hrv, resting, breathing, clock.zone) }
+        vitals.observe(),
+    ) { sleeps, hrv, resting, breathing, daily -> Nights.withVitals(Nights.of(sleeps, hrv, resting, breathing, clock.zone), daily) }
         .flowOn(Dispatchers.Default)
 
     /**

@@ -80,6 +80,29 @@ class MetricScreensScreenshotTest {
     }
 
     @Test
+    fun oxygenSaturationMonth() {
+        val withSpo2 = nights.mapIndexed { i, night ->
+            night.copy(
+                oxygenSaturation = 95.2 + 0.7 * sin(i * 0.9) - if (i ==
+                    98
+                ) {
+                    2.4
+                } else {
+                    0.0
+                },
+            )
+        }
+        capture {
+            NightlyMetricScreen(
+                NightlyMetric.OXYGEN_SATURATION,
+                NightlyMetricState(NightlyMetric.OXYGEN_SATURATION, withSpo2, today),
+                onBack = {},
+                initialSpan = Span.MONTH,
+            )
+        }
+    }
+
+    @Test
     fun readinessWeek() {
         val form = (100 downTo 0).map { back ->
             FormDay(

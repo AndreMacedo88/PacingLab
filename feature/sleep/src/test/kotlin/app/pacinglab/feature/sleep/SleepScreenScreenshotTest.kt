@@ -131,6 +131,25 @@ class SleepScreenScreenshotTest {
     @Test
     fun lastNightDark() = capture(loaded, darkTheme = true)
 
+    /** With the Google Health API connected: SpO2 and skin temperature join the body card. */
+    @Test
+    fun withGoogleHealthValues() = capture(
+        loaded.copy(
+            nights = loaded.nights.mapIndexed { i, night ->
+                night.copy(
+                    oxygenSaturation = 95.4 + 0.6 * sin(i * 0.8),
+                    skinTemperature = if (i ==
+                        loaded.nights.lastIndex
+                    ) {
+                        0.6
+                    } else {
+                        0.15 * sin(i * 1.1)
+                    },
+                )
+            },
+        ),
+    )
+
     @Test
     @Config(qualifiers = "w384dp-h832dp-xxhdpi")
     fun noNights() = capture(SleepUiState.Loaded(emptyList(), emptyMap(), emptyMap()))

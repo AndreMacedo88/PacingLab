@@ -96,3 +96,17 @@ class PhysiologyEntity(
     @ColumnInfo(name = "threshold_hr") val thresholdHr: Int?,
     @ColumnInfo(name = "resting_hr") val restingHr: Int?,
 )
+
+/** The watch app's nightly values from a secondary source, by the date of the morning (epoch day). */
+@Entity(tableName = "daily_vitals")
+class DailyVitalsEntity(
+    @PrimaryKey @ColumnInfo(name = "epoch_day") val epochDay: Long,
+    @ColumnInfo(name = "hrv_ms") val hrvMs: Double?,
+    @ColumnInfo(name = "resting_hr") val restingHr: Double?,
+    @ColumnInfo(name = "breathing_rate") val breathingRate: Double?,
+    @ColumnInfo(name = "spo2") val oxygenSaturation: Double?,
+    @ColumnInfo(name = "spo2_low") val oxygenSaturationLow: Double?,
+    @ColumnInfo(name = "spo2_high") val oxygenSaturationHigh: Double?,
+    @ColumnInfo(name = "skin_temperature") val skinTemperature: Double?,
+    @ColumnInfo(name = "skin_temperature_baseline") val skinTemperatureBaseline: Double?,
+)

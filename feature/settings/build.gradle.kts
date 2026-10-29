@@ -7,6 +7,7 @@ android {
 }
 
 dependencies {
+    implementation(projects.core.googlehealth)
     implementation(projects.core.healthconnect)
     implementation(projects.core.data)
 }

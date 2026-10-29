@@ -31,8 +31,9 @@ class NightlyRangeTest {
 
         val range = NightlyRange.of(nights, NightlyMetric.HRV, today)!!
 
-        assertThat(range.low).isCloseTo(44.9, 1e-9)
-        assertThat(range.high).isCloseTo(76.1, 1e-9)
+        // 44.9 and 76.1, at the whole milliseconds HRV is shown in.
+        assertThat(range.low).isEqualTo(45.0)
+        assertThat(range.high).isEqualTo(76.0)
         assertThat(range.nights).isEqualTo(40)
         assertThat(range.standing(43.0)).isEqualTo(RangeStanding.BELOW)
         assertThat(range.standing(60.0)).isEqualTo(RangeStanding.IN_RANGE)
@@ -54,5 +55,15 @@ class NightlyRangeTest {
 
         assertThat(range.low).isCloseTo(55.0, 1e-9)
         assertThat(range.high).isCloseTo(59.0, 1e-9)
+    }
+
+    @Test
+    fun `a value shown equal to the end of its range is inside it`() {
+        val range = NightlyRange(94.5, 95.8, nights = 30, metric = NightlyMetric.OXYGEN_SATURATION)
+
+        assertThat(range.standing(95.84)).isEqualTo(RangeStanding.IN_RANGE)
+        assertThat(range.standing(94.46)).isEqualTo(RangeStanding.IN_RANGE)
+        assertThat(range.standing(95.86)).isEqualTo(RangeStanding.ABOVE)
+        assertThat(range.standing(94.44)).isEqualTo(RangeStanding.BELOW)
     }
 }

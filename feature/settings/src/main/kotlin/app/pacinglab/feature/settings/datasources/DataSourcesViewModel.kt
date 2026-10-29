@@ -1,12 +1,17 @@
 package app.pacinglab.feature.settings.datasources
 
+import android.app.Activity
+import android.app.PendingIntent
 import android.content.Intent
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.pacinglab.core.data.repository.GoogleHealthRepository
 import app.pacinglab.core.data.repository.WorkoutRepository
 import app.pacinglab.core.data.sync.HealthSync
 import app.pacinglab.core.data.sync.SyncScheduler
+import app.pacinglab.core.googlehealth.GoogleHealthAccess
+import app.pacinglab.core.googlehealth.GoogleHealthAuthorization
 import app.pacinglab.core.healthconnect.HealthConnectAvailability
 import app.pacinglab.core.healthconnect.HealthConnectManager
 import app.pacinglab.core.healthconnect.HealthConnectPermissions
@@ -32,9 +37,16 @@ class DataSourcesViewModel @Inject constructor(
     healthSync: HealthSync,
     workouts: WorkoutRepository,
     private val scheduler: SyncScheduler,
+    private val googleHealth: GoogleHealthRepository,
+    private val googleHealthAuthorization: GoogleHealthAuthorization,
 ) : ViewModel() {
     private val _state = MutableStateFlow(DataSourcesUiState())
     val state: StateFlow<DataSourcesUiState> = _state.asStateFlow()
+
+    private val _consent = MutableStateFlow<PendingIntent?>(null)
+
+    /** Google's consent screen, to be started by the screen once and then cleared with [consentStarted]. */
+    val consent: StateFlow<PendingIntent?> = _consent.asStateFlow()
 
     val requestedPermissions: Set<String> = HealthConnectPermissions.all
 
@@ -66,6 +78,49 @@ class DataSourcesViewModel @Inject constructor(
                 )
             }.collect { sync -> _state.update { it.copy(sync = sync) } }
         }
+        viewModelScope.launch {
+            googleHealth.status.collect { status -> _state.update { it.copy(googleHealth = it.googleHealth.copy(status = status)) } }
+        }
+    }
+
+    /** Asks for access to the Google Health API; shows Google's consent screen when needed. */
+    fun connectGoogleHealth() {
+        updateGoogleHealth { it.copy(connecting = true, failure = null) }
+        viewModelScope.launch { handle(googleHealthAuthorization.authorize()) }
+    }
+
+    fun consentStarted() {
+        _consent.value = null
+    }
+
+    /** Called with the result of Google's consent screen. */
+    fun onConsentResult(resultCode: Int, data: Intent?) {
+        if (resultCode != Activity.RESULT_OK) {
+            updateGoogleHealth { it.copy(connecting = false) }
+            return
+        }
+        viewModelScope.launch { handle(googleHealthAuthorization.fromConsent(data)) }
+    }
+
+    fun disconnectGoogleHealth() {
+        viewModelScope.launch { googleHealth.disconnect() }
+    }
+
+    private suspend fun handle(access: GoogleHealthAccess) {
+        when (access) {
+            is GoogleHealthAccess.Granted -> {
+                googleHealth.connect()
+                updateGoogleHealth { it.copy(connecting = false) }
+            }
+
+            is GoogleHealthAccess.NeedsConsent -> _consent.value = access.intent
+
+            is GoogleHealthAccess.Failed -> updateGoogleHealth { it.copy(connecting = false, failure = access.reason) }
+        }
+    }
+
+    private fun updateGoogleHealth(change: (GoogleHealthCardState) -> GoogleHealthCardState) {
+        _state.update { it.copy(googleHealth = change(it.googleHealth)) }
     }
 
     fun syncNow() = scheduler.syncNow()

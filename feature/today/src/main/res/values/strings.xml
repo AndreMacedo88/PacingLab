@@ -161,4 +161,10 @@
     <string name="weather_rain">Rain</string>
     <string name="weather_snow">Snow</string>
     <string name="weather_thunderstorm">Thunderstorm</string>
+    <string name="tile_oxygen">SpO2</string>
+    <string name="tile_skin_temperature">Skin temperature</string>
+    <string name="card_oxygen">Oxygen saturation in sleep, from the Google Health API</string>
+    <string name="card_skin_temperature">Skin temperature against your baseline, from the Google Health API</string>
+    <string name="unit_percent">%1$s %%</string>
+    <string name="unit_celsius">%1$s °C</string>
 </resources>

@@ -1,5 +1,6 @@
 package app.pacinglab.feature.settings.datasources
 
+import app.pacinglab.core.data.repository.GoogleHealthStatus
 import app.pacinglab.core.data.sync.SyncStatus
 import app.pacinglab.core.healthconnect.HealthConnectAvailability
 import app.pacinglab.core.healthconnect.HealthConnectFeatureSupport
@@ -21,6 +22,7 @@ data class DataSourcesUiState(
     val sync: SyncCardState = SyncCardState(),
     val probe: ProbeState = ProbeState.Idle,
     val export: ExportState = ExportState.Idle,
+    val googleHealth: GoogleHealthCardState = GoogleHealthCardState(),
 ) {
     val allGranted: Boolean get() = requestedCount > 0 && grantedCount == requestedCount
 }
@@ -55,4 +57,14 @@ data class SyncCardState(
     val workoutCount: Int = 0,
     val problem: String? = null,
     val paused: Boolean = false,
+)
+
+/**
+ * @property connecting access is being asked for, possibly on Google's consent screen.
+ * @property failure why the last attempt to connect failed, as Google Play services put it.
+ */
+data class GoogleHealthCardState(
+    val status: GoogleHealthStatus = GoogleHealthStatus(),
+    val connecting: Boolean = false,
+    val failure: String? = null,
 )

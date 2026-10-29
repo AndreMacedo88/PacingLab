@@ -56,6 +56,7 @@ android {
 
 dependencies {
     implementation(projects.core.designsystem)
+    implementation(projects.core.googlehealth)
     implementation(projects.core.healthconnect)
     implementation(projects.core.maps)
     implementation(projects.core.model)

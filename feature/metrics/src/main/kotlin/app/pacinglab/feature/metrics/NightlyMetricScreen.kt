@@ -124,7 +124,8 @@ fun NightlyMetricScreen(
         val period = Period(Span.entries[span], LocalDate.ofEpochDay(end))
         var selected by rememberSaveable(span, end) { mutableStateOf<Int?>(null) }
         val byDate = remember(state.nights) { state.nights.associateBy { it.date } }
-        val values = period.days.map { byDate[it]?.let(metric.value) }
+        // At the resolution shown, so that a dot is coloured as its pill says.
+        val values = period.days.map { day -> byDate[day]?.let(metric.value)?.let(metric::rounded) }
         val ranges = remember(state.nights, period) { period.days.map { NightlyRange.of(state.nights, metric, it) } }
         val trend = remember(state.nights, period) {
             if (period.span.days > Span.MONTH.days) rollingAverage(period.days, byDate, metric) else emptyList()
@@ -303,6 +304,8 @@ internal fun NightlyMetric.title(): Int = when (this) {
     NightlyMetric.RESTING_HR -> R.string.metric_resting_hr
     NightlyMetric.BREATHING_RATE -> R.string.metric_breathing
     NightlyMetric.SLEEPING_HR -> R.string.metric_sleeping_hr
+    NightlyMetric.OXYGEN_SATURATION -> R.string.metric_oxygen
+    NightlyMetric.SKIN_TEMPERATURE -> R.string.metric_skin_temperature
 }
 
 private fun NightlyMetric.about(): Int = when (this) {
@@ -310,6 +313,8 @@ private fun NightlyMetric.about(): Int = when (this) {
     NightlyMetric.RESTING_HR -> R.string.about_resting_hr
     NightlyMetric.BREATHING_RATE -> R.string.about_breathing
     NightlyMetric.SLEEPING_HR -> R.string.about_sleeping_hr
+    NightlyMetric.OXYGEN_SATURATION -> R.string.about_oxygen
+    NightlyMetric.SKIN_TEMPERATURE -> R.string.about_skin_temperature
 }
 
 @Composable
@@ -317,11 +322,14 @@ private fun NightlyMetric.color() = when (this) {
     NightlyMetric.HRV -> chartColors().series[0]
     NightlyMetric.RESTING_HR, NightlyMetric.SLEEPING_HR -> chartColors().restingHr
     NightlyMetric.BREATHING_RATE -> chartColors().series[2]
+    NightlyMetric.OXYGEN_SATURATION -> chartColors().oxygenSaturation
+    NightlyMetric.SKIN_TEMPERATURE -> chartColors().skinTemperature
 }
 
-/** The number alone: "62", "13.4". */
+/** The number alone: "62", "13.4", "+0.3". */
 internal fun NightlyMetric.number(value: Double, locale: Locale): String = when (this) {
-    NightlyMetric.BREATHING_RATE -> "%.1f".format(locale, value)
+    NightlyMetric.BREATHING_RATE, NightlyMetric.OXYGEN_SATURATION -> "%.1f".format(locale, value)
+    NightlyMetric.SKIN_TEMPERATURE -> "%+.1f".format(locale, value)
     else -> value.roundToInt().toString()
 }
 
@@ -331,6 +339,8 @@ internal fun NightlyMetric.formatted(value: Double, locale: Locale): String = st
         NightlyMetric.HRV -> R.string.unit_ms
         NightlyMetric.RESTING_HR, NightlyMetric.SLEEPING_HR -> R.string.unit_bpm
         NightlyMetric.BREATHING_RATE -> R.string.unit_breaths
+        NightlyMetric.OXYGEN_SATURATION -> R.string.unit_percent
+        NightlyMetric.SKIN_TEMPERATURE -> R.string.unit_celsius
     },
     number(value, locale),
 )

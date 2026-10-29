@@ -4,6 +4,7 @@ import androidx.room3.Dao
 import androidx.room3.Query
 import androidx.room3.Transaction
 import androidx.room3.Upsert
+import app.pacinglab.core.database.entity.DailyVitalsEntity
 import app.pacinglab.core.database.entity.EffortEntity
 import app.pacinglab.core.database.entity.MeasurementEntity
 import app.pacinglab.core.database.entity.PhysiologyEntity
@@ -152,5 +153,33 @@ abstract class PhysiologyDao {
     open suspend fun replace(previousEpochDay: Long?, entry: PhysiologyEntity) {
         if (previousEpochDay != null && previousEpochDay != entry.effectiveFromEpochDay) delete(previousEpochDay)
         upsert(entry)
+    }
+}
+
+@Dao
+abstract class DailyVitalsDao {
+    @Query("SELECT * FROM daily_vitals ORDER BY epoch_day")
+    abstract fun observeAll(): Flow<List<DailyVitalsEntity>>
+
+    @Query("SELECT * FROM daily_vitals WHERE epoch_day IN (:epochDays)")
+    abstract suspend fun get(epochDays: List<Long>): List<DailyVitalsEntity>
+
+    @Query("SELECT MAX(epoch_day) FROM daily_vitals")
+    abstract suspend fun latest(): Long?
+
+    @Upsert
+    protected abstract suspend fun upsert(entries: List<DailyVitalsEntity>)
+
+    @Query("DELETE FROM daily_vitals")
+    abstract suspend fun clear()
+
+    /** Saves [entries], keeping stored values that an entry leaves empty. */
+    @Transaction
+    open suspend fun merge(
+        entries: List<DailyVitalsEntity>,
+        combine: (new: DailyVitalsEntity, old: DailyVitalsEntity) -> DailyVitalsEntity,
+    ) {
+        val stored = get(entries.map { it.epochDay }).associateBy { it.epochDay }
+        upsert(entries.map { entry -> stored[entry.epochDay]?.let { combine(entry, it) } ?: entry })
     }
 }

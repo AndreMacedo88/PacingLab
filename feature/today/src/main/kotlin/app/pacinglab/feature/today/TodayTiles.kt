@@ -209,12 +209,14 @@ internal fun NightlyTile(state: TodayUiState.Loaded, metric: NightlyMetric, onCl
         },
     ) {
         Sparkline(
-            values = state.byNight(metric.value),
+            values = state.byNight { night -> metric.value(night)?.let(metric::rounded) },
             color = when (metric) {
                 NightlyMetric.HRV -> colors.series[0]
                 NightlyMetric.RESTING_HR -> colors.restingHr
                 NightlyMetric.BREATHING_RATE -> colors.series[2]
                 NightlyMetric.SLEEPING_HR -> colors.restingHr
+                NightlyMetric.OXYGEN_SATURATION -> colors.oxygenSaturation
+                NightlyMetric.SKIN_TEMPERATURE -> colors.skinTemperature
             },
             bands = state.ranges[metric].orEmpty().map { it?.let { r -> r.low..r.high } },
             labels = state.days(locale),
@@ -230,13 +232,16 @@ internal fun NightlyMetric.label(): Int = when (this) {
     NightlyMetric.RESTING_HR -> R.string.tile_resting_hr
     NightlyMetric.BREATHING_RATE -> R.string.tile_breathing
     NightlyMetric.SLEEPING_HR -> R.string.tile_sleeping_hr
+    NightlyMetric.OXYGEN_SATURATION -> R.string.tile_oxygen
+    NightlyMetric.SKIN_TEMPERATURE -> R.string.tile_skin_temperature
 }
 
 /** "62 ms", "57 bpm", "13.4 /min"; without the unit for the lower end of a range. */
 @Composable
 internal fun NightlyMetric.format(value: Double, locale: Locale, unit: Boolean = true): String {
     val number = when (this) {
-        NightlyMetric.BREATHING_RATE -> "%.1f".format(locale, value)
+        NightlyMetric.BREATHING_RATE, NightlyMetric.OXYGEN_SATURATION -> "%.1f".format(locale, value)
+        NightlyMetric.SKIN_TEMPERATURE -> "%+.1f".format(locale, value)
         else -> value.roundToInt().toString()
     }
     if (!unit) return number
@@ -244,6 +249,8 @@ internal fun NightlyMetric.format(value: Double, locale: Locale, unit: Boolean =
         NightlyMetric.HRV -> stringResource(R.string.unit_ms_text, number)
         NightlyMetric.RESTING_HR, NightlyMetric.SLEEPING_HR -> stringResource(R.string.unit_bpm_text, number)
         NightlyMetric.BREATHING_RATE -> stringResource(R.string.unit_breaths, number)
+        NightlyMetric.OXYGEN_SATURATION -> stringResource(R.string.unit_percent, number)
+        NightlyMetric.SKIN_TEMPERATURE -> stringResource(R.string.unit_celsius, number)
     }
 }
 

@@ -31,6 +31,8 @@ enum class TodayCard(
     VO2MAX("vo2max", false, R.string.tile_vo2max, R.string.card_vo2max, hiddenByDefault = true),
     RACE_5K("race_5k", false, R.string.tile_race_5k, R.string.card_race_5k, hiddenByDefault = true),
     EFFICIENCY("efficiency", false, R.string.tile_efficiency, R.string.card_efficiency, hiddenByDefault = true),
+    OXYGEN_SATURATION("spo2", false, R.string.tile_oxygen, R.string.card_oxygen, hiddenByDefault = true),
+    SKIN_TEMPERATURE("skin_temperature", false, R.string.tile_skin_temperature, R.string.card_skin_temperature, hiddenByDefault = true),
     ;
 
     companion object {

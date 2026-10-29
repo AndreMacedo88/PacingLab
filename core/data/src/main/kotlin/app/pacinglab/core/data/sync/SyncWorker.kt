@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import app.pacinglab.core.data.repository.GoogleHealthRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
@@ -13,9 +14,11 @@ class SyncWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
     private val sync: HealthSync,
+    private val googleHealth: GoogleHealthRepository,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val outcome = sync.sync()
+        googleHealth.sync()
         return when {
             outcome.noAccess || outcome.deferred -> Result.success()
             outcome.rateLimited -> Result.retry()

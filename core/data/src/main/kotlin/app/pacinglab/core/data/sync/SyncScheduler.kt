@@ -6,6 +6,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import app.pacinglab.core.data.di.ApplicationScope
+import app.pacinglab.core.data.repository.GoogleHealthRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -28,6 +29,7 @@ class SyncScheduler @Inject constructor(
     @param:ApplicationContext private val context: Context,
     @param:ApplicationScope private val scope: CoroutineScope,
     private val sync: HealthSync,
+    private val googleHealth: GoogleHealthRepository,
     private val visibility: AppVisibility,
 ) {
     private var running: Job? = null
@@ -40,16 +42,22 @@ class SyncScheduler @Inject constructor(
 
     /**
      * Syncs now unless a sync started from here is still running. When Health Connect rate-limits the
-     * app, waits and continues, for as long as the app stays visible.
+     * app, waits and continues, for as long as the app stays visible. The Google Health API, when
+     * connected, is read after Health Connect.
      */
     fun syncNow() {
         if (running?.isActive == true) return
         running = scope.launch {
-            repeat(MAX_RATE_LIMITED_RUNS) {
-                val outcome = sync.sync()
-                if (!outcome.rateLimited || !visibility.isForeground) return@launch
-                delay(RATE_LIMIT_PAUSE.toMillis())
-            }
+            syncHealthConnect()
+            googleHealth.sync()
+        }
+    }
+
+    private suspend fun syncHealthConnect() {
+        repeat(MAX_RATE_LIMITED_RUNS) {
+            val outcome = sync.sync()
+            if (!outcome.rateLimited || !visibility.isForeground) return
+            delay(RATE_LIMIT_PAUSE.toMillis())
         }
     }
 
