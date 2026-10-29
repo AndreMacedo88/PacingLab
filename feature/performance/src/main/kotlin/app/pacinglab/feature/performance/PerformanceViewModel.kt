@@ -50,9 +50,9 @@ class PerformanceViewModel @Inject constructor(
     }.stateIn<PerformanceUiState>(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), PerformanceUiState.Loading)
 
     val refreshing: StateFlow<Boolean> =
-        scheduler.updating.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)
+        scheduler.refreshing.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)
 
-    fun refresh() = scheduler.syncNow()
+    fun refresh() = scheduler.refresh()
 
     fun arrange(cards: List<PlacedCard>) {
         viewModelScope.launch { dashboards.save(Dashboard.PERFORMANCE, cards) }

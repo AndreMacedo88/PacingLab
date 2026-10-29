@@ -10,8 +10,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -24,6 +30,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import app.pacinglab.R
+import app.pacinglab.core.data.sync.SyncProblem
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.feature.metrics.navigation.HeartRateDayKey
 import app.pacinglab.feature.metrics.navigation.NightlyMetricKey
@@ -45,6 +52,8 @@ import app.pacinglab.feature.trends.navigation.trendsEntries
 import app.pacinglab.feature.workouts.navigation.SessionKey
 import app.pacinglab.feature.workouts.navigation.workoutsEntries
 import app.pacinglab.navigation.TopLevelDestination
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 /**
  * App frame: navigation bar plus a single back stack whose first entry is always a top-level
@@ -53,7 +62,7 @@ import app.pacinglab.navigation.TopLevelDestination
  * current screen from the gear at the right of each top-level app bar.
  */
 @Composable
-fun PacingLabApp(modifier: Modifier = Modifier) {
+fun PacingLabApp(modifier: Modifier = Modifier, syncProblems: Flow<SyncProblem> = emptyFlow()) {
     val backStack = rememberNavBackStack(TodayKey)
     val currentTopLevel = TopLevelDestination.entries.firstOrNull { it.key == backStack.first() }
 
@@ -61,8 +70,20 @@ fun PacingLabApp(modifier: Modifier = Modifier) {
         backStack.replaceWith(TodayKey)
     }
 
+    // A pull to refresh that went wrong says why, above the navigation bar, wherever it was pulled.
+    val snackbars = remember { SnackbarHostState() }
+    val messages = SyncProblem.entries.associateWith { stringResource(it.message()) }
+    val actions = SyncProblem.entries.associateWith { problem -> problem.action()?.let { stringResource(it) } }
+    LaunchedEffect(syncProblems) {
+        syncProblems.collect { problem ->
+            val result = snackbars.showSnackbar(messages.getValue(problem), actions[problem], duration = SnackbarDuration.Long)
+            if (result == SnackbarResult.ActionPerformed) backStack.add(DataSourcesKey)
+        }
+    }
+
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbars) },
         // Each screen draws its own top app bar and handles the status bar inset itself; the frame
         // only reserves space for the navigation bar.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -140,6 +161,22 @@ fun PacingLabApp(modifier: Modifier = Modifier) {
             },
         )
     }
+}
+
+private fun SyncProblem.message(): Int = when (this) {
+    SyncProblem.NO_ACCESS -> R.string.sync_no_access
+    SyncProblem.RATE_LIMITED -> R.string.sync_rate_limited
+    SyncProblem.HEALTH_CONNECT_FAILED -> R.string.sync_failed
+    SyncProblem.GOOGLE_HEALTH_SIGN_IN -> R.string.sync_google_sign_in
+    SyncProblem.GOOGLE_HEALTH_UNREACHABLE -> R.string.sync_google_unreachable
+}
+
+/** The button that opens Data sources, where each problem can be dealt with; none when waiting is all it takes. */
+private fun SyncProblem.action(): Int? = when (this) {
+    SyncProblem.NO_ACCESS -> R.string.sync_set_up
+    SyncProblem.HEALTH_CONNECT_FAILED -> R.string.sync_details
+    SyncProblem.GOOGLE_HEALTH_SIGN_IN -> R.string.sync_sign_in
+    SyncProblem.RATE_LIMITED, SyncProblem.GOOGLE_HEALTH_UNREACHABLE -> null
 }
 
 private fun NavBackStack<NavKey>.replaceWith(key: NavKey) {

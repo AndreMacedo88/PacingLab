@@ -38,5 +38,23 @@ data class SyncOutcome(
     val succeeded: Boolean get() = !noAccess && !rateLimited && errors.isEmpty()
 }
 
+/** Why a sync the athlete asked for did not bring everything up to date. */
+enum class SyncProblem {
+    /** PacingLab may not read workouts from Health Connect, or Health Connect is missing. */
+    NO_ACCESS,
+
+    /** Health Connect asked for a pause; the sync carries on after it. */
+    RATE_LIMITED,
+
+    /** Some data could not be read from Health Connect. */
+    HEALTH_CONNECT_FAILED,
+
+    /** The Google Health API wants the athlete to sign in again. */
+    GOOGLE_HEALTH_SIGN_IN,
+
+    /** The Google Health API could not be reached, usually for want of a connection. */
+    GOOGLE_HEALTH_UNREACHABLE,
+}
+
 /** Persistent sync facts shown in the UI. */
 data class SyncInfo(val lastSuccess: Instant?, val importComplete: Boolean, val importedSince: Instant?)

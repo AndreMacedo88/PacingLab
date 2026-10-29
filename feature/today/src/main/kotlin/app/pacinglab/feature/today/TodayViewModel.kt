@@ -222,10 +222,10 @@ class TodayViewModel @Inject constructor(
     }
 
     val refreshing: StateFlow<Boolean> =
-        scheduler.updating.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)
+        scheduler.refreshing.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)
 
     fun refresh() {
-        scheduler.syncNow()
+        scheduler.refresh()
         weather.refresh()
     }
 

@@ -88,9 +88,9 @@ class GoogleHealthRepository @Inject constructor(
         store.clear()
     }
 
-    /** Reads new values when connected; failures are recorded in [status], never thrown. */
-    suspend fun sync() = mutex.withLock {
-        if (dataStore.data.first()[CONNECTED] != true) return@withLock
+    /** Reads new values when connected; failures are recorded in [status] and returned, never thrown. */
+    suspend fun sync(): GoogleHealthProblem? = mutex.withLock {
+        if (dataStore.data.first()[CONNECTED] != true) return@withLock null
         val today = LocalDate.now(clock)
         val since = store.latest()?.minusDays(REREAD_DAYS)?.coerceAtLeast(today.minusDays(HISTORY_DAYS)) ?: today.minusDays(HISTORY_DAYS)
         val problem = try {
@@ -111,6 +111,7 @@ class GoogleHealthRepository @Inject constructor(
                 it[PROBLEM] = problem.name
             }
         }
+        problem
     }
 
     companion object {

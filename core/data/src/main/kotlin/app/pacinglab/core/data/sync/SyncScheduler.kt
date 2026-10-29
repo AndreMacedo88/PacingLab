@@ -6,12 +6,18 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import app.pacinglab.core.data.di.ApplicationScope
+import app.pacinglab.core.data.repository.GoogleHealthProblem
 import app.pacinglab.core.data.repository.GoogleHealthRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -33,12 +39,42 @@ class SyncScheduler @Inject constructor(
     private val visibility: AppVisibility,
 ) {
     private var running: Job? = null
+    private val pulled = MutableStateFlow(false)
+    private val _problems = MutableSharedFlow<SyncProblem>(extraBufferCapacity = 1)
 
     /**
      * True while a sync of recent changes runs, for pull-to-refresh indicators. The first import shows
      * its own progress and does not count.
      */
     val updating: Flow<Boolean> = sync.status.map { it == SyncStatus.Updating }.distinctUntilChanged()
+
+    /**
+     * True while a sync the athlete asked for runs (at least [MIN_REFRESH_MILLIS], so the indicator is
+     * seen to turn), or while any sync applies changes.
+     */
+    val refreshing: Flow<Boolean> = combine(pulled, updating) { asked, applying -> asked || applying }.distinctUntilChanged()
+
+    /** What went wrong in a sync the athlete asked for, once per [refresh]; nothing when all went well. */
+    val problems: SharedFlow<SyncProblem> = _problems.asSharedFlow()
+
+    /**
+     * A sync the athlete asked for, by pulling a screen down: both sources are read, the indicator turns
+     * for at least [MIN_REFRESH_MILLIS] and a problem is reported through [problems]. When Health Connect
+     * asks for a pause, the indicator stops and [syncNow] carries on after it.
+     */
+    fun refresh() {
+        if (pulled.value) return
+        pulled.value = true
+        scope.launch {
+            val minimum = launch { delay(MIN_REFRESH_MILLIS) }
+            val outcome = sync.sync()
+            val google = googleHealth.sync()
+            minimum.join()
+            problemOf(outcome, google)?.let { _problems.emit(it) }
+            pulled.value = false
+            if (outcome.rateLimited) syncNow()
+        }
+    }
 
     /**
      * Syncs now unless a sync started from here is still running. When Health Connect rate-limits the
@@ -61,6 +97,15 @@ class SyncScheduler @Inject constructor(
         }
     }
 
+    private fun problemOf(outcome: SyncOutcome, google: GoogleHealthProblem?): SyncProblem? = when {
+        outcome.noAccess -> SyncProblem.NO_ACCESS
+        outcome.rateLimited -> SyncProblem.RATE_LIMITED
+        outcome.errors.isNotEmpty() -> SyncProblem.HEALTH_CONNECT_FAILED
+        google == GoogleHealthProblem.SIGN_IN_NEEDED -> SyncProblem.GOOGLE_HEALTH_SIGN_IN
+        google == GoogleHealthProblem.UNREACHABLE -> SyncProblem.GOOGLE_HEALTH_UNREACHABLE
+        else -> null
+    }
+
     fun schedulePeriodic() {
         val request = PeriodicWorkRequestBuilder<SyncWorker>(PERIOD)
             .setConstraints(Constraints.Builder().setRequiresBatteryNotLow(true).build())
@@ -68,10 +113,12 @@ class SyncScheduler @Inject constructor(
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(PERIODIC_WORK, ExistingPeriodicWorkPolicy.KEEP, request)
     }
 
-    private companion object {
-        const val PERIODIC_WORK = "health-sync"
-        val PERIOD: Duration = Duration.ofHours(1)
-        val RATE_LIMIT_PAUSE: Duration = Duration.ofMinutes(1)
-        const val MAX_RATE_LIMITED_RUNS = 30
+    companion object {
+        /** How long the indicator turns at least after a pull, so that the athlete sees the sync start. */
+        const val MIN_REFRESH_MILLIS = 1_000L
+        private const val PERIODIC_WORK = "health-sync"
+        private val PERIOD: Duration = Duration.ofHours(1)
+        private val RATE_LIMIT_PAUSE: Duration = Duration.ofMinutes(1)
+        private const val MAX_RATE_LIMITED_RUNS = 30
     }
 }

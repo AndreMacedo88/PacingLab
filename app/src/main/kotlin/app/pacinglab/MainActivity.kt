@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
             }
             PacingLabTheme(darkTheme = dark, palette = ThemePalette.valueOf(settings.theme.name)) {
                 CompositionLocalProvider(LocalMapSnapshots provides mapSnapshots) {
-                    PacingLabApp()
+                    PacingLabApp(syncProblems = syncScheduler.problems)
                 }
             }
         }
