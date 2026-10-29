@@ -18,4 +18,20 @@
 
     <string name="privacy_title">How PacingLab uses your data</string>
     <string name="privacy_body">PacingLab reads workouts, heart rate, heart rate variability, sleep and related measurements from Health Connect to calculate training analyses such as intensity zones, training load and recovery trends.\n\nEverything stays on this phone. PacingLab has no account, collects no analytics and never uploads your health data. It downloads only map imagery for routes and weather from Open-Meteo: forecasts for your approximate position if you use the weather card, and the weather of a session for the start of its route, both rounded to about 1 km (session weather can be switched off in Settings). None of these requests contains health data. If you connect the Google Health API in Settings, PacingLab also reads your nightly values and daily VO2max from Google, straight to this phone.\n\nYou can review or revoke access at any time in Health Connect\'s settings. Uninstalling PacingLab deletes everything it stored.</string>
+    <string name="widget_name">PacingLab today</string>
+    <string name="widget_description">Readiness, sleep score and form, with training status and vitals</string>
+    <string name="widget_readiness">Readiness</string>
+    <string name="widget_sleep">Sleep</string>
+    <string name="widget_form">Form</string>
+    <string name="widget_ready">Ready</string>
+    <string name="widget_moderate">Moderate</string>
+    <string name="widget_low">Low</string>
+    <string name="widget_good">Good</string>
+    <string name="widget_fair">Fair</string>
+    <string name="widget_poor">Poor</string>
+    <string name="widget_vitals_typical">Vitals typical</string>
+    <plurals name="widget_vitals_outside">
+        <item quantity="one">%1$d vital outside its range</item>
+        <item quantity="other">%1$d vitals outside their range</item>
+    </plurals>
 </resources>

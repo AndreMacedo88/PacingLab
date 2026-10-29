@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="reminder_channel">Morning question</string>
+    <string name="reminder_channel_description">Asks how rested you feel once last night has synced, if you have not answered yet</string>
+    <string name="reminder_title">How rested do you feel?</string>
+    <string name="reminder_text">Last night is in. Tap to answer on Today.</string>
+</resources>

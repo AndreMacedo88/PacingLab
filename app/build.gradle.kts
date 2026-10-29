@@ -61,6 +61,7 @@ dependencies {
     implementation(projects.core.maps)
     implementation(projects.core.model)
     implementation(projects.core.data)
+    implementation(projects.core.analytics)
     implementation(projects.feature.metrics)
     implementation(projects.feature.performance)
     implementation(projects.feature.settings)
@@ -80,6 +81,8 @@ dependencies {
     baselineProfile(projects.baselineprofile)
     implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.hilt.work)
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit4)

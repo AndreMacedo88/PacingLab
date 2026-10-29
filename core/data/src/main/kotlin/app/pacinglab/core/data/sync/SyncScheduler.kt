@@ -1,6 +1,7 @@
 package app.pacinglab.core.data.sync
 
 import android.content.Context
+import android.util.Log
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -9,6 +10,7 @@ import app.pacinglab.core.data.di.ApplicationScope
 import app.pacinglab.core.data.repository.GoogleHealthProblem
 import app.pacinglab.core.data.repository.GoogleHealthRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -37,6 +39,7 @@ class SyncScheduler @Inject constructor(
     private val sync: HealthSync,
     private val googleHealth: GoogleHealthRepository,
     private val visibility: AppVisibility,
+    private val afterSync: Set<@JvmSuppressWildcards AfterSync>,
 ) {
     private var running: Job? = null
     private val pulled = MutableStateFlow(false)
@@ -69,6 +72,7 @@ class SyncScheduler @Inject constructor(
             val minimum = launch { delay(MIN_REFRESH_MILLIS) }
             val outcome = sync.sync()
             val google = googleHealth.sync()
+            runAfterSync(afterSync)
             minimum.join()
             problemOf(outcome, google)?.let { _problems.emit(it) }
             pulled.value = false
@@ -86,6 +90,7 @@ class SyncScheduler @Inject constructor(
         running = scope.launch {
             syncHealthConnect()
             googleHealth.sync()
+            runAfterSync(afterSync)
         }
     }
 
@@ -120,5 +125,18 @@ class SyncScheduler @Inject constructor(
         private val PERIOD: Duration = Duration.ofHours(1)
         private val RATE_LIMIT_PAUSE: Duration = Duration.ofMinutes(1)
         private const val MAX_RATE_LIMITED_RUNS = 30
+    }
+}
+
+/** Runs every [AfterSync]; one that fails is skipped, so the others and the sync carry on. */
+internal suspend fun runAfterSync(tasks: Set<AfterSync>) {
+    for (task in tasks) {
+        try {
+            task.run()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w("PacingLab", "After-sync work failed", e)
+        }
     }
 }

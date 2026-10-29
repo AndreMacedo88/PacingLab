@@ -7,4 +7,7 @@
     <!-- Forecasts are downloaded from Open-Meteo. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- The morning reminder, only when the athlete switches it on in Settings. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
 </manifest>

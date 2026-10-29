@@ -43,6 +43,19 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- Today at a glance on the home screen, redrawn after every sync. -->
+        <receiver
+            android:name=".widget.TodayWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/today_widget_info" />
+        </receiver>
+
         <!-- WorkManager is configured by PacingLabApplication so that workers can use Hilt. -->
         <provider
             android:name="androidx.startup.InitializationProvider"

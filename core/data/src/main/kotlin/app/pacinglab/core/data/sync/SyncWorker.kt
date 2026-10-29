@@ -15,10 +15,12 @@ class SyncWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val sync: HealthSync,
     private val googleHealth: GoogleHealthRepository,
+    private val afterSync: Set<@JvmSuppressWildcards AfterSync>,
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val outcome = sync.sync()
         googleHealth.sync()
+        runAfterSync(afterSync)
         return when {
             outcome.noAccess || outcome.deferred -> Result.success()
             outcome.rateLimited -> Result.retry()
