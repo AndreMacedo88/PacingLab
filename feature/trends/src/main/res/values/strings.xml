@@ -44,9 +44,43 @@
     <string name="recovery_not_enough">Needs a few more nights</string>
     <string name="recovery_hrv_description">Nightly HRV with its seven-day average and normal range</string>
     <string name="recovery_resting_description">Nightly resting heart rate with its seven-day average and usual range</string>
-    <string name="recovery_info">How your body handles training over weeks and months, measured each night.\n\n# Reading the charts\n- Dots are single nights, the line is the average of the last seven days.\n- The shaded band is your own normal range on each day, the same one readiness uses; it moves as your baseline does.\n- The line turns orange while the week sits outside the band.\n\n# HRV\nThe normal range is the mean of the last 60 days, plus or minus half a standard deviation, on the log scale (Plews 2013). A week below the range is the clearest sign of accumulated fatigue, illness or stress; a rising range over months often comes with better fitness.\n\n# Resting heart rate\nThe usual range is the average of the last 30 nights, plus or minus one standard deviation, at least 3 bpm. A raised resting heart rate for several nights points the same way as low HRV.\n\nBoth need a week of nights before a range appears.</string>
+    <string name="recovery_info" formatted="false">How your body handles training over weeks and months, measured each night.\n\n# Reading the charts\n- Dots are single nights, the line is the average of the last seven days.\n- The shaded band is your own normal range on each day, the same one readiness uses; it moves as your baseline does.\n- The line turns orange while the week sits outside the band.\n\n# HRV\nThe normal range is the mean of the last 60 days, plus or minus half a standard deviation, on the log scale (Plews 2013). A week below the range is the clearest sign of accumulated fatigue, illness or stress; a rising range over months often comes with better fitness.\n\nThe 7-day variation is the coefficient of variation of ln HRV over the week (Plews 2012; HRV4Training shows it the same way), with your usual range from the previous 60 days. A steady mean with rising variation points to a disturbed balance: hard training, illness or travel. In elite triathletes a falling mean with shrinking variation came before non-functional overreaching (Plews 2012), so read it together with the mean.\n\n# Resting heart rate\nThe usual range is the average of the last 30 nights, plus or minus one standard deviation, at least 3 bpm. A raised resting heart rate for several nights points the same way as low HRV.\n\nBoth need a week of nights before a range appears.</string>
     <string name="trends_edit_title">Arrange Trends</string>
     <string name="card_form">Fitness, fatigue and form</string>
     <string name="card_recovery">HRV and resting heart rate over weeks</string>
     <string name="card_weeks">Load, hours and intensity per week</string>
+    <string name="card_status">Load, VO2max and HRV in one word, with the reasons</string>
+    <string name="card_focus">Four weeks of time below, between and above the thresholds</string>
+    <string name="status_none">Not enough training yet: the status needs four weeks of load and a fitness of at least 10.</string>
+    <string name="status_info" formatted="false">One word for where training stands, from three measures, each with a fixed rule:\n\n- Load: fatigue (the last week\'s load) over fitness (the last six weeks\'), the exponentially weighted acute to chronic load ratio. 0.8 to 1.5 is your usual training; above 1.5 is a jump the body rarely absorbs for long (Gabbett 2016); below 0.8 is a lighter week.\n- VO2max: the change of the VO2max trend over four weeks. Half a ml/kg/min or more either way counts as rising or falling.\n- HRV: the week\'s HRV against its normal range, as readiness judges it.\n\n# The rules, in order\n- HRV below its normal range while training: strained.\n- Load ratio above 1.5: overreaching.\n- Load ratio below 0.5 and fitness falling over two weeks: detraining.\n- Load ratio below 0.8: peaking when you are fresh, fitness is within 10 % of its 90-day high and VO2max is not falling; otherwise recovery.\n- Otherwise by VO2max: rising productive, falling unproductive, steady maintaining.\n\nThe words are Garmin\'s, whose own rules are not published; these are PacingLab\'s, built from the same ingredients.</string>
+    <string name="status_load">Load this week</string>
+    <string name="status_load_value">%1$s × your usual</string>
+    <string name="status_vo2max">VO2max, 4 weeks</string>
+    <string name="status_vo2max_rising">%1$s, rising</string>
+    <string name="status_vo2max_steady">%1$s, steady</string>
+    <string name="status_vo2max_falling">%1$s, falling</string>
+    <string name="status_vo2max_unknown">No trend yet</string>
+    <string name="status_fitness">Fitness, 2 weeks</string>
+    <string name="status_fitness_value">%1$d (%2$s)</string>
+    <string name="status_hrv">HRV</string>
+    <string name="status_hrv_normal">Within its normal range</string>
+    <string name="status_hrv_below">Below its normal range</string>
+    <string name="status_hrv_unknown">No baseline yet</string>
+    <string name="focus_title">Intensity focus</string>
+    <string name="focus_none">Too little running or riding in the last four weeks to tell.</string>
+    <string name="focus_balanced">Balanced: every zone within its target</string>
+    <string name="focus_short">Short of time %1$s</string>
+    <string name="focus_over">Too much time %1$s</string>
+    <string name="focus_share">%1$s · %2$d %% · %3$s</string>
+    <string name="focus_target">Target %1$d–%2$d %%</string>
+    <string name="focus_in_band">On target</string>
+    <string name="focus_shortage">Short</string>
+    <string name="focus_excess">High</string>
+    <string name="focus_model_polarized">Polarized distribution</string>
+    <string name="focus_model_pyramidal">Pyramidal distribution</string>
+    <string name="focus_model_threshold">Threshold-focused distribution</string>
+    <string name="focus_model_high">High-intensity distribution</string>
+    <string name="focus_info" formatted="false">How the last four weeks of running and riding split over the three intensity zones, by time with heart rate, against target bands. Garmin\'s load focus shows the same idea with bands it does not publish; these come from the training of successful endurance athletes, which is pyramidal or polarized (Seiler 2010; Stöggl and Sperlich 2015; Kenneally 2018):\n\n- Below VT1: 70 to 90 %. Easy running builds the aerobic base and is what allows the hard sessions.\n- VT1 to VT2: up to 25 %. Tempo and threshold work; more than this tends to stall progress in trained athletes.\n- Above VT2: 5 to 20 %. Intervals at or above threshold.\n\nThe distribution\'s shape follows Treff (2019): polarized when zone 1 > zone 3 > zone 2 with a polarization index above 2, pyramidal when zone 1 > zone 2 > zone 3, threshold-focused or high-intensity when zone 2 or zone 3 is the largest.\n\nHeart rate lags at the start of each rep, so short reps count partly in a lower zone. Gym sessions and other sports are left out.</string>
+    <string name="recovery_hrv_cv">7-day variation %1$s %%</string>
+    <string name="recovery_hrv_cv_usual">usual %1$s–%2$s %%</string>
 </resources>

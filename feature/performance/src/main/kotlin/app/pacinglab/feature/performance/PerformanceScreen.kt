@@ -39,6 +39,8 @@ import app.pacinglab.core.designsystem.component.DashboardEntry
 import app.pacinglab.core.designsystem.component.SettingsAction
 import app.pacinglab.core.designsystem.format.Formats
 import java.time.LocalDate
+import java.util.Locale
+import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
 @Composable
@@ -132,14 +134,18 @@ fun PerformanceScreen(
                     for (card in state.cards.filter { it.visible }.mapNotNull { PerformanceCardKind.of(it.id) }) {
                         when (card) {
                             PerformanceCardKind.VO2MAX -> item(key = card.id) {
-                                Vo2MaxCard(state.vo2max, state.today, onSaveTest, onDeleteTest, locale)
+                                Vo2MaxCard(state.vo2max, state.today, onSaveTest, onDeleteTest, locale, fitness = state.fitness)
                             }
 
                             PerformanceCardKind.RACES -> if (running.predictions.any {
                                     it.fromVo2Max != null || it.fromCriticalSpeed != null
                                 }
                             ) {
-                                item(key = card.id) { RaceCard(running.predictions, running.vo2max, locale) }
+                                item(key = card.id) { RaceCard(running.predictions, running.vo2max, locale, shape = running.shape) }
+                            }
+
+                            PerformanceCardKind.PACES -> running.paces?.let { paces ->
+                                item(key = card.id) { TrainingPacesCard(paces, locale) }
                             }
 
                             PerformanceCardKind.CRITICAL_SPEED -> item(key = card.id) {
@@ -154,6 +160,10 @@ fun PerformanceScreen(
 
                             PerformanceCardKind.EFFICIENCY -> if (state.efficiency.trend.isNotEmpty()) {
                                 item(key = card.id) { EfficiencyCard(state.efficiency, state.today, locale) }
+                            }
+
+                            PerformanceCardKind.RECOVERY -> if (state.recoveries.isNotEmpty()) {
+                                item(key = card.id) { RepRecoveryCard(state.recoveries, state.today, locale) }
                             }
 
                             PerformanceCardKind.DECOUPLING -> if (running.decoupling.isNotEmpty()) {
@@ -198,6 +208,12 @@ internal fun RaceDistance.label(): String = stringResource(
 
 /** Finishing time, "18:53" or "1:26:38". */
 internal fun raceTime(seconds: Double): String = Formats.duration((seconds * 1000).roundToLong())
+
+/** Pace "3:47" per kilometre at [speed] m/s. */
+internal fun paceText(speed: Double): String {
+    val seconds = (1000.0 / speed).roundToInt()
+    return "%d:%02d".format(Locale.ROOT, seconds / 60, seconds % 60)
+}
 
 /** Pace "3:47" for [meters] in [seconds]. */
 internal fun pace(seconds: Double, meters: Double): String = Formats.pacePerKm((seconds * 1000).roundToLong(), meters) ?: "–"

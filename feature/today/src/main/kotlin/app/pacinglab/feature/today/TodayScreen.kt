@@ -301,6 +301,10 @@ private fun TodayUiState.Loaded.rows(answering: Boolean = false): List<List<Toda
 
             TodayCard.SKIN_TEMPERATURE -> nights.any { it.skinTemperature != null }
 
+            TodayCard.SLEEP_HEALTH -> sleepHealth.isNotEmpty()
+
+            TodayCard.SLEEP_DEBT -> sleepDebts.isNotEmpty()
+
             else -> true
         }
     }
@@ -348,6 +352,10 @@ private fun WideCard(
 
         TodayCard.RESTED -> RestedCard(state.rested, onRate)
 
+        TodayCard.VITALS -> VitalsTodayCard(state.vitals(), onClick = { onOpen(TodayDestination.Sleep) })
+
+        TodayCard.TRAINING_STATUS -> TrainingStatusTodayCard(state.extras.trainingStatus, onClick = { onOpen(TodayDestination.Trends) })
+
         TodayCard.GYM_EFFORT -> state.gymToRate?.let { gym ->
             GymEffortCard(gym, state.today, zoneId, onRate = { onRateGym(gym.workoutIds, it) })
         }
@@ -375,6 +383,10 @@ private fun WideCard(
 private fun TileCard(card: TodayCard, state: TodayUiState.Loaded, onOpen: (TodayDestination) -> Unit, modifier: Modifier = Modifier) {
     when (card) {
         TodayCard.SLEEP_SCORE -> SleepTile(state, onClick = { onOpen(TodayDestination.Sleep) }, modifier)
+
+        TodayCard.SLEEP_HEALTH -> SleepHealthTile(state, onClick = { onOpen(TodayDestination.Sleep) }, modifier)
+
+        TodayCard.SLEEP_DEBT -> SleepDebtTile(state, onClick = { onOpen(TodayDestination.Sleep) }, modifier)
 
         TodayCard.HRV -> NightlyTile(state, NightlyMetric.HRV, onClick = { onOpen(TodayDestination.Metric(NightlyMetric.HRV)) }, modifier)
 

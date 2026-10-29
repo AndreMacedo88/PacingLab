@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import app.pacinglab.core.analytics.recovery.HrvVariation
 import app.pacinglab.core.analytics.recovery.RecoveryDay
 import app.pacinglab.core.designsystem.component.CardHeader
 import app.pacinglab.core.designsystem.theme.chartColors
@@ -51,7 +52,13 @@ import kotlin.math.roundToInt
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun RecoveryCard(days: List<RecoveryDay>, today: LocalDate, locale: Locale, modifier: Modifier = Modifier) {
+internal fun RecoveryCard(
+    days: List<RecoveryDay>,
+    today: LocalDate,
+    locale: Locale,
+    modifier: Modifier = Modifier,
+    variation: HrvVariation? = null,
+) {
     if (days.isEmpty()) return
     var range by rememberSaveable { mutableIntStateOf(TrendRange.THREE_MONTHS.ordinal) }
     val selected = TrendRange.entries[range]
@@ -84,6 +91,22 @@ internal fun RecoveryCard(days: List<RecoveryDay>, today: LocalDate, locale: Loc
                     stringResource(R.string.recovery_hrv_range, it.start.roundToInt(), it.endInclusive.roundToInt())
                 },
             )
+            variation?.let { v ->
+                Text(
+                    text = listOfNotNull(
+                        stringResource(R.string.recovery_hrv_cv, "%.1f".format(locale, v.percent)),
+                        v.range?.let {
+                            stringResource(
+                                R.string.recovery_hrv_cv_usual,
+                                "%.1f".format(locale, it.start),
+                                "%.1f".format(locale, it.endInclusive),
+                            )
+                        },
+                    ).joinToString("  ·  "),
+                    style = MaterialTheme.typography.bodySmall.tabularNumbers(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             BandTrendChart(
                 days = shown.map { it.date },
                 line = shown.map { it.hrvWeekMs },

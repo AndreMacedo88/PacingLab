@@ -229,7 +229,7 @@ class HealthSync @Inject constructor(
                 if (ChangeChannel.SLEEP in channels) refreshSleepHeartRate(batch.affectedSpans)
             }
 
-            ChangeChannel.SPEED, ChangeChannel.DISTANCE -> refreshStreams(batch.affectedSpans, tally, foreground)
+            ChangeChannel.SPEED, ChangeChannel.DISTANCE, ChangeChannel.STEPS -> refreshStreams(batch.affectedSpans, tally, foreground)
 
             ChangeChannel.SLEEP -> {
                 saveSleep(batch.sleep, channels)
@@ -269,7 +269,7 @@ class HealthSync @Inject constructor(
                 saveWorkouts(fresh, tally, foreground)
             }
 
-            ChangeChannel.HEART_RATE, ChangeChannel.SPEED, ChangeChannel.DISTANCE -> {
+            ChangeChannel.HEART_RATE, ChangeChannel.SPEED, ChangeChannel.DISTANCE, ChangeChannel.STEPS -> {
                 saveWorkouts(workouts.overlapping(from, to).map { it.toSourceWorkout(route = null) }, tally, foreground)
                 if (channel == ChangeChannel.HEART_RATE && ChangeChannel.SLEEP in channels) refreshSleepHeartRate(listOf(from..to))
             }
@@ -419,8 +419,9 @@ class HealthSync @Inject constructor(
          * 3: workouts carry their recording method.
          * 4: sleep sessions carry the heart rate recorded during them.
          * 5: sprint sessions in interval mode are classified as runs.
+         * 6: workouts carry their step counts (cadence and stride length).
          */
-        const val CURRENT_SYNC_VERSION = "5"
+        const val CURRENT_SYNC_VERSION = "6"
 
         fun workoutId(sourceRecordId: String) = "hc:$sourceRecordId"
 

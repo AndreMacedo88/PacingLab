@@ -62,8 +62,16 @@ data class SourceWorkout(
  * the app that recorded it.
  *
  * @property reportedDistanceMeters the recording app's own distance total, if it wrote one.
+ * @property steps the cumulative step count: between two points the steps are spread evenly, and a flat
+ *   stretch is a time without step records.
  */
-data class WorkoutStreams(val heartRate: HeartRateSeries, val speed: SampleSeries, val route: Route, val reportedDistanceMeters: Double?) {
+data class WorkoutStreams(
+    val heartRate: HeartRateSeries,
+    val speed: SampleSeries,
+    val route: Route,
+    val reportedDistanceMeters: Double?,
+    val steps: SampleSeries = SampleSeries.EMPTY,
+) {
     companion object {
         val EMPTY = WorkoutStreams(HeartRateSeries.EMPTY, SampleSeries.EMPTY, Route.EMPTY, null)
     }

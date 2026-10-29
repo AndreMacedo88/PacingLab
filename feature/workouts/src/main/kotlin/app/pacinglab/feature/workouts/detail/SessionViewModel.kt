@@ -2,6 +2,7 @@ package app.pacinglab.feature.workouts.detail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.pacinglab.core.analytics.geo.speeds
 import app.pacinglab.core.analytics.intervals.PhaseKind
 import app.pacinglab.core.analytics.intervals.RecordingMode
 import app.pacinglab.core.analytics.load.AnchorTimeline
@@ -9,6 +10,9 @@ import app.pacinglab.core.analytics.load.BanisterWeighting
 import app.pacinglab.core.analytics.load.TrainingLoads
 import app.pacinglab.core.analytics.performance.AerobicDecoupling
 import app.pacinglab.core.analytics.performance.Decoupling
+import app.pacinglab.core.analytics.session.FormMinute
+import app.pacinglab.core.analytics.session.FormSummary
+import app.pacinglab.core.analytics.session.RunningForm
 import app.pacinglab.core.analytics.session.SessionAnalysis
 import app.pacinglab.core.analytics.session.SessionAnalyzer
 import app.pacinglab.core.analytics.session.SessionClassifier
@@ -23,6 +27,9 @@ import app.pacinglab.core.data.repository.EffortRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.repository.UserPreferencesRepository
 import app.pacinglab.core.data.repository.WorkoutRepository
+import app.pacinglab.core.data.weather.SessionWeatherRepository
+import app.pacinglab.core.data.weather.SessionWeatherState
+import app.pacinglab.core.model.Coordinates
 import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.RecordingMethod
@@ -46,6 +53,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -67,6 +75,7 @@ import java.time.ZoneOffset
  *   cooled down around the main part; null otherwise.
  * @property workoutIds the recorded workouts the scope covers, which an effort rating applies to.
  * @property decoupling pace to heart rate decoupling of a steady long run recorded as one workout.
+ * @property form cadence and stride length of a run with step counts; null otherwise.
  */
 data class DetailScope(
     val title: String?,
@@ -88,7 +97,14 @@ data class DetailScope(
     val role: PhaseKind? = null,
     val workoutIds: List<String> = emptyList(),
     val decoupling: Decoupling? = null,
+    val form: RunningFormView? = null,
 )
+
+/**
+ * Cadence and stride length of a run: over its running minutes, and over its reps on their own when it
+ * has some.
+ */
+data class RunningFormView(val overall: FormSummary, val reps: FormSummary?, val minutes: List<FormMinute>)
 
 /** Where a recorded part came from and how much data it carries. */
 data class RecordingItem(
@@ -116,6 +132,7 @@ sealed interface SessionUiState {
      * @property efforts the athlete's effort ratings of the session's workouts, by workout id.
      * @property speedByDefault running speed shows as km/h rather than pace until toggled.
      * @property focus the scope to show first: a part when the screen was opened for one of its workouts.
+     * @property weather the weather during the session; null while it is looked up.
      */
     data class Loaded(
         val session: SessionItem,
@@ -124,6 +141,7 @@ sealed interface SessionUiState {
         val efforts: Map<String, Int> = emptyMap(),
         val speedByDefault: Boolean = false,
         val focus: Int = 0,
+        val weather: SessionWeatherState? = null,
     ) : SessionUiState {
         /** The rating of the workouts in [scope] when they share one; null when unrated. */
         fun effortOf(scope: DetailScope): Int? = scope.workoutIds.map { efforts[it] }.distinct().singleOrNull()
@@ -138,6 +156,7 @@ class SessionViewModel @AssistedInject constructor(
     trainingLoad: TrainingLoadRepository,
     private val ratings: EffortRepository,
     preferences: UserPreferencesRepository,
+    private val weatherRepository: SessionWeatherRepository,
 ) : ViewModel() {
     private val analysed = combine(
         repository.observeSessions(),
@@ -166,15 +185,29 @@ class SessionViewModel @AssistedInject constructor(
         }
         .flowOn(Dispatchers.Default)
 
+    /** The weather of the session, looked up once its first workout and route are known. */
+    private val weather = analysed
+        .map { state -> (state as? SessionUiState.Loaded)?.scopes?.first() }
+        .distinctUntilChanged { a, b -> a?.workoutIds == b?.workoutIds }
+        .mapLatest { scope ->
+            scope?.let {
+                val start = it.routes.firstOrNull()?.takeIf { route -> !route.isEmpty() }
+                val place = start?.let { route -> Coordinates(route.latitudes.first(), route.longitudes.first()) }
+                weatherRepository.weatherOf(it.workoutIds.first(), place, it.start, it.end)
+            }
+        }
+        .onStart { emit(null) }
+
     // Ratings and preferences join after the analysis so that rating a session does not analyse it again.
     val state: StateFlow<SessionUiState> = combine(
         analysed,
         ratings.observe(),
         preferences.preferences.map { it.speedByDefault }.distinctUntilChanged(),
-    ) { state, rated, speed ->
+        weather,
+    ) { state, rated, speed, conditions ->
         if (state is SessionUiState.Loaded) {
             val ids = state.scopes.first().workoutIds.toSet()
-            state.copy(efforts = rated.filterKeys { it in ids }, speedByDefault = speed)
+            state.copy(efforts = rated.filterKeys { it in ids }, speedByDefault = speed, weather = conditions)
         } else {
             state
         }
@@ -224,7 +257,7 @@ class SessionViewModel @AssistedInject constructor(
             workoutIds = session.workouts.map { it.id },
         ).let { scope ->
             parts.singleOrNull()?.let { scope.copy(splits = it.splits(scope.analysis), decoupling = it.decoupling()) } ?: scope
-        }
+        }.copy(form = form(parts, analysis))
         val scopes = if (parts.size ==
             1
         ) {
@@ -264,8 +297,38 @@ class SessionViewModel @AssistedInject constructor(
             } else {
                 null
             }
-            scope.copy(splits = splits(scope.analysis), kind = kind, decoupling = decoupling())
+            scope.copy(splits = splits(scope.analysis), kind = kind, decoupling = decoupling(), form = form(listOf(this), scope.analysis))
         }
+
+    /**
+     * Cadence and stride of the running in [parts]: every running minute, and the reps on their own (total
+     * steps and distance over their time) when the session has them.
+     */
+    private fun form(parts: List<SessionPart>, analysis: SessionAnalysis): RunningFormView? {
+        val runs = parts.filter { it.workout.sport == Sport.RUN && it.streams.steps.size > 1 }
+        if (runs.isEmpty()) return null
+        val minutes = runs.flatMap { part ->
+            val recorded = if (part.streams.speed.size > 0) part.streams.speed else part.streams.route.speeds()
+            val speed = SpeedCleaning.dropImplausible(recorded, SpeedCleaning.maxPlausibleSpeed(Sport.RUN))
+            RunningForm.minutes(part.streams.steps, speed, part.workout.start.toEpochMilli(), part.workout.end.toEpochMilli())
+        }
+        val overall = RunningForm.summary(minutes) ?: return null
+        var steps = 0.0
+        var millis = 0L
+        var meters = 0.0
+        for (phase in analysis.phases.filter { it.kind == PhaseKind.WORK }) {
+            val part =
+                runs.firstOrNull {
+                    phase.startMillis >= it.workout.start.toEpochMilli() && phase.endMillis <= it.workout.end.toEpochMilli()
+                }
+                    ?: continue
+            steps += RunningForm.stepsBetween(part.streams.steps, phase.startMillis, phase.endMillis)
+            millis += phase.durationMillis
+            meters += phase.distanceMeters ?: 0.0
+        }
+        val reps = if (millis >= MIN_REP_MILLIS) RunningForm.fromTotals(steps, millis, meters) else null
+        return RunningFormView(overall, reps, minutes)
+    }
 
     /** Decoupling of a run, from GPS where there is a track and from the watch's speed otherwise. */
     private fun SessionPart.decoupling(): Decoupling? {
@@ -306,5 +369,8 @@ class SessionViewModel @AssistedInject constructor(
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
         val MOVING = setOf(Sport.RUN, Sport.WALK, Sport.RIDE)
+
+        /** Reps shorter than this in all are too few step records to say anything on their own. */
+        const val MIN_REP_MILLIS = 3 * 60_000L
     }
 }

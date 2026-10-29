@@ -2,6 +2,7 @@ package app.pacinglab.feature.today
 
 import androidx.annotation.StringRes
 import app.pacinglab.core.data.repository.CardSpec
+import app.pacinglab.core.designsystem.R as DesignR
 
 /**
  * Everything Today can show, in the default order. Wide cards take the whole width; tiles take one
@@ -16,15 +17,19 @@ enum class TodayCard(
     val hiddenByDefault: Boolean = false,
 ) {
     READINESS("readiness", true, R.string.readiness_title, R.string.card_readiness),
+    VITALS("vitals", true, R.string.vitals_title, R.string.card_vitals),
     RESTED("rested", true, R.string.card_rested_title, R.string.card_rested),
     GYM_EFFORT("gym", true, R.string.card_gym_title, R.string.card_gym),
     HEART_RATE("heart_rate", true, R.string.heart_rate_title, R.string.card_heart_rate),
     SLEEP_SCORE("sleep", false, R.string.tile_sleep, R.string.card_sleep),
+    SLEEP_HEALTH("sleep_health", false, R.string.tile_sleep_health, R.string.card_sleep_health),
+    SLEEP_DEBT("sleep_debt", false, R.string.tile_sleep_debt, R.string.card_sleep_debt),
     HRV("hrv", false, R.string.tile_hrv, R.string.card_hrv),
     RESTING_HR("resting_hr", false, R.string.tile_resting_hr, R.string.card_resting_hr),
     BREATHING_RATE("breathing", false, R.string.tile_breathing, R.string.card_breathing),
     FORM("form", false, R.string.tile_form, R.string.card_form),
     WEEK_LOAD("week", false, R.string.tile_week, R.string.card_week),
+    TRAINING_STATUS("training_status", true, DesignR.string.training_status_title, R.string.card_training_status),
     LAST_WORKOUT("workout", true, R.string.workout_title, R.string.card_workout),
     WEATHER("weather", true, R.string.weather_title, R.string.card_weather),
     SLEEPING_HR("sleeping_hr", false, R.string.tile_sleeping_hr, R.string.card_sleeping_hr, hiddenByDefault = true),

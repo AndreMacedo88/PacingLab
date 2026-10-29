@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import app.pacinglab.core.analytics.performance.AerobicDecoupling
 import app.pacinglab.core.analytics.performance.Decoupling
 import app.pacinglab.core.analytics.performance.RunHalf
+import app.pacinglab.core.analytics.weather.HeatStressLevel
 import app.pacinglab.core.designsystem.component.CardHeader
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.chartColors
@@ -32,7 +33,13 @@ import kotlin.math.roundToLong
 
 /** Pace to heart rate decoupling of a steady long run: the percentage with its verdict, and each half's pace and heart rate. */
 @Composable
-internal fun DecouplingCard(decoupling: Decoupling, toggle: SpeedToggle, locale: Locale, modifier: Modifier = Modifier) {
+internal fun DecouplingCard(
+    decoupling: Decoupling,
+    toggle: SpeedToggle,
+    locale: Locale,
+    modifier: Modifier = Modifier,
+    heat: HeatStressLevel? = null,
+) {
     val good = decoupling.percent < AerobicDecoupling.WELL_COUPLED
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -63,6 +70,9 @@ internal fun DecouplingCard(decoupling: Decoupling, toggle: SpeedToggle, locale:
             }
             Half(stringResource(R.string.decoupling_first_half), decoupling.firstHalf, toggle, locale)
             Half(stringResource(R.string.decoupling_second_half), decoupling.secondHalf, toggle, locale)
+            if (heat != null && heat != HeatStressLevel.LOW) {
+                Text(stringResource(R.string.decoupling_heat), style = MaterialTheme.typography.bodyMedium)
+            }
             Text(
                 pluralStringResource(R.plurals.decoupling_minutes, decoupling.minutes, decoupling.minutes),
                 style = MaterialTheme.typography.bodySmall,

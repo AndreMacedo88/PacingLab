@@ -10,6 +10,7 @@ import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SpeedRecord
+import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.metadata.Metadata
 import androidx.health.connect.client.units.Length
 import androidx.health.connect.client.units.Velocity
@@ -193,6 +194,33 @@ class HealthConnectDataSourceTest {
         assertThat(streams.route.size).isEqualTo(10)
         assertThat(streams.route.altitudes[3]).isEqualTo(13.0)
         assertThat(streams.reportedDistanceMeters).isNotNull().isCloseTo(200.0, 1e-6)
+    }
+
+    @Test
+    fun `steps of the recording app come as a running total, cut at the workout's edges`() = runTest {
+        fun steps(id: String, from: Long, to: Long, count: Long, origin: String) = StepsRecord(
+            startTime = t0.plusSeconds(from),
+            startZoneOffset = offset,
+            endTime = t0.plusSeconds(to),
+            endZoneOffset = offset,
+            count = count,
+            metadata = metadata(id, origin),
+        )
+        client.insert(
+            session("s1", minute = 0, length = 2),
+            steps("st1", 0, 60, 170, fitbit),
+            // Half of this record lies after the two-minute workout.
+            steps("st2", 60, 180, 340, fitbit),
+            steps("st3", 0, 120, 999, googleFit),
+        )
+        val listed = source.readWorkouts(t0.minusSeconds(60), t0.plusSeconds(3_600))
+
+        val steps = source.readStreams(listed).getValue(listed.single().sourceRecordId).steps
+
+        assertThat(
+            steps.times.toList(),
+        ).containsExactly(t0.toEpochMilli(), t0.plusSeconds(60).toEpochMilli(), t0.plusSeconds(120).toEpochMilli())
+        assertThat(steps.values.toList()).containsExactly(0.0, 170.0, 340.0)
     }
 
     @Test

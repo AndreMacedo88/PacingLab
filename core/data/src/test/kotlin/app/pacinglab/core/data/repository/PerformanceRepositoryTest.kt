@@ -72,7 +72,7 @@ class PerformanceRepositoryTest {
                 EffortRepository(EffortStore(database)),
                 clock,
             )
-        repository = PerformanceRepository(workouts, measurements, load, clock)
+        repository = PerformanceRepository(workouts, measurements, load, DailyVitalsStore(database), clock)
         runTest { physiology.save(PhysiologyEntry(LocalDate.of(2026, 1, 1), maxHr = 190, thresholdHr = 170, restingHr = 50)) }
     }
 

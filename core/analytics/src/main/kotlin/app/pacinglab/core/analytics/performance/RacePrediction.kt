@@ -2,8 +2,18 @@ package app.pacinglab.core.analytics.performance
 
 import kotlin.math.exp
 
-/** Predicted finishing times for one distance, seconds; null where a method has nothing to say. */
-data class RacePrediction(val distance: RaceDistance, val fromVo2Max: Double?, val fromCriticalSpeed: Double?)
+/**
+ * Predicted finishing times for one distance, seconds; null where a method has nothing to say.
+ *
+ * @property fromVo2Max from VO2max, slowed where the marathon shape is short of what the distance asks for.
+ * @property potential from VO2max alone: the time with training suited to the distance.
+ */
+data class RacePrediction(
+    val distance: RaceDistance,
+    val fromVo2Max: Double?,
+    val fromCriticalSpeed: Double?,
+    val potential: Double? = fromVo2Max,
+)
 
 /**
  * Race times from two independent models.
@@ -12,7 +22,8 @@ data class RacePrediction(val distance: RaceDistance, val fromVo2Max: Double?, v
  * -4.60 + 0.182258 v + 0.000104 v^2 ml/kg/min, and the share of VO2max that can be held for t minutes
  * is 0.8 + 0.1894393 e^(-0.012778 t) + 0.2989558 e^(-0.1932605 t). The predicted time is the t at
  * which the two meet. Daniels' tables assume training suited to the distance; a marathon needs long
- * runs that a VO2max value cannot show.
+ * runs that a VO2max value cannot show, so with a [MarathonShape] the VO2max is first scaled by
+ * [MarathonShapes.factor] for the distance (Runalyze's adjustment).
  *
  * From critical speed: (distance - D') / CS, only where the race would last 2 to 30 minutes, the range
  * in which the model describes performance.
@@ -20,9 +31,16 @@ data class RacePrediction(val distance: RaceDistance, val fromVo2Max: Double?, v
 object RacePredictions {
     val DISTANCES = listOf(RaceDistance.K5, RaceDistance.K10, RaceDistance.HALF_MARATHON, RaceDistance.MARATHON)
 
-    fun of(vo2max: Double?, criticalSpeed: CriticalSpeedFit?): List<RacePrediction> = DISTANCES.map { distance ->
-        RacePrediction(distance, vo2max?.let { secondsFromVo2Max(it, distance.meters) }, criticalSpeed?.secondsFor(distance.meters))
-    }
+    fun of(vo2max: Double?, criticalSpeed: CriticalSpeedFit?, shape: MarathonShape? = null): List<RacePrediction> =
+        DISTANCES.map { distance ->
+            val potential = vo2max?.let { secondsFromVo2Max(it, distance.meters) }
+            val shaped = if (vo2max != null && shape != null) {
+                secondsFromVo2Max(vo2max * MarathonShapes.factor(distance.meters, shape.percent), distance.meters)
+            } else {
+                potential
+            }
+            RacePrediction(distance, shaped, criticalSpeed?.secondsFor(distance.meters), potential)
+        }
 
     /** Daniels-Gilbert finishing time for [meters] at [vo2max] ml/kg/min, seconds. */
     fun secondsFromVo2Max(vo2max: Double, meters: Double): Double? {

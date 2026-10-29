@@ -58,10 +58,14 @@ class GoogleHealthAuthorization @Inject constructor(@param:ApplicationContext pr
     }
 
     companion object {
-        /** Read-only access to nightly measurements (HRV, SpO2, breathing, resting heart rate) and sleep (skin temperature). */
+        /**
+         * Read-only access to nightly measurements (HRV, SpO2, breathing, resting heart rate), sleep (skin
+         * temperature) and activity and fitness (daily VO2max).
+         */
         val SCOPES = listOf(
             "https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly",
             "https://www.googleapis.com/auth/googlehealth.sleep.readonly",
+            "https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly",
         )
     }
 }

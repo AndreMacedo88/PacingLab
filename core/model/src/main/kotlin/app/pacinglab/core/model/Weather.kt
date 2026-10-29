@@ -77,3 +77,22 @@ data class WeatherForecast(
     val todayLow: Double?,
     val todayHigh: Double?,
 )
+
+/**
+ * The weather during a session, from the hourly values of a weather model at its start and middle.
+ *
+ * @property humidity relative humidity in per cent.
+ * @property windSpeed mean wind 10 m above ground, in metres per second.
+ * @property precipitation in millimetres over the hour.
+ */
+data class SessionWeather(
+    val time: Instant,
+    val condition: WeatherCondition,
+    val temperature: Double,
+    val apparentTemperature: Double,
+    val dewPoint: Double,
+    val humidity: Double,
+    val windSpeed: Double,
+    val windGusts: Double?,
+    val precipitation: Double,
+)

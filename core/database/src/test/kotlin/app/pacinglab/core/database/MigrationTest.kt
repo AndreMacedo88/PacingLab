@@ -9,11 +9,15 @@ import app.pacinglab.core.database.store.DailyVitalsStore
 import app.pacinglab.core.database.store.EffortStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
+import app.pacinglab.core.database.store.SessionWeatherStore
+import app.pacinglab.core.database.store.StoredSessionWeather
 import app.pacinglab.core.database.store.WellnessStore
 import app.pacinglab.core.database.store.WorkoutStore
 import app.pacinglab.core.model.DailyVitals
 import app.pacinglab.core.model.PhysiologyEntry
 import app.pacinglab.core.model.RecordingMethod
+import app.pacinglab.core.model.SessionWeather
+import app.pacinglab.core.model.WeatherCondition
 import app.pacinglab.core.model.Workout
 import assertk.assertThat
 import assertk.assertions.isEqualTo
@@ -179,6 +183,29 @@ class MigrationTest {
         assertThat(stored).isEqualTo(
             listOf(DailyVitals(day, hrvMs = 64.8, oxygenSaturation = 96.1), DailyVitals(day.plusDays(1), hrvMs = 63.0)),
         )
+    }
+
+    @Test
+    fun `version 9 nightly values survive the upgrade and gain VO2max, and session weather can then be stored`() = runTest {
+        val file = databaseFile()
+        createFromSchema(file, version = 9)
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("INSERT INTO daily_vitals (epoch_day, hrv_ms) VALUES (20750, 61.5)")
+        }
+
+        val database = Room.databaseBuilder(context, PacingLabDatabase::class.java, file.path).setDriver(AndroidSQLiteDriver()).build()
+        val vitals = DailyVitalsStore(database)
+        val day = LocalDate.ofEpochDay(20750)
+        vitals.merge(listOf(DailyVitals(day, vo2max = 52.4, vo2maxVariance = 1.3)))
+        val stored = vitals.observe().first()
+        val weather = SessionWeatherStore(database)
+        val time = Instant.parse("2026-10-20T16:45:00Z")
+        weather.save("hc:1", SessionWeather(time, WeatherCondition.CLEAR, 11.0, 9.5, 6.0, 72.0, 4.2, 7.1, 0.0), time)
+        val found = weather.get("hc:1")
+        database.close()
+
+        assertThat(stored).isEqualTo(listOf(DailyVitals(day, hrvMs = 61.5, vo2max = 52.4, vo2maxVariance = 1.3)))
+        assertThat((found as StoredSessionWeather.Found).weather.dewPoint).isEqualTo(6.0)
     }
 
     private fun databaseFile(): File = context.getDatabasePath("migration-test.db").apply {

@@ -43,6 +43,16 @@ class WorkoutStore @Inject constructor(database: PacingLabDatabase) {
             if (!streams.route.isEmpty()) {
                 add(WorkoutStreamEntity(workout.id, ROUTE, streams.route.size, StreamCodec.encodeRoute(streams.route)))
             }
+            if (!streams.steps.isEmpty()) {
+                add(
+                    WorkoutStreamEntity(
+                        workout.id,
+                        STEPS,
+                        streams.steps.size,
+                        StreamCodec.encodeSamples(streams.steps, StreamCodec.STEPS_SCALE),
+                    ),
+                )
+            }
         }
         dao.replace(workout.toEntity(), encoded)
     }
@@ -62,6 +72,7 @@ class WorkoutStore @Inject constructor(database: PacingLabDatabase) {
             speed = byChannel[SPEED]?.let { StreamCodec.decodeSamples(it.data, StreamCodec.SPEED_SCALE) } ?: SampleSeries.EMPTY,
             route = byChannel[ROUTE]?.let { StreamCodec.decodeRoute(it.data) } ?: Route.EMPTY,
             reportedDistanceMeters = reportedDistanceMeters,
+            steps = byChannel[STEPS]?.let { StreamCodec.decodeSamples(it.data, StreamCodec.STEPS_SCALE) } ?: SampleSeries.EMPTY,
         )
     }
 
@@ -138,6 +149,7 @@ class WorkoutStore @Inject constructor(database: PacingLabDatabase) {
         const val HEART_RATE = "heart_rate"
         const val SPEED = "speed"
         const val ROUTE = "route"
+        const val STEPS = "steps"
 
         /** SQLite limits bound parameters per statement; stay well below the default of 999. */
         const val SQL_VARIABLE_CHUNK = 500

@@ -11,6 +11,8 @@ import java.time.LocalDate
  *   and [oxygenSaturationHigh] bounds.
  * @property skinTemperature nightly skin temperature in degrees Celsius, with the app's own
  *   [skinTemperatureBaseline].
+ * @property vo2max the app's cardio fitness estimate of the day in ml/kg/min, with the variance it
+ *   reports for it ([vo2maxVariance]); the app keeps it for every day, nights or not.
  */
 data class DailyVitals(
     val date: LocalDate,
@@ -22,7 +24,13 @@ data class DailyVitals(
     val oxygenSaturationHigh: Double? = null,
     val skinTemperature: Double? = null,
     val skinTemperatureBaseline: Double? = null,
+    val vo2max: Double? = null,
+    val vo2maxVariance: Double? = null,
 ) {
+    /** Whether any of the night's measures is there (VO2max is not one). */
+    val hasNightValues: Boolean
+        get() = hrvMs != null || restingHr != null || breathingRate != null || oxygenSaturation != null || skinTemperature != null
+
     /** How far the night's skin temperature was from the app's baseline, in degrees Celsius. */
     val skinTemperatureDeviation: Double?
         get() = if (skinTemperature != null && skinTemperatureBaseline != null) skinTemperature - skinTemperatureBaseline else null
@@ -38,5 +46,7 @@ data class DailyVitals(
         oxygenSaturationHigh = oxygenSaturationHigh ?: older.oxygenSaturationHigh,
         skinTemperature = skinTemperature ?: older.skinTemperature,
         skinTemperatureBaseline = skinTemperatureBaseline ?: older.skinTemperatureBaseline,
+        vo2max = vo2max ?: older.vo2max,
+        vo2maxVariance = vo2maxVariance ?: older.vo2maxVariance,
     )
 }

@@ -54,6 +54,16 @@ data class Night(
     /** The middle of the time between falling asleep and the final awakening, for sleep regularity. */
     val midpoint: Instant get() = continuity?.let { Instant.ofEpochMilli((it.onset.toEpochMilli() + it.finalAwakening.toEpochMilli()) / 2) }
         ?: Instant.ofEpochMilli((start.toEpochMilli() + end.toEpochMilli()) / 2)
+
+    /** [midpoint] as a clock time where the night was spent, in minutes after midnight. */
+    val midpointMinuteOfDay: Int get() = midpoint.atZone(zone).toLocalTime().toSecondOfDay() / 60
+
+    /** Time asleep as spans of epoch milliseconds (end exclusive): the asleep stages, or the whole record without stages. */
+    fun asleepSpans(): List<LongRange> = if (stages.isEmpty()) {
+        listOf(start.toEpochMilli() until end.toEpochMilli())
+    } else {
+        stages.filter { it.type in Nights.ASLEEP }.map { it.start.toEpochMilli() until it.end.toEpochMilli() }
+    }
 }
 
 /**
@@ -99,7 +109,7 @@ object Nights {
      */
     val NIGHT_VALUE_TOLERANCE: Duration = Duration.ofHours(1)
 
-    private val ASLEEP = setOf(SleepStageType.LIGHT, SleepStageType.DEEP, SleepStageType.REM, SleepStageType.ASLEEP_UNSPECIFIED)
+    internal val ASLEEP = setOf(SleepStageType.LIGHT, SleepStageType.DEEP, SleepStageType.REM, SleepStageType.ASLEEP_UNSPECIFIED)
 
     /**
      * The main sleep of each morning (the longest sleep ending that day, if it is not a nap), oldest

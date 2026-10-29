@@ -28,17 +28,13 @@
     <string name="readiness_info" formatted="false">Readiness combines last night\'s measurements with your recent training, each compared with your own normal rather than with population averages.\n\n# What goes in\n- HRV, 35 %: the 7-day average of nightly HRV against your normal range from the last 60 days.\n- Sleep, 25 %: last night\'s sleep score and the average of the last three nights.\n- Resting heart rate, 20 %: last night against your usual.\n- Training, 20 %: form against a band that grows with your fitness.\n\n# Safeguards\n- While your HRV is below its normal range, readiness stays below \"Ready to train\", as HRV-guided training studies recommend.\n- A breathing rate clearly above usual, together with low HRV or a raised resting heart rate, holds readiness at 40 or below: a common early sign of illness.\n\n# How much to trust it\nThe HRV comparison has the strongest research behind it. The weights are PacingLab\'s own choice, not a validated score. A first score appears after 7 nights of HRV and is marked provisional: with only a week, last night can be compared with the range seen so far, but the week\'s trend cannot yet be told apart from it. From 14 nights the score is settled; it keeps improving over four to eight weeks.\n\n# The week\nThe small chart shows the score of each of the last seven days, computed from the data up to that day, on the bands of the three levels: take it easy below 50, train with care from 50, ready to train from 70.</string>
 
     <string name="tile_sleep">Sleep score</string>
-    <string name="tile_sleep_detail">%1$s · %2$s asleep</string>
     <string name="sleep_good">Good</string>
     <string name="sleep_fair">Fair</string>
     <string name="sleep_poor">Poor</string>
     <string name="tile_no_night">No night recorded</string>
     <string name="tile_hrv">HRV</string>
-    <string name="tile_hrv_range">Normal %1$d–%2$d ms</string>
     <string name="tile_resting_hr">Resting HR</string>
-    <string name="tile_usual_bpm">Usual %1$d bpm</string>
     <string name="tile_breathing">Breathing rate</string>
-    <string name="tile_usual_breaths">Usual %1$s /min</string>
     <string name="tile_form">Form</string>
     <string name="tile_form_detail">Fitness %1$d · fatigue %2$d</string>
     <string name="tile_week">Load this week</string>
@@ -60,14 +56,6 @@
         <item quantity="one">%1$d of %2$d night with HRV. Wear the watch to bed; readiness appears once PacingLab knows your usual HRV.</item>
         <item quantity="other">%1$d of %2$d nights with HRV. Wear the watch to bed; readiness appears once PacingLab knows your usual HRV.</item>
     </plurals>
-    <plurals name="tile_hrv_baseline">
-        <item quantity="one">Baseline %1$d of %2$d night</item>
-        <item quantity="other">Baseline %1$d of %2$d nights</item>
-    </plurals>
-    <plurals name="tile_usual_pending">
-        <item quantity="one">Usual after %1$d of %2$d night</item>
-        <item quantity="other">Usual after %1$d of %2$d nights</item>
-    </plurals>
     <plurals name="sessions">
         <item quantity="one">%1$d session</item>
         <item quantity="other">%1$d sessions</item>
@@ -87,6 +75,28 @@
     <string name="gym_effort_info">One tap for how hard the whole session felt, from 1 (very, very easy) to 10 (maximal).\n\nHeart rate reacts little to lifting, so the rating is what gives a gym session its training load: the rating times the minutes, known as session RPE (Foster 2001). Only gym sessions ask, and only until the day after. The rating can be changed on the session\'s page.</string>
     <string name="today_edit_title">Arrange Today</string>
     <string name="card_readiness">Score and what it rests on</string>
+    <string name="card_vitals">Last night\'s HRV, resting heart rate, breathing, SpO2 and skin temperature against your range</string>
+    <string name="card_sleep_health">Your sleep habits over two weeks</string>
+    <string name="card_sleep_debt">Sleep missed against your need over two weeks</string>
+    <string name="card_training_status">Load, VO2max and HRV in one word</string>
+    <string name="vitals_title">Vitals</string>
+    <string name="vitals_info" formatted="false">Last night\'s overnight measures, each against your own usual range (where 80 % of your nights fell), as on the Sleep screen.\n\nAny measure leaves its range now and then. When two or more do on the same night, the card warns, as Apple\'s Vitals app does: an illness starting, alcohol, travel or a hard block of training are the usual reasons. It is a prompt to take it easy, not a diagnosis.\n\nSpO2 and skin temperature come only from the Google Health API. Tap for the Sleep screen.</string>
+    <string name="vitals_all_typical">All within your usual range.</string>
+    <string name="vitals_one_outside">%1$s is outside your usual range. One measure on its own often is.</string>
+    <plurals name="vitals_alert">
+        <item quantity="one">%1$d measure outside your usual range: %2$s.</item>
+        <item quantity="other">%1$d measures outside your usual range: %2$s. Several at once can mean an illness starting, alcohol, travel or hard training.</item>
+    </plurals>
+    <string name="tile_sleep_health">Sleep health</string>
+    <string name="tile_sleep_health_detail">Habits over two weeks</string>
+    <string name="tile_sleep_debt">Sleep debt</string>
+    <string name="tile_sleep_debt_detail">Missed over two weeks</string>
+    <string name="debt_none">None</string>
+    <string name="debt_low">Low</string>
+    <string name="debt_moderate">Moderate</string>
+    <string name="debt_high">High</string>
+    <string name="training_status_none">Not enough training yet: the status needs four weeks of load.</string>
+    <string name="training_status_info">One word for where training stands, from three things: this week\'s load against your usual (fatigue over fitness), how VO2max moved over four weeks, and HRV against its normal range. Tap for Trends, where the reasons are listed.</string>
     <string name="card_rested_title">How rested do you feel</string>
     <string name="card_rested">The morning question, until you answer it</string>
     <string name="card_gym_title">Gym session rating</string>

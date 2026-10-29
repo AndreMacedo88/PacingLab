@@ -12,6 +12,7 @@ import androidx.health.connect.client.records.RespiratoryRateRecord
 import androidx.health.connect.client.records.RestingHeartRateRecord
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.SpeedRecord
+import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.Vo2MaxRecord
 import androidx.health.connect.client.records.WeightRecord
 import app.pacinglab.core.healthconnect.timingOf
@@ -19,6 +20,7 @@ import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
 import app.pacinglab.core.model.Route
+import app.pacinglab.core.model.SampleSeries
 import app.pacinglab.core.model.SleepSession
 import app.pacinglab.core.model.SourceWorkout
 import app.pacinglab.core.model.WorkoutStreams
@@ -64,6 +66,7 @@ class HealthConnectDataSource @Inject constructor(private val gateway: HealthCon
             val heartRate = readAll(HeartRateRecord::class, from, to)
             val speed = readAll(SpeedRecord::class, from, to)
             val distance = readAll(DistanceRecord::class, from, to)
+            val steps = readAll(StepsRecord::class, from, to)
             for (workout in window) {
                 val hrSamples = heartRate.byOrigin { r -> r.samples.map { it.time to it.beatsPerMinute } }
                 val speedSamples = speed.byOrigin { r -> r.samples.map { it.time to it.speed.inMetersPerSecond } }
@@ -75,6 +78,13 @@ class HealthConnectDataSource @Inject constructor(private val gateway: HealthCon
                         .filter { it.metadata.dataOrigin.packageName == workout.origin }
                         .sumOf { proportionalShare(it.distance.inMeters, it.startTime, it.endTime, workout.start, workout.end) }
                         .takeIf { it > 0 },
+                    steps = cumulativeSteps(
+                        steps.filter {
+                            it.metadata.dataOrigin.packageName == workout.origin
+                        },
+                        workout.start,
+                        workout.end,
+                    ),
                 )
             }
         }
@@ -128,7 +138,7 @@ class HealthConnectDataSource @Inject constructor(private val gateway: HealthCon
                 hasMore = response.hasMore,
             )
 
-            ChangeChannel.HEART_RATE, ChangeChannel.SPEED, ChangeChannel.DISTANCE -> ChangeBatch(
+            ChangeChannel.HEART_RATE, ChangeChannel.SPEED, ChangeChannel.DISTANCE, ChangeChannel.STEPS -> ChangeBatch(
                 affectedSpans = upserted.map { record -> timingOf(record).let { it.start..(it.end ?: it.start) } },
                 deletedRecordIds = deleted,
                 nextToken = response.nextToken,
@@ -199,11 +209,36 @@ class HealthConnectDataSource @Inject constructor(private val gateway: HealthCon
         return byOrigin.values.maxByOrNull(::inside)?.takeIf { inside(it) > 0 }.orEmpty()
     }
 
+    /**
+     * The step count of the records within [from, to] as a running total: a point where each record starts
+     * (when it does not start where the previous one ended) and one where it ends. Steps of records that
+     * reach outside the span are counted in proportion to their time inside it.
+     */
+    private fun cumulativeSteps(records: List<StepsRecord>, from: Instant, to: Instant): SampleSeries {
+        val times = mutableListOf<Long>()
+        val totals = mutableListOf<Double>()
+        var total = 0.0
+        for (record in records.sortedBy { it.startTime }) {
+            val start = maxOf(record.startTime, from)
+            val end = minOf(record.endTime, to)
+            if (end <= start || (times.isNotEmpty() && start.toEpochMilli() < times.last())) continue
+            if (times.isEmpty() || start.toEpochMilli() > times.last()) {
+                times += start.toEpochMilli()
+                totals += total
+            }
+            total += proportionalShare(record.count.toDouble(), record.startTime, record.endTime, from, to)
+            times += end.toEpochMilli()
+            totals += total
+        }
+        return if (total > 0) SampleSeries(times.toLongArray(), totals.toDoubleArray()) else SampleSeries.EMPTY
+    }
+
     private fun recordType(channel: ChangeChannel): KClass<out Record> = when (channel) {
         ChangeChannel.WORKOUTS -> ExerciseSessionRecord::class
         ChangeChannel.HEART_RATE -> HeartRateRecord::class
         ChangeChannel.SPEED -> SpeedRecord::class
         ChangeChannel.DISTANCE -> DistanceRecord::class
+        ChangeChannel.STEPS -> StepsRecord::class
         ChangeChannel.SLEEP -> SleepSessionRecord::class
         ChangeChannel.RESTING_HEART_RATE -> RestingHeartRateRecord::class
         ChangeChannel.HRV -> HeartRateVariabilityRmssdRecord::class

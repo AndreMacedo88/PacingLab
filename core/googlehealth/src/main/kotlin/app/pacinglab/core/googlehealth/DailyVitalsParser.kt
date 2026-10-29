@@ -11,6 +11,9 @@ internal enum class DailyType(val id: String, private val field: String) {
     BREATHING("daily-respiratory-rate", "dailyRespiratoryRate"),
     OXYGEN("daily-oxygen-saturation", "dailyOxygenSaturation"),
     TEMPERATURE("daily-sleep-temperature-derivations", "dailySleepTemperatureDerivations"),
+
+    /** Fitbit's cardio fitness of the day; needs the activity and fitness scope, and is read further back. */
+    VO2MAX("daily-vo2-max", "dailyVo2Max"),
     ;
 
     /** The day's values in [point], or null when it holds none of this type. */
@@ -39,6 +42,8 @@ internal enum class DailyType(val id: String, private val field: String) {
             TEMPERATURE -> value.number("nightlyTemperatureCelsius")?.let {
                 DailyVitals(date, skinTemperature = it, skinTemperatureBaseline = value.number("baselineTemperatureCelsius"))
             }
+
+            VO2MAX -> value.number("vo2Max")?.let { DailyVitals(date, vo2max = it, vo2maxVariance = value.number("vo2MaxCovariance")) }
         }
     }
 }

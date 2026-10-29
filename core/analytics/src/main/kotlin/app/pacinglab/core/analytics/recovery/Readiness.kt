@@ -61,7 +61,7 @@ data class SleepStatus(
 )
 
 /** Form against a band that scales with fitness: below it training strain is high, above it the athlete is fresh. */
-data class TrainingStatus(val form: Double, val fitness: Double, val band: Double, val standing: Standing, val score: Int)
+data class FormStatus(val form: Double, val fitness: Double, val band: Double, val standing: Standing, val score: Int)
 
 /**
  * How ready the body is today, from what the watch measured overnight and from recent training.
@@ -79,7 +79,7 @@ data class Readiness(
     val hrv: HrvStatus?,
     val restingHr: RestingHrStatus?,
     val sleep: SleepStatus?,
-    val training: TrainingStatus?,
+    val training: FormStatus?,
     val breathingElevated: Boolean,
     val baselineNights: Int,
     val breathingUsual: Double? = null,
@@ -238,10 +238,10 @@ data class Readiness(
         /** Half-width of the band of normal form at [fitness]: 30 % of fitness, at least 10. */
         fun formBand(fitness: Double): Double = maxOf(MIN_FORM_BAND, FORM_BAND_SHARE * fitness)
 
-        private fun trainingStatus(day: FormDay): TrainingStatus {
+        private fun trainingStatus(day: FormDay): FormStatus {
             val band = formBand(day.fitness)
             val position = day.form / band
-            return TrainingStatus(day.form, day.fitness, band, standing(position, -1.0, 1.0), clampScore(75 + 25 * position))
+            return FormStatus(day.form, day.fitness, band, standing(position, -1.0, 1.0), clampScore(75 + 25 * position))
         }
 
         private fun breathingUsual(nights: List<Night>, today: LocalDate): Double? =

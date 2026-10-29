@@ -49,6 +49,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.pacinglab.core.analytics.performance.FitnessAge
 import app.pacinglab.core.analytics.performance.Vo2MaxSource
 import app.pacinglab.core.data.repository.Vo2MaxHistory
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
@@ -61,6 +62,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.roundToInt
 
 /** How far back the VO2max chart reaches. */
 enum class Vo2MaxRange(val days: Long?, val label: Int) {
@@ -83,6 +85,7 @@ internal fun Vo2MaxCard(
     onDeleteTest: (LocalDate) -> Unit,
     locale: Locale,
     modifier: Modifier = Modifier,
+    fitness: FitnessComparison? = null,
 ) {
     var range by rememberSaveable { mutableStateOf(Vo2MaxRange.THREE_MONTHS) }
     var adding by rememberSaveable { mutableStateOf(false) }
@@ -109,6 +112,7 @@ internal fun Vo2MaxCard(
                     )
                 }
             }
+            fitness?.let { FitnessAgeLine(it, locale) }
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 Vo2MaxRange.entries.forEachIndexed { i, option ->
                     SegmentedButton(
@@ -386,3 +390,30 @@ private fun signedOneDecimal(value: Double, locale: Locale): String {
 
 private const val BAND_ALPHA = 0.18f
 private const val POINT_ALPHA = 0.85f
+
+/**
+ * Today's VO2max against healthy people of the same sex (HUNT3): the fitness age, and with a birth date
+ * the athlete's age and the average at that age.
+ */
+data class FitnessComparison(val fitnessAge: Double, val age: Int?, val averageAtAge: Double?)
+
+@Composable
+private fun FitnessAgeLine(comparison: FitnessComparison, locale: Locale, modifier: Modifier = Modifier) {
+    val fitnessAge = comparison.fitnessAge.roundToInt()
+    val atLimit = comparison.fitnessAge <= FitnessAge.RANGE.start
+    Column(modifier) {
+        Text(
+            text = stringResource(if (atLimit) R.string.vo2_fitness_age_youngest else R.string.vo2_fitness_age, fitnessAge),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text = if (comparison.age != null && comparison.averageAtAge != null) {
+                stringResource(R.string.vo2_fitness_age_compared, comparison.age, "%.0f".format(locale, comparison.averageAtAge))
+            } else {
+                stringResource(R.string.vo2_fitness_age_no_birth_date)
+            },
+            style = MaterialTheme.typography.bodySmall.tabularNumbers(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}

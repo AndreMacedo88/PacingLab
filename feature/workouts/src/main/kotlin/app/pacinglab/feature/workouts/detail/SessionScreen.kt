@@ -47,6 +47,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.intervals.PhaseKind
 import app.pacinglab.core.analytics.load.EffortLoad
+import app.pacinglab.core.data.weather.SessionWeatherState
 import app.pacinglab.core.designsystem.chart.ZoneLegend
 import app.pacinglab.core.designsystem.component.label
 import app.pacinglab.core.designsystem.format.Formats
@@ -148,6 +149,7 @@ fun SessionScreen(
                 locale = locale,
                 zoneId = zoneId,
                 modifier = Modifier.fillMaxSize().padding(padding),
+                weather = state.weather,
             )
         }
     }
@@ -193,6 +195,7 @@ private fun ScopeContent(
     locale: Locale,
     zoneId: ZoneId,
     modifier: Modifier = Modifier,
+    weather: SessionWeatherState? = null,
 ) {
     LazyColumn(
         modifier = modifier,
@@ -213,6 +216,10 @@ private fun ScopeContent(
         if (scope.routes.isNotEmpty()) {
             item(key = "map") { RouteSection(scope) }
         }
+        // Nothing to show while the weather is looked up, switched off or without a place.
+        if (weather != null && weather != SessionWeatherState.Off && weather != SessionWeatherState.NoPlace) {
+            item(key = "conditions") { ConditionsCard(weather, locale) }
+        }
         item(key = "heart-rate") { HeartRateCard(scope.analysis.zones, scope.heartRate, scope.zoneOffset ?: zoneId, onOpenPhysiology) }
         if (scope.analysis.isIntervalSession) {
             item(key = "intervals") { IntervalsCard(scope.analysis, toggle, locale) }
@@ -220,8 +227,11 @@ private fun ScopeContent(
         if (scope.splits.isNotEmpty()) {
             item(key = "splits") { SplitsCard(scope.splits, toggle, locale) }
         }
+        scope.form?.let { form ->
+            item(key = "form") { RunningFormCard(form, locale) }
+        }
         scope.decoupling?.let { decoupling ->
-            item(key = "decoupling") { DecouplingCard(decoupling, toggle, locale) }
+            item(key = "decoupling") { DecouplingCard(decoupling, toggle, locale, heat = weather.heat()) }
         }
         // The effort card shows the load of a rated gym session.
         scope.analysis.load?.takeIf { it.heartRateMillis > 0 && rated == null }?.let { load ->

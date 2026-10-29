@@ -4,14 +4,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.FormDay
+import app.pacinglab.core.analytics.load.TrainingStatus
 import app.pacinglab.core.analytics.load.WeekStrain
 import app.pacinglab.core.analytics.load.WeekSummary
 import app.pacinglab.core.analytics.performance.Vo2MaxPoint
@@ -22,6 +26,7 @@ import app.pacinglab.core.analytics.recovery.NightlyMetric
 import app.pacinglab.core.analytics.recovery.NightlyRange
 import app.pacinglab.core.analytics.recovery.Readiness
 import app.pacinglab.core.analytics.recovery.SleepContinuity
+import app.pacinglab.core.analytics.recovery.SleepHistory
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.data.repository.DashboardLayout
@@ -58,7 +63,7 @@ import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h1500dp-xxhdpi")
+@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h3400dp-xxhdpi")
 class TodayScreenScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
@@ -195,7 +200,13 @@ class TodayScreenScreenshotTest {
             (TodayViewModel.TILE_DAYS - 1 downTo 0).map { back -> NightlyRange.of(nights, metric, today.minusDays(back.toLong())) }
         },
         rangeNights = NightlyMetric.entries.associateWith { NightlyRange.nightsBefore(nights, it, today) },
-        extras = TodayExtras(heartRate = dayHeartRate, heartRateZones = Zones.of(ZoneModel.LTHR_FIVE, anchors)),
+        extras = TodayExtras(
+            heartRate = dayHeartRate,
+            heartRateZones = Zones.of(ZoneModel.LTHR_FIVE, anchors),
+            trainingStatus = TrainingStatus.of(form, vo2maxChange = 0.8, hrvBelowNormal = false),
+        ),
+        sleepHealth = SleepHistory.of(nights).health.filterKeys { it > today.minusDays(TodayViewModel.TILE_DAYS.toLong()) },
+        sleepDebts = SleepHistory.of(nights).debts.filterKeys { it > today.minusDays(TodayViewModel.TILE_DAYS.toLong()) },
     )
 
     private val anchors = HeartRateAnchors(maxHr = 186, thresholdHr = 167, restingHr = 52)
@@ -262,7 +273,9 @@ class TodayScreenScreenshotTest {
             }
         }
 
-        compose.onNodeWithText("Run + Interval workout").performScrollTo().performClick()
+        // The list composes only what is near the screen, so scroll it to the card first.
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Run + Interval workout"))
+        compose.onNodeWithText("Run + Interval workout").performClick()
 
         assertThat(opened).isEqualTo("s1")
     }
@@ -338,7 +351,10 @@ class TodayScreenScreenshotTest {
             PacingLabTheme { TodayScreen(loaded(nights(40)), onOpen = { opened = it }, zoneId = ZoneOffset.UTC) }
         }
 
-        compose.onNodeWithText("HRV").performScrollTo().performClick()
+        // The vitals card names HRV too; the tile is the one with a range under the value.
+        val tile = hasText("HRV") and hasText("Range", substring = true)
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(tile)
+        compose.onNode(tile).performClick()
 
         assertThat(opened).isEqualTo(TodayDestination.Metric(NightlyMetric.HRV))
     }

@@ -19,6 +19,9 @@ class DailyVitalsStore @Inject constructor(database: PacingLabDatabase) {
     /** The newest date stored, or null when nothing is. */
     suspend fun latest(): LocalDate? = dao.latest()?.let(LocalDate::ofEpochDay)
 
+    /** The newest date with a VO2max, or null when there is none. */
+    suspend fun latestVo2Max(): LocalDate? = dao.latestVo2Max()?.let(LocalDate::ofEpochDay)
+
     /** Saves [vitals]; a value missing from an entry keeps the one stored for that date. */
     suspend fun merge(vitals: List<DailyVitals>) {
         if (vitals.isEmpty()) return
@@ -39,6 +42,8 @@ private fun DailyVitalsEntity.toDomain() = DailyVitals(
     oxygenSaturationHigh = oxygenSaturationHigh,
     skinTemperature = skinTemperature,
     skinTemperatureBaseline = skinTemperatureBaseline,
+    vo2max = vo2max,
+    vo2maxVariance = vo2maxVariance,
 )
 
 private fun DailyVitals.toEntity() = DailyVitalsEntity(
@@ -51,4 +56,6 @@ private fun DailyVitals.toEntity() = DailyVitalsEntity(
     oxygenSaturationHigh = oxygenSaturationHigh,
     skinTemperature = skinTemperature,
     skinTemperatureBaseline = skinTemperatureBaseline,
+    vo2max = vo2max,
+    vo2maxVariance = vo2maxVariance,
 )

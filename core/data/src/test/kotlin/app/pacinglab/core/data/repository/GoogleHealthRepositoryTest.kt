@@ -39,11 +39,13 @@ class GoogleHealthRepositoryTest {
 
     private class FakeSource : VitalsSource {
         val asked = mutableListOf<LocalDate>()
+        val askedVo2Max = mutableListOf<LocalDate>()
         var failure: Exception? = null
         var days = listOf<DailyVitals>()
 
-        override suspend fun readDailyVitals(since: LocalDate): List<DailyVitals> {
+        override suspend fun readDailyVitals(since: LocalDate, vo2maxSince: LocalDate): List<DailyVitals> {
             asked += since
+            askedVo2Max += vo2maxSince
             failure?.let { throw it }
             return days.filter { it.date >= since }
         }
@@ -73,6 +75,20 @@ class GoogleHealthRepositoryTest {
         assertThat(source.asked).containsExactly(today.minusDays(GoogleHealthRepository.HISTORY_DAYS), today.minusDays(3))
         val status = repository.status.first()
         assertThat(status).isEqualTo(GoogleHealthStatus(connected = true, lastSync = now, days = 2, newest = today))
+    }
+
+    @Test
+    fun `VO2max is read years back once, then from its newest day, and is not counted as a morning`() = runTest {
+        source.days = listOf(
+            DailyVitals(today.minusDays(10), vo2max = 52.0, vo2maxVariance = 1.2),
+            DailyVitals(today.minusDays(1), hrvMs = 61.4),
+        )
+
+        repository.connect()
+        repository.sync()
+
+        assertThat(source.askedVo2Max).containsExactly(today.minusDays(GoogleHealthRepository.VO2MAX_HISTORY_DAYS), today.minusDays(13))
+        assertThat(repository.status.first().days).isEqualTo(1)
     }
 
     @Test

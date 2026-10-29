@@ -9,7 +9,9 @@ import app.pacinglab.core.data.sync.AppVisibility
 import app.pacinglab.core.data.sync.ProcessAppVisibility
 import app.pacinglab.core.data.weather.ApproximateLocation
 import app.pacinglab.core.data.weather.FileWeatherCache
+import app.pacinglab.core.data.weather.OpenMeteoPastService
 import app.pacinglab.core.data.weather.OpenMeteoService
+import app.pacinglab.core.data.weather.PastWeatherService
 import app.pacinglab.core.data.weather.PlatformApproximateLocation
 import app.pacinglab.core.data.weather.WeatherCache
 import app.pacinglab.core.data.weather.WeatherService
@@ -32,6 +34,9 @@ interface DataBindings {
 
     @Binds
     fun weather(service: OpenMeteoService): WeatherService
+
+    @Binds
+    fun pastWeather(service: OpenMeteoPastService): PastWeatherService
 
     @Binds
     fun location(location: PlatformApproximateLocation): ApproximateLocation

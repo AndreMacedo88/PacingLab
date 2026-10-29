@@ -163,13 +163,19 @@ fun TrendsScreen(
                     ) {
                         for (card in state.cards.filter { it.visible }.mapNotNull { TrendsCardKind.of(it.id) }) {
                             when (card) {
+                                TrendsCardKind.STATUS -> item(key = card.id) { TrainingStatusCard(state.status, locale) }
+
                                 TrendsCardKind.FORM -> item(key = card.id) { FormCard(state.days, state.today, initialRange, locale) }
 
                                 TrendsCardKind.RECOVERY -> if (state.recovery.isNotEmpty()) {
-                                    item(key = card.id) { RecoveryCard(state.recovery, state.today, locale) }
+                                    item(key = card.id) {
+                                        RecoveryCard(state.recovery, state.today, locale, variation = state.hrvVariation)
+                                    }
                                 }
 
                                 TrendsCardKind.WEEKS -> item(key = card.id) { WeeksCard(state.weeks, state.today, locale) }
+
+                                TrendsCardKind.FOCUS -> item(key = card.id) { IntensityFocusCard(state.focus) }
                             }
                         }
                     }

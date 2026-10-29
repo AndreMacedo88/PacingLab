@@ -181,7 +181,7 @@ class TrainingLoadRepository @Inject constructor(
             } else {
                 (cached.scores ?: LoadScores.ZERO).copy(stressScore = EffortLoad.stressScore(effort, millis))
             }
-            WorkoutLoad(workout.id, date, millis, scores, cached.intensity, effort)
+            WorkoutLoad(workout.id, date, millis, scores, cached.intensity, effort, workout.sport)
         }
     }
 

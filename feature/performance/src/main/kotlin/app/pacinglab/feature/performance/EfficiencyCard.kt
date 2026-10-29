@@ -156,11 +156,6 @@ private fun EfficiencyChart(
 /** Seconds per kilometre at [speed] m/s. */
 private fun pace(speed: Double): Double = 1000.0 / speed
 
-private fun paceText(speed: Double): String {
-    val seconds = pace(speed).roundToInt()
-    return "%d:%02d".format(Locale.ROOT, seconds / 60, seconds % 60)
-}
-
 /** A pace change as "−0:08" (faster) or "+0:05" (slower). */
 private fun signedSeconds(seconds: Double): String {
     val rounded = seconds.roundToInt()

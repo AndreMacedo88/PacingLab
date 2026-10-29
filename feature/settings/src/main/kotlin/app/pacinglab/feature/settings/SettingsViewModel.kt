@@ -61,6 +61,12 @@ class SettingsViewModel @Inject constructor(
 
     fun setSex(sex: Sex) = launch { repository.setSex(sex) }
 
+    fun setBirthDate(date: LocalDate?) = launch { repository.setBirthDate(date) }
+
+    fun setMorningReminder(on: Boolean) = launch { repository.setMorningReminder(on) }
+
+    fun setSessionWeather(on: Boolean) = launch { repository.setSessionWeather(on) }
+
     /** The name the file picker suggests for a backup made today. */
     fun backupFileName(): String = BackupRepository.fileName(LocalDate.now(clock))
 

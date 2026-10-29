@@ -2,6 +2,7 @@ package app.pacinglab.core.data.repository
 
 import app.pacinglab.core.analytics.geo.speeds
 import app.pacinglab.core.analytics.intervals.SprintDetection
+import app.pacinglab.core.analytics.load.AnchorTimeline
 import app.pacinglab.core.analytics.load.TrainingLoads
 import app.pacinglab.core.analytics.performance.AerobicDecoupling
 import app.pacinglab.core.analytics.performance.AerobicEfficiency
@@ -14,15 +15,23 @@ import app.pacinglab.core.analytics.performance.EfficiencyDay
 import app.pacinglab.core.analytics.performance.EfficiencyPoint
 import app.pacinglab.core.analytics.performance.EffortBests
 import app.pacinglab.core.analytics.performance.EffortSource
+import app.pacinglab.core.analytics.performance.FitbitDailyVo2Max
+import app.pacinglab.core.analytics.performance.FitbitVo2Max
+import app.pacinglab.core.analytics.performance.MarathonShape
+import app.pacinglab.core.analytics.performance.MarathonShapes
 import app.pacinglab.core.analytics.performance.RacePrediction
 import app.pacinglab.core.analytics.performance.RacePredictions
+import app.pacinglab.core.analytics.performance.RunDistance
 import app.pacinglab.core.analytics.performance.RunEfforts
 import app.pacinglab.core.analytics.performance.RunVo2Max
+import app.pacinglab.core.analytics.performance.TrainingPaceCalculator
+import app.pacinglab.core.analytics.performance.TrainingPaces
 import app.pacinglab.core.analytics.performance.Vo2MaxPoint
 import app.pacinglab.core.analytics.performance.Vo2MaxSource
 import app.pacinglab.core.analytics.performance.Vo2MaxTrend
 import app.pacinglab.core.analytics.workout.StreamCleaning
 import app.pacinglab.core.analytics.workout.TrainingSessions
+import app.pacinglab.core.database.store.DailyVitalsStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.WorkoutStore
 import app.pacinglab.core.model.HeartRateAnchors
@@ -34,7 +43,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import java.time.Clock
 import java.time.Instant
@@ -73,6 +84,8 @@ data class EfficiencyHistory(val points: List<EfficiencyPoint>, val trend: List<
  * @property recent best efforts of the last [CriticalSpeed.WINDOW_DAYS] days.
  * @property vo2max today's VO2max from the trend, which the predictions use.
  * @property decoupling every steady long run's decoupling, oldest first.
+ * @property shape the marathon shape that tempers the predictions of long races; null without VO2max.
+ * @property paces Daniels' training paces from today's VO2max.
  */
 data class RunningPerformance(
     val allTime: EffortBests,
@@ -81,6 +94,8 @@ data class RunningPerformance(
     val predictions: List<RacePrediction>,
     val vo2max: Double?,
     val decoupling: List<DecouplingPoint>,
+    val shape: MarathonShape? = null,
+    val paces: TrainingPaces? = null,
 ) {
     companion object {
         val EMPTY = RunningPerformance(
@@ -104,6 +119,7 @@ class PerformanceRepository @Inject constructor(
     private val workouts: WorkoutStore,
     private val measurements: MeasurementStore,
     trainingLoad: TrainingLoadRepository,
+    dailyVitals: DailyVitalsStore,
     private val clock: Clock,
 ) {
     private class Cached(val value: Double?, val windows: Int)
@@ -112,12 +128,17 @@ class PerformanceRepository @Inject constructor(
 
     private val estimates = ConcurrentHashMap<Key, Cached>()
 
+    private val fitbitDaily: Flow<List<FitbitDailyVo2Max>> = dailyVitals.observe()
+        .map { days -> days.mapNotNull { day -> day.vo2max?.let { v -> day.vo2maxVariance?.let { FitbitDailyVo2Max(day.date, v, it) } } } }
+        .distinctUntilChanged()
+
     private val history: Flow<Vo2MaxHistory> = combine(
         workouts.observeAll(),
         trainingLoad.anchors,
         measurements.observeMeasurements(MeasurementKind.VO2_MAX, Instant.EPOCH, FAR_FUTURE),
-    ) { all, timeline, recorded -> Triple(all, timeline, recorded) }
-        .mapLatest { (all, timeline, recorded) ->
+        fitbitDaily,
+    ) { all, timeline, recorded, daily -> VoInputs(all, timeline, recorded, daily) }
+        .mapLatest { (all, timeline, recorded, daily) ->
             val runs = TrainingSessions.removeDuplicates(all.filter { it.sport == Sport.RUN && TrainingLoads.counts(it) })
             val byDay = runs.mapNotNull { workout ->
                 val date = TrainingLoads.dateOf(workout, clock.zone)
@@ -154,12 +175,20 @@ class PerformanceRepository @Inject constructor(
                     source = if (m.origin == TEST_ORIGIN) Vo2MaxSource.TEST else Vo2MaxSource.FITBIT,
                 )
             }
-            val points = (own + other).sortedBy { it.date }
+            val (fitbit, tests) = other.partition { it.source == Vo2MaxSource.FITBIT }
+            val points = (own + tests + FitbitVo2Max.points(fitbit, daily)).sortedBy { it.date }
             Vo2MaxHistory(points, Vo2MaxTrend.of(points, LocalDate.now(clock)))
         }
         .flowOn(Dispatchers.Default)
 
     fun observeVo2Max(): Flow<Vo2MaxHistory> = history
+
+    private data class VoInputs(
+        val workouts: List<Workout>,
+        val timeline: AnchorTimeline,
+        val recorded: List<Measurement>,
+        val daily: List<FitbitDailyVo2Max>,
+    )
 
     private val efficiencies = ConcurrentHashMap<Key, Cached>()
 
@@ -218,12 +247,20 @@ class PerformanceRepository @Inject constructor(
             val recentFrom = today.minusDays(CriticalSpeed.WINDOW_DAYS)
             val criticalSpeed = CriticalSpeed.of(efforts, today)
             val vo2max = vo2.trend?.current?.value
+            val shape = vo2max?.let { v ->
+                val distances = runs.mapNotNull { run ->
+                    run.summary.distanceMeters?.let { RunDistance(TrainingLoads.dateOf(run, clock.zone), it) }
+                }
+                MarathonShapes.of(distances, v, today)
+            }
             RunningPerformance(
                 allTime = BestEfforts.best(efforts),
                 recent = BestEfforts.best(analysed.filter { it.first.first > recentFrom }.map { it.second.efforts }),
                 criticalSpeed = criticalSpeed,
-                predictions = RacePredictions.of(vo2max, criticalSpeed.fit),
+                predictions = RacePredictions.of(vo2max, criticalSpeed.fit, shape),
                 vo2max = vo2max,
+                shape = shape,
+                paces = vo2max?.let(TrainingPaceCalculator::of),
                 decoupling = analysed.mapNotNull { (dated, analysis) ->
                     analysis.decoupling?.let { DecouplingPoint(dated.first, dated.second, it) }
                 }.sortedBy { it.date },

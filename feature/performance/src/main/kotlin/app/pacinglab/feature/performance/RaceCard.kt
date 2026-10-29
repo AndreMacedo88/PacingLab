@@ -10,25 +10,48 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import app.pacinglab.core.analytics.performance.MarathonShape
 import app.pacinglab.core.analytics.performance.RacePrediction
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
- * Predicted race times: one row per distance with the time from VO2max, and the time from critical speed
- * underneath where that model applies.
+ * Predicted race times: one row per distance with the time from VO2max, tempered by the marathon shape
+ * where the training is short of what the distance asks for (with the untempered time beside it), and
+ * the time from critical speed underneath where that model applies.
  */
 @Composable
-internal fun RaceCard(predictions: List<RacePrediction>, vo2max: Double?, locale: Locale, modifier: Modifier = Modifier) {
+internal fun RaceCard(
+    predictions: List<RacePrediction>,
+    vo2max: Double?,
+    locale: Locale,
+    modifier: Modifier = Modifier,
+    shape: MarathonShape? = null,
+) {
     PerformanceCard(stringResource(R.string.race_title), stringResource(R.string.race_info), modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             predictions.forEachIndexed { i, prediction ->
                 if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 RaceRow(prediction)
             }
+        }
+        shape?.let {
+            Text(
+                text = stringResource(
+                    R.string.race_shape,
+                    it.percent.roundToInt(),
+                    it.weeklyKm.roundToInt(),
+                    it.targetWeeklyKm.roundToInt(),
+                    pluralStringResource(R.plurals.race_long_runs, it.longRuns, it.longRuns, it.longRunKm.roundToInt()),
+                ),
+                style = MaterialTheme.typography.bodySmall.tabularNumbers(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         vo2max?.let {
             Text(
@@ -58,6 +81,14 @@ private fun RaceRow(prediction: RacePrediction, modifier: Modifier = Modifier) {
                 modifier = Modifier.weight(0.7f),
             )
         }
+        val potential = prediction.potential
+        if (prediction.fromVo2Max != null && potential != null && prediction.fromVo2Max!! - potential >= SHAPE_SHOWN_FROM_SECONDS) {
+            Text(
+                text = stringResource(R.string.race_potential, raceTime(potential)),
+                style = MaterialTheme.typography.bodySmall.tabularNumbers(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         if (prediction.fromVo2Max != null && prediction.fromCriticalSpeed != null) {
             Text(
                 text = stringResource(R.string.race_from_critical_speed, raceTime(prediction.fromCriticalSpeed!!)),
@@ -67,3 +98,6 @@ private fun RaceRow(prediction: RacePrediction, modifier: Modifier = Modifier) {
         }
     }
 }
+
+/** Shape corrections smaller than this are not worth a second line. */
+private const val SHAPE_SHOWN_FROM_SECONDS = 5.0

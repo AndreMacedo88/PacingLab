@@ -109,4 +109,25 @@ class DailyVitalsEntity(
     @ColumnInfo(name = "spo2_high") val oxygenSaturationHigh: Double?,
     @ColumnInfo(name = "skin_temperature") val skinTemperature: Double?,
     @ColumnInfo(name = "skin_temperature_baseline") val skinTemperatureBaseline: Double?,
+    @ColumnInfo(name = "vo2max") val vo2max: Double? = null,
+    @ColumnInfo(name = "vo2max_variance") val vo2maxVariance: Double? = null,
+)
+
+/**
+ * The weather during a session, looked up once by its first workout's id. A row without a temperature
+ * records that none could be found, so the lookup is not repeated.
+ */
+@Entity(tableName = "session_weather")
+class SessionWeatherEntity(
+    @PrimaryKey @ColumnInfo(name = "workout_id") val workoutId: String,
+    @ColumnInfo(name = "fetched_ms") val fetchedMs: Long,
+    @ColumnInfo(name = "time_ms") val timeMs: Long,
+    @ColumnInfo(name = "condition") val condition: String?,
+    @ColumnInfo(name = "temperature") val temperature: Double?,
+    @ColumnInfo(name = "apparent_temperature") val apparentTemperature: Double?,
+    @ColumnInfo(name = "dew_point") val dewPoint: Double?,
+    @ColumnInfo(name = "humidity") val humidity: Double?,
+    @ColumnInfo(name = "wind_speed") val windSpeed: Double?,
+    @ColumnInfo(name = "wind_gusts") val windGusts: Double?,
+    @ColumnInfo(name = "precipitation") val precipitation: Double?,
 )

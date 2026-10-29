@@ -206,7 +206,7 @@
     <string name="about_title">About</string>
     <string name="about_app">PacingLab</string>
     <string name="about_version">Version %1$s</string>
-    <string name="about_purpose">Training analysis from your watch\'s data in Health Connect, with published methods. Everything is computed and kept on this phone; it downloads only map tiles, forecasts for the weather card and, if you connect it, your nightly values from the Google Health API.</string>
+    <string name="about_purpose">Training analysis from your watch\'s data in Health Connect, with published methods. Everything is computed and kept on this phone; it downloads only map tiles, weather for the weather card and for sessions and, if you connect it, your nightly values and VO2max from the Google Health API.</string>
     <string name="about_source">Source code</string>
     <string name="about_licence">Free software under the Apache License 2.0, on GitHub</string>
     <string name="about_privacy">Privacy policy</string>
@@ -214,7 +214,7 @@
     <string name="about_maps">Maps</string>
     <string name="about_maps_summary">Tiles from OpenFreeMap. © OpenMapTiles, data © OpenStreetMap contributors</string>
     <string name="about_weather">Weather</string>
-    <string name="about_weather_summary">Forecasts by Open-Meteo.com, under CC BY 4.0</string>
+    <string name="about_weather_summary">Forecasts and the weather of sessions by Open-Meteo.com, under CC BY 4.0</string>
     <string name="about_libraries">Built with</string>
     <string name="about_libraries_summary">Jetpack Compose, Room, Hilt, WorkManager, DataStore and the Health Connect client (Apache License 2.0); MapLibre Native (BSD 2-clause); Google Play services for signing in to Google Health</string>
     <string name="zones_set_own">Set your own boundaries</string>
@@ -229,7 +229,7 @@
     <string name="zones_automatic">Automatic</string>
     <string name="zones_cancel">Cancel</string>
     <string name="google_health_title">Google Health API</string>
-    <string name="google_health_description">Adds Fitbit\'s own nightly HRV, SpO2 and skin temperature, which Health Connect lacks or has only in part. Read only, straight from Google to this phone, with your Google account.</string>
+    <string name="google_health_description">Adds Fitbit\'s own nightly HRV, SpO2 and skin temperature, which Health Connect lacks or has only in part, and its daily VO2max for the trend. Read only, straight from Google to this phone, with your Google account.</string>
     <string name="google_health_connect">Connect</string>
     <string name="google_health_sign_in">Sign in again</string>
     <string name="google_health_disconnect">Disconnect</string>
@@ -242,4 +242,13 @@
         <item quantity="one">%1$d morning with values, newest %2$s</item>
         <item quantity="other">%1$d mornings with values, newest %2$s</item>
     </plurals>
+    <string name="settings_birth_date">Birth date</string>
+    <string name="settings_birth_date_summary">Not set. Fitness age compares your VO2max with the average at your age once it is.</string>
+    <string name="settings_birth_date_set">%1$s, used to compare your VO2max with people of your age</string>
+    <string name="settings_birth_date_save">Save</string>
+    <string name="settings_birth_date_clear">Remove</string>
+    <string name="settings_morning_reminder">Morning reminder</string>
+    <string name="settings_morning_reminder_summary">A notification asks how rested you feel once last night has synced, if you have not answered by then (until 13:00)</string>
+    <string name="settings_session_weather">Weather for sessions</string>
+    <string name="settings_session_weather_summary">Looks up the weather when you open a session: the start of the route, rounded to about a kilometre, and the date go to Open-Meteo</string>
 </resources>

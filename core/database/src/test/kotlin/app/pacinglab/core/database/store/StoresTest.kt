@@ -75,6 +75,7 @@ class StoresTest {
                 doubleArrayOf(4.0),
             ),
             reportedDistanceMeters = null,
+            steps = SampleSeries(longArrayOf(t0.toEpochMilli(), t0.toEpochMilli() + 60_000), doubleArrayOf(0.0, 171.5)),
         )
 
         workouts.save(workout, streams)
@@ -83,6 +84,7 @@ class StoresTest {
         val loaded = workouts.streams("hc:a")
         assertThat(loaded.heartRate).isEqualTo(streams.heartRate)
         assertThat(loaded.speed).isEqualTo(streams.speed)
+        assertThat(loaded.steps).isEqualTo(streams.steps)
         assertThat(loaded.route.latitudes.toList()).containsExactly(55.1)
         assertThat(workouts.heartRate("hc:a")).isEqualTo(streams.heartRate)
         assertThat(workouts.heartRate("hc:missing").isEmpty()).isEqualTo(true)

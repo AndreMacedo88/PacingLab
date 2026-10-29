@@ -2,6 +2,7 @@ package app.pacinglab.core.googlehealth
 
 import androidx.test.core.app.ApplicationProvider
 import app.pacinglab.core.model.DailyVitals
+import app.pacinglab.core.model.source.SourceAuthorizationException
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
@@ -15,12 +16,16 @@ import java.time.LocalDate
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [Config.NEWEST_SDK])
 class GoogleHealthVitalsSourceTest {
-    /** Serves made-up pages in the shape of the API's responses, two days per page, newest first. */
-    private class FakeApi(private val pages: Map<String, List<String>>) : GoogleHealthApi {
+    /**
+     * Serves made-up pages in the shape of the API's responses, two days per page, newest first. Types in
+     * [refused] answer as without the scope they need.
+     */
+    private class FakeApi(private val pages: Map<String, List<String>>, private val refused: Set<String> = emptySet()) : GoogleHealthApi {
         val requested = mutableListOf<String>()
 
         override suspend fun dataPoints(dataType: String, token: String, pageToken: String?): String {
             requested += "$dataType ${pageToken ?: "first"}"
+            if (dataType in refused) throw SourceAuthorizationException("Google Health API answered 403 for $dataType")
             val list = pages[dataType] ?: return "{}"
             val index = pageToken?.toInt() ?: 0
             val next = if (index + 1 < list.size) ""","nextPageToken":"${index + 1}"""" else ""
@@ -55,6 +60,10 @@ class GoogleHealthVitalsSourceTest {
             "daily-sleep-temperature-derivations" to listOf(
                 """{"dailySleepTemperatureDerivations":{${date(27)},"nightlyTemperatureCelsius":33.1,"baselineTemperatureCelsius":33.5}}""",
             ),
+            "daily-vo2-max" to listOf(
+                """{"dailyVo2Max":{${date(28)},"vo2Max":51.4,"cardioFitnessLevel":"VERY_GOOD","vo2MaxCovariance":1.9}},""" +
+                    """{"dailyVo2Max":{${date(20)},"vo2Max":50.6,"vo2MaxCovariance":1.5}}""",
+            ),
         ),
     )
 
@@ -73,10 +82,31 @@ class GoogleHealthVitalsSourceTest {
                 oxygenSaturationHigh = 98.0,
             ),
             DailyVitals(LocalDate.of(2026, 10, 27), hrvMs = 61.4, skinTemperature = 33.1, skinTemperatureBaseline = 33.5),
-            DailyVitals(LocalDate.of(2026, 10, 28), hrvMs = 52.1, restingHr = 54.0),
+            DailyVitals(LocalDate.of(2026, 10, 28), hrvMs = 52.1, restingHr = 54.0, vo2max = 51.4, vo2maxVariance = 1.9),
         )
         // The page with the 25th already reaches past the 26th, so the third page is never asked for.
         assertThat(api.requested.filter { it.startsWith("daily-heart-rate-variability") })
             .isEqualTo(listOf("daily-heart-rate-variability first", "daily-heart-rate-variability 1"))
+    }
+
+    @Test
+    fun `VO2max is read back to its own date`() = runTest {
+        val days = source.read("token", since = LocalDate.of(2026, 10, 28), vo2maxSince = LocalDate.of(2026, 10, 1))
+
+        assertThat(days.mapNotNull { day -> day.vo2max?.let { day.date to it } })
+            .containsExactly(LocalDate.of(2026, 10, 20) to 50.6, LocalDate.of(2026, 10, 28) to 51.4)
+        assertThat(days.last().vo2maxVariance).isEqualTo(1.9)
+    }
+
+    @Test
+    fun `without the activity scope the nightly values still come`() = runTest {
+        val refusing = GoogleHealthVitalsSource(
+            GoogleHealthAuthorization(ApplicationProvider.getApplicationContext()),
+            FakeApi(mapOf("daily-heart-rate-variability" to listOf(hrv(28, 52.1))), refused = setOf("daily-vo2-max")),
+        )
+
+        val days = refusing.read("token", since = LocalDate.of(2026, 10, 28))
+
+        assertThat(days).containsExactly(DailyVitals(LocalDate.of(2026, 10, 28), hrvMs = 52.1))
     }
 }

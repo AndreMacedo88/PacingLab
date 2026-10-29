@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.FormDay
+import app.pacinglab.core.analytics.load.IntensityFocus
 import app.pacinglab.core.analytics.load.TrainingLoads
+import app.pacinglab.core.analytics.load.TrainingStatus
 import app.pacinglab.core.analytics.load.WeekSummary
+import app.pacinglab.core.analytics.recovery.HrvVariation
 import app.pacinglab.core.analytics.recovery.RecoveryDay
 import app.pacinglab.core.analytics.recovery.RecoveryTrend
 import app.pacinglab.core.data.repository.Dashboard
@@ -14,6 +17,7 @@ import app.pacinglab.core.data.repository.DashboardRepository
 import app.pacinglab.core.data.repository.NightRepository
 import app.pacinglab.core.data.repository.PlacedCard
 import app.pacinglab.core.data.repository.TrainingLoadRepository
+import app.pacinglab.core.data.repository.TrainingStatusRepository
 import app.pacinglab.core.data.sync.SyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +41,9 @@ sealed interface TrendsUiState {
     /**
      * @property days the fitness-fatigue model from the first day with load to [today]; empty without workouts.
      * @property weeks the latest weeks, newest first.
+     * @property status today's training status; null with too little history.
+     * @property focus the intensity focus of the last four weeks; null with too little endurance training.
+     * @property hrvVariation the week's HRV coefficient of variation; null with too few nights.
      */
     data class Loaded(
         val days: List<FormDay>,
@@ -44,6 +51,9 @@ sealed interface TrendsUiState {
         val today: LocalDate,
         val recovery: List<RecoveryDay> = emptyList(),
         val cards: List<PlacedCard> = DashboardLayout().arrange(TrendsCardKind.catalog),
+        val status: TrainingStatus? = null,
+        val focus: IntensityFocus? = null,
+        val hrvVariation: HrvVariation? = null,
     ) : TrendsUiState
 }
 
@@ -54,14 +64,21 @@ class TrendsViewModel @Inject constructor(
     clock: Clock,
     private val scheduler: SyncScheduler,
     private val dashboards: DashboardRepository,
+    training: TrainingStatusRepository,
 ) : ViewModel() {
-    private val recovery = nights.observeSleep().map { sleep -> RecoveryTrend.of(sleep.nights, LocalDate.now(clock), sleep.scores) }
+    private val recovery = nights.observeSleep().map { sleep ->
+        val today = LocalDate.now(clock)
+        RecoveryTrend.of(sleep.nights, today, sleep.scores) to HrvVariation.of(sleep.nights, today)
+    }
+
+    private val standing = combine(training.observeStatus(), training.observeFocus()) { status, focus -> status to focus }
 
     val state: StateFlow<TrendsUiState> = combine(
         repository.observeWorkoutLoads(),
         recovery,
         dashboards.layout(Dashboard.TRENDS),
-    ) { loads, recoveryDays, layout ->
+        standing,
+    ) { loads, (recoveryDays, variation), layout, (status, focus) ->
         val today = LocalDate.now(clock)
         val days = FitnessModel.series(TrainingLoads.daily(loads), until = today)
         if (days.isEmpty() && loads.isNotEmpty()) {
@@ -73,6 +90,9 @@ class TrendsViewModel @Inject constructor(
                 today,
                 recoveryDays,
                 layout.arrange(TrendsCardKind.catalog),
+                status = status,
+                focus = focus,
+                hrvVariation = variation,
             )
         }
     }

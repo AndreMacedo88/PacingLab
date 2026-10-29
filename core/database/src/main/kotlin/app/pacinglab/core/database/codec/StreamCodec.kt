@@ -20,6 +20,7 @@ import kotlin.math.roundToLong
  * Values are quantised to a
  * precision well beyond what the sensors deliver:
  * - speed: 1 mm/s
+ * - cumulative steps: 0.1 step
  * - latitude/longitude: 1e-7 degrees (about 1 cm)
  * - altitude and GPS accuracy: 1 cm
  * - lap length: 1 mm
@@ -149,6 +150,9 @@ object StreamCodec {
     }
 
     const val SPEED_SCALE = 1_000.0
+
+    /** Step totals are kept to a tenth of a step: records cut at a workout's edge count a share of their steps. */
+    const val STEPS_SCALE = 10.0
     private const val DEGREE_SCALE = 1e7
     private const val CENTIMETRES = 100.0
 

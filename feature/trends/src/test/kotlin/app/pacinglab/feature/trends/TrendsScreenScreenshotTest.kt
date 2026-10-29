@@ -6,9 +6,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import app.pacinglab.core.analytics.load.FitnessModel
+import app.pacinglab.core.analytics.load.IntensityFocus
 import app.pacinglab.core.analytics.load.LoadScores
 import app.pacinglab.core.analytics.load.TrainingLoads
+import app.pacinglab.core.analytics.load.TrainingStatus
 import app.pacinglab.core.analytics.load.WorkoutLoad
+import app.pacinglab.core.analytics.recovery.HrvVariation
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.RecoveryTrend
 import app.pacinglab.core.analytics.zones.ZoneDistribution
@@ -32,7 +35,7 @@ import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h2400dp-xxhdpi")
+@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h3000dp-xxhdpi")
 class TrendsScreenScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
@@ -97,6 +100,13 @@ class TrendsScreenScreenshotTest {
         weeks = TrainingLoads.weeks(loads, until = today, count = 8),
         today = today,
         recovery = RecoveryTrend.of(nights, today),
+        status = TrainingStatus.of(
+            FitnessModel.series(TrainingLoads.daily(loads), until = today),
+            vo2maxChange = 0.8,
+            hrvBelowNormal = false,
+        ),
+        focus = IntensityFocus.of(loads, today),
+        hrvVariation = HrvVariation.of(nights, today),
     )
 
     @Test

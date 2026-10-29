@@ -12,8 +12,7 @@ import java.time.LocalDate
 class FeelingAgreementTest {
     private val day = LocalDate.of(2026, 11, 1)
 
-    private fun score(value: Int) =
-        SleepScore(value, duration = 1.0, continuity = 1.0, regularity = 1.0, timing = 1.0, midpointMinuteOfDay = 180)
+    private fun score(value: Int) = SleepScore(value, duration = 1.0, continuity = 1.0)
 
     @Test
     fun `ties share the mean of their ranks`() {

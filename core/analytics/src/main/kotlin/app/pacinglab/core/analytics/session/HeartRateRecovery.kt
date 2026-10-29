@@ -1,10 +1,17 @@
 package app.pacinglab.core.analytics.session
 
+import app.pacinglab.core.analytics.intervals.PhaseKind
 import app.pacinglab.core.model.HeartRateSeries
 import kotlin.math.roundToInt
 
 /** How far heart rate fell after a rep: [bpm] over the first [seconds] of the recovery. */
 data class HeartRateDrop(val bpm: Int, val seconds: Int)
+
+/**
+ * A session's heart rate recovery after its reps: the median drop over the first minute after each rep
+ * whose peak reached [HeartRateRecovery.MIN_PEAK_SHARE] of maximal heart rate.
+ */
+data class RepRecovery(val dropBpm: Double, val reps: Int, val peakHr: Int)
 
 /**
  * Heart rate recovery (HRR) after a rep: the drop from the rep's peak to the heart rate one minute
@@ -32,6 +39,33 @@ object HeartRateRecovery {
         val at = repEnd + seconds * 1_000L
         val later = values(heartRate, at - WINDOW_SECONDS * 1_000L, at).takeIf { it.isNotEmpty() }?.average() ?: return null
         return HeartRateDrop((peak - later).roundToInt(), seconds)
+    }
+
+    /** Reps must reach this share of maximal heart rate for their recovery to be compared across sessions. */
+    const val MIN_PEAK_SHARE = 0.85
+
+    /** Recoveries a session needs for its median to count. */
+    const val MIN_REPS = 2
+
+    /**
+     * The session's [RepRecovery] from its phases: full-minute recoveries after reps that peaked at
+     * [MIN_PEAK_SHARE] of [maxHr] or more. A harder rep is followed by a larger drop, so only hard reps
+     * are compared; recoveries walked or jogged still differ, which the median of several evens out.
+     * Null with fewer than [MIN_REPS] of them, and for sprint sessions (no drops are measured there).
+     */
+    fun ofSession(analysis: SessionAnalysis, maxHr: Int): RepRecovery? {
+        val pairs = analysis.phases.zipWithNext().filter { (work, recovery) ->
+            work.kind == PhaseKind.WORK &&
+                recovery.kind == PhaseKind.RECOVERY &&
+                recovery.hrDropSeconds == SECONDS &&
+                recovery.hrDrop != null &&
+                (work.maxHr ?: 0) >= MIN_PEAK_SHARE * maxHr
+        }
+        if (pairs.size < MIN_REPS) return null
+        val drops = pairs.map { it.second.hrDrop!!.toDouble() }.sorted()
+        val middle = drops.size / 2
+        val median = if (drops.size % 2 == 1) drops[middle] else (drops[middle - 1] + drops[middle]) / 2
+        return RepRecovery(median, pairs.size, pairs.maxOf { it.first.maxHr!! })
     }
 
     /** Heart rates sampled in [from, to]. */

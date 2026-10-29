@@ -27,6 +27,7 @@ import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.NightlyMetric
 import app.pacinglab.core.analytics.recovery.NightlyRange
 import app.pacinglab.core.analytics.recovery.Readiness
+import app.pacinglab.core.analytics.recovery.SleepDebtLevel
 import app.pacinglab.core.analytics.recovery.SleepRating
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.analytics.recovery.Standing
@@ -150,6 +151,66 @@ internal fun SleepTile(state: TodayUiState.Loaded, onClick: () -> Unit, modifier
         }
     }
 }
+
+/** Sleep habits over the last two weeks, with the week of daily values. */
+@Composable
+internal fun SleepHealthTile(state: TodayUiState.Loaded, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val health = state.sleepHealth[state.today]
+    Tile(
+        label = stringResource(R.string.tile_sleep_health),
+        value = health?.score?.toString() ?: DASH,
+        detail = stringResource(R.string.tile_sleep_health_detail),
+        modifier = modifier,
+        onClick = onClick,
+        status = health?.let { { SleepRatingPill(it.rating) } },
+    ) {
+        Sparkline(
+            values = (TodayViewModel.TILE_DAYS - 1 downTo 0).map {
+                state.sleepHealth[state.today.minusDays(it.toLong())]?.score?.toDouble()
+            },
+            band = SleepScore.GOOD_FROM.toDouble()..100.0,
+            labels = state.days(LocalConfiguration.current.locales[0]),
+        )
+    }
+}
+
+/** Sleep missed against need over two weeks, recent nights weighing more. */
+@Composable
+internal fun SleepDebtTile(state: TodayUiState.Loaded, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val debt = state.sleepDebts[state.today]
+    Tile(
+        label = stringResource(R.string.tile_sleep_debt),
+        value = debt?.let { Formats.hoursMinutes(it.millis) } ?: DASH,
+        detail = stringResource(R.string.tile_sleep_debt_detail),
+        modifier = modifier,
+        onClick = onClick,
+        status = debt?.let { { SleepDebtPill(it.level) } },
+    ) {
+        Sparkline(
+            values = (TodayViewModel.TILE_DAYS - 1 downTo 0).map {
+                state.sleepDebts[state.today.minusDays(it.toLong())]?.millis?.div(HOUR)
+            },
+            band = 0.0..LOW_DEBT_HOURS,
+            color = chartColors().series[2],
+            labels = state.days(LocalConfiguration.current.locales[0]),
+        )
+    }
+}
+
+@Composable
+private fun SleepDebtPill(level: SleepDebtLevel) {
+    when (level) {
+        SleepDebtLevel.NONE -> StatusPill(stringResource(R.string.debt_none), StatusColors.Good, PacingLabIcons.CheckCircle)
+        SleepDebtLevel.LOW -> StatusPill(stringResource(R.string.debt_low), StatusColors.Good, PacingLabIcons.CheckCircle)
+        SleepDebtLevel.MODERATE -> StatusPill(stringResource(R.string.debt_moderate), StatusColors.Warning, PacingLabIcons.Info)
+        SleepDebtLevel.HIGH -> StatusPill(stringResource(R.string.debt_high), StatusColors.Serious, PacingLabIcons.Warning)
+    }
+}
+
+private const val HOUR = 3_600_000.0
+
+/** Debt up to this many hours is low: the tile's band. */
+private const val LOW_DEBT_HOURS = 2.0
 
 @Composable
 private fun SleepRatingPill(rating: SleepRating) {

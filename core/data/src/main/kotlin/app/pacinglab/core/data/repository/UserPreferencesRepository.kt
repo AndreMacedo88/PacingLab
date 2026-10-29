@@ -12,6 +12,8 @@ import app.pacinglab.core.model.ZoneBoundaries
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Duration
+import java.time.LocalDate
+import java.time.Period
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -44,6 +46,9 @@ enum class DarkMode {
  * @property strengthInLoad gym sessions count towards training load, fitness and fatigue.
  * @property sex the athlete's, for the weighting of training load.
  * @property zoneBoundaries zone boundaries the athlete set; empty to work them out from threshold heart rate.
+ * @property birthDate the athlete's, for comparisons with people of the same age; null when not given.
+ * @property morningReminder a notification asks the morning question when it is still open after waking.
+ * @property sessionWeather the weather at the start of each session is looked up when a session opens.
  */
 data class UserPreferences(
     val sessionMergeGap: Duration = TrainingSessions.DEFAULT_MAX_GAP,
@@ -54,7 +59,13 @@ data class UserPreferences(
     val strengthInLoad: Boolean = true,
     val sex: Sex = Sex.MALE,
     val zoneBoundaries: ZoneBoundaries = ZoneBoundaries(),
-)
+    val birthDate: LocalDate? = null,
+    val morningReminder: Boolean = false,
+    val sessionWeather: Boolean = true,
+) {
+    /** Age in whole years on [date], or null without a birth date. */
+    fun ageOn(date: LocalDate): Int? = birthDate?.let { Period.between(it, date).years }
+}
 
 @Singleton
 class UserPreferencesRepository @Inject constructor(private val dataStore: DataStore<Preferences>) {
@@ -72,6 +83,9 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
                 five = values[FIVE_ZONES]?.let { boundaries(it, 4) },
                 polarized = values[POLARIZED_ZONES]?.let { boundaries(it, 2) },
             ),
+            birthDate = values[BIRTH_DATE]?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
+            morningReminder = values[MORNING_REMINDER] ?: false,
+            sessionWeather = values[SESSION_WEATHER] ?: true,
         )
     }
 
@@ -118,6 +132,19 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         dataStore.edit { it[SEX] = sex.name }
     }
 
+    /** Sets or, with null, clears the athlete's birth date. */
+    suspend fun setBirthDate(date: LocalDate?) {
+        dataStore.edit { if (date == null) it.remove(BIRTH_DATE) else it[BIRTH_DATE] = date.toString() }
+    }
+
+    suspend fun setMorningReminder(on: Boolean) {
+        dataStore.edit { it[MORNING_REMINDER] = on }
+    }
+
+    suspend fun setSessionWeather(on: Boolean) {
+        dataStore.edit { it[SESSION_WEATHER] = on }
+    }
+
     companion object {
         val MAX_MERGE_GAP: Duration = Duration.ofMinutes(60)
         val MIN_SLEEP_NEED: Duration = Duration.ofHours(6)
@@ -131,5 +158,8 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         private val SEX = stringPreferencesKey("sex")
         private val FIVE_ZONES = stringPreferencesKey("zones_five")
         private val POLARIZED_ZONES = stringPreferencesKey("zones_polarized")
+        private val BIRTH_DATE = stringPreferencesKey("birth_date")
+        private val MORNING_REMINDER = booleanPreferencesKey("morning_reminder")
+        private val SESSION_WEATHER = booleanPreferencesKey("session_weather")
     }
 }

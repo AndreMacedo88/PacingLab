@@ -24,7 +24,7 @@
     <string name="vo2_save">Save</string>
     <string name="vo2_cancel">Cancel</string>
     <string name="vo2_ok">OK</string>
-    <string name="vo2_info">VO2max, the most oxygen your body can use, in ml per kg per minute. The line is PacingLab\'s best estimate of your true value over time, the band one standard deviation of its uncertainty.\n\n# Where the values come from\n- Test (diamond): a lab or field test you entered. The most trusted value.\n- Fitbit (filled dot): the estimate Fitbit writes to Health Connect after some GPS runs.\n- PacingLab (hollow dot): estimated from every run with steady stretches, interval reps included. Runs without a speed recording use their GPS track.\n\n# PacingLab\'s estimate\n- Steady stretches: four minutes of even pace whose heart rate has levelled off. Heart rate needs about three minutes to settle, so short warm-ups give no estimate.\n- The oxygen cost of the pace by the ACSM running equation, on the flat.\n- The share of your heart rate reserve used equals the share of your VO2 reserve (Swain and Leutholtz 1997), which gives VO2max from the cost.\n- It depends on correct maximum and resting heart rate and assumes average running economy.\n\n# The trend\nA Kalman filter treats your true VO2max as changing slowly, about 1 ml/kg/min a month, and every value as a noisy measurement of it. Each source\'s noise is learned from how much it scatters around the trend, so steadier sources pull the line harder. A smoother then uses later values too, for the best picture of the past.\n\nThe number at the top is today\'s value from the estimates so far; its uncertainty grows on days without new ones.</string>
+    <string name="vo2_info">VO2max, the most oxygen your body can use, in ml per kg per minute. The line is PacingLab\'s best estimate of your true value over time, the band one standard deviation of its uncertainty.\n\n# Where the values come from\n- Test (diamond): a lab or field test you entered. The most trusted value.\n- Fitbit (filled dot): the estimate Fitbit writes to Health Connect after some GPS runs. With the Google Health API connected, Fitbit\'s daily cardio fitness series adds its runs from before it wrote to Health Connect and says how much Fitbit trusted each one: its daily value is Fitbit\'s own Kalman filter, and undoing each update gives back the run measurement and its noise. A run Fitbit itself passed over is left out, and the more Fitbit trusted a run, the more it counts.\n- PacingLab (hollow dot): estimated from every run with steady stretches, interval reps included. Runs without a speed recording use their GPS track.\n\n# PacingLab\'s estimate\n- Steady stretches: four minutes of even pace whose heart rate has levelled off. Heart rate needs about three minutes to settle, so short warm-ups give no estimate.\n- The oxygen cost of the pace by the ACSM running equation, on the flat.\n- The share of your heart rate reserve used equals the share of your VO2 reserve (Swain and Leutholtz 1997), which gives VO2max from the cost.\n- It depends on correct maximum and resting heart rate and assumes average running economy.\n\n# The trend\nA Kalman filter treats your true VO2max as changing slowly, about 1 ml/kg/min a month, and every value as a noisy measurement of it. Each source\'s noise is learned from how much it scatters around the trend, so steadier sources pull the line harder. A smoother then uses later values too, for the best picture of the past.\n\nThe number at the top is today\'s value from the estimates so far; its uncertainty grows on days without new ones.\n\n# Fitness age\nThe age at which your VO2max is the average of healthy people of your sex in the HUNT3 Fitness Study (4,600 Norwegians, measured on a treadmill; Loe 2013), as NTNU\'s Cardiac Exercise Research Group defines it. The averages per decade are joined by straight lines; 20 is the youngest age shown. VO2max is one of the strongest predictors of mortality (Kodama 2009: about 13 % lower risk for every 3.5 ml/kg/min), which is what makes the comparison worth showing. Set your birth date in Settings to see the average for your age.</string>
     <string name="efficiency_title">Aerobic efficiency</string>
     <string name="efficiency_headline">Easy pace at %1$d bpm</string>
     <string name="efficiency_pace">%1$s /km</string>
@@ -45,7 +45,7 @@
     <string name="race_title">Race predictions</string>
     <string name="race_from_vo2max">From VO2max %1$s (Daniels)</string>
     <string name="race_from_critical_speed">Critical speed: %1$s</string>
-    <string name="race_info">- VO2max: the Daniels and Gilbert (1979) equations behind Daniels\' VDOT tables. The predicted time is the pace whose oxygen cost matches the share of VO2max that can be held that long. It uses today\'s value from the VO2max card.\n- Critical speed: (distance − D′) / CS, only for races of 2 to 30 minutes, where the model holds.\n\n# Limits\nBoth assume an all-out race and training suited to the distance. A marathon needs long runs that a VO2max value cannot show, and PacingLab\'s VO2max partly rests on watch estimates. Read them as what your fitness allows, not as a promise.</string>
+    <string name="race_info">- VO2max: the Daniels and Gilbert (1979) equations behind Daniels\' VDOT tables. The predicted time is the pace whose oxygen cost matches the share of VO2max that can be held that long. It uses today\'s value from the VO2max card.\n- Critical speed: (distance − D′) / CS, only for races of 2 to 30 minutes, where the model holds.\n\n# Limits\nBoth assume an all-out race and training suited to the distance. PacingLab\'s VO2max partly rests on watch estimates. Read them as what your fitness allows, not as a promise.\n\n# Marathon shape\nA marathon needs long runs and weekly distance that a VO2max value cannot show, so the VO2max times of long races are tempered by Runalyze\'s marathon shape:\n- Weekly distance over the last six months (at least 70 days) against VO2max^1.135 km, two thirds of the shape.\n- Runs over 13 km in the last ten weeks, each worth ((km − 13) / (target − 13))², the target being 12 ln(VO2max / 4) km, weighted from 2 for today down to 0 after 70 days; one target long run a week fills this third.\n- A race over d km asks for a shape of d^1.23 %: about 7 % for 5 km, 43 % for a half and 100 % for a marathon. Short of it, the race is run at a smaller share of VO2max, down to 60 %.\n\nRunalyze says itself that this is a heuristic from typical marathon plans, not a validated model. The time below a tempered one is what VO2max alone predicts.</string>
     <string name="cs_title">Critical speed</string>
     <string name="cs_d_prime">D′ %1$d m</string>
     <string name="cs_speed">%1$s km/h</string>
@@ -79,6 +79,41 @@
     <string name="performance_edit_title">Arrange Performance</string>
     <string name="card_vo2max">Trend from tests, Fitbit and your runs</string>
     <string name="card_races">5 km to marathon</string>
+    <string name="card_paces">Daniels\' training paces from VO2max</string>
+    <string name="card_hrr">How fast heart rate falls after hard reps</string>
+    <string name="race_potential">With marathon training %1$s</string>
+    <string name="race_shape">Marathon shape %1$d %%: %2$d km a week of %3$d, %4$s</string>
+    <plurals name="race_long_runs">
+        <item quantity="one">%1$d run over 13 km in 10 weeks (target %2$d km)</item>
+        <item quantity="other">%1$d runs over 13 km in 10 weeks (target %2$d km)</item>
+    </plurals>
+    <string name="vo2_fitness_age">Fitness age %1$d</string>
+    <string name="vo2_fitness_age_youngest">Fitness age %1$d or younger</string>
+    <string name="vo2_fitness_age_compared">You are %1$d; the average at your age is %2$s</string>
+    <string name="vo2_fitness_age_no_birth_date">Set your birth date in Settings to compare with your age</string>
+    <string name="paces_title">Training paces</string>
+    <string name="paces_easy">Easy</string>
+    <string name="paces_easy_use">Easy and long runs, recovery</string>
+    <string name="paces_marathon">Marathon</string>
+    <string name="paces_marathon_use">Marathon race pace</string>
+    <string name="paces_threshold">Threshold</string>
+    <string name="paces_threshold_use">Tempo runs and cruise intervals</string>
+    <string name="paces_interval">Interval</string>
+    <string name="paces_interval_use">Reps of 3 to 5 minutes at VO2max</string>
+    <string name="paces_repetition">Repetition</string>
+    <string name="paces_repetition_use">Short fast reps for speed and economy</string>
+    <string name="paces_info" formatted="false">Daniels\' training intensities (Daniels\' Running Formula), from today\'s VO2max on the VO2max card. Each is a share of VO2max turned into a pace with the Daniels-Gilbert oxygen cost of running, as in his VDOT tables:\n\n- Easy: 59 to 74 % of VO2max. Most of the week\'s running.\n- Marathon: the predicted marathon pace, without the marathon shape correction.\n- Threshold: 88 %, about the pace you could race for an hour. Sessions of 20 minutes steady or reps of 5 to 15 minutes with short rests.\n- Interval: 97.5 %, the pace you could race for 10 to 15 minutes. Reps of 3 to 5 minutes, recoveries a little shorter than the reps.\n- Repetition: 105 %, about mile race pace. Reps of up to 2 minutes with full recoveries.\n\nAt VO2max 50 these give 4:31, 4:15, 3:55 and 3:42 per km, Daniels\' published values. Heat, hills and wind slow every pace; on such days go by effort.</string>
+    <string name="hrr_title">Heart rate recovery</string>
+    <string name="hrr_headline">Drop in the minute after hard reps</string>
+    <string name="hrr_value">%1$d bpm</string>
+    <string name="hrr_change">%1$s bpm in 6 weeks</string>
+    <string name="hrr_last">last %1$s</string>
+    <plurals name="hrr_sessions">
+        <item quantity="one">%d session</item>
+        <item quantity="other">%d sessions</item>
+    </plurals>
+    <string name="hrr_description">Heart rate drop in the minute after hard reps, per interval session, with the median of five sessions</string>
+    <string name="hrr_info" formatted="false">How far heart rate falls in the first minute after a hard rep, the standard measure of heart rate recovery (Cole 1999; review by Daanen 2012). It comes from the parasympathetic nervous system taking over again after effort: a faster drop comes with better aerobic fitness, and a slower one than usual with accumulated fatigue (Buchheit 2014).\n\n# How it is measured\n- Only reps whose peak heart rate reached 85 % of your maximum, followed by a recovery of at least a minute: harder reps fall further, so only hard ones are compared.\n- The drop runs from the rep\'s peak (the wrist sensor lags, so up to 10 seconds after the rep) to the average of the 5 seconds a minute later.\n- Each dot is a session: the median of its reps. The line is the median of the last five sessions.\n\n# Why not after the session\nApple measures the drop in the minute after a workout ends. Sessions usually end with a cool-down or the way home, so heart rate after the stop says little and often rises. Reps within a session are a repeatable test instead.\n\nWalked or jogged recoveries, heat and how fresh you are all move it, so read the line, not single dots.</string>
     <string name="card_critical_speed">Or the effort it still needs</string>
     <string name="card_efforts">Speed-duration curve and distances</string>
     <string name="card_efficiency">Easy pace at your reference heart rate</string>

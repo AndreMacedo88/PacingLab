@@ -17,6 +17,7 @@ enum class ChangeChannel(val measurementKind: MeasurementKind? = null) {
     HEART_RATE,
     SPEED,
     DISTANCE,
+    STEPS,
     SLEEP,
     RESTING_HEART_RATE(MeasurementKind.RESTING_HEART_RATE),
     HRV(MeasurementKind.HRV_RMSSD),
@@ -34,7 +35,7 @@ enum class ChangeChannel(val measurementKind: MeasurementKind? = null) {
 /**
  * One page of changes from a source.
  *
- * @property affectedSpans time spans of changed stream records (heart rate, speed, distance);
+ * @property affectedSpans time spans of changed stream records (heart rate, speed, distance, steps);
  *   workouts overlapping them need their streams read again.
  * @property deletedRecordIds source record ids that no longer exist, of any record type in the channel.
  *   Never names a record that the same batch delivers as new or changed.

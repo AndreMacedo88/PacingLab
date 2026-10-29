@@ -1,5 +1,7 @@
 package app.pacinglab.feature.settings
 
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
@@ -19,6 +21,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DisplayMode
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -33,13 +38,20 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -57,6 +69,10 @@ import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.ThemePalette
 import app.pacinglab.core.designsystem.theme.swatch
 import java.time.Duration
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun SettingsRoute(
@@ -73,6 +89,11 @@ fun SettingsRoute(
         uri?.let(viewModel::backUp)
     }
     val openBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(viewModel::restore) }
+    // The reminder needs permission to notify; it is switched on only once that is granted.
+    val askToNotify = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) viewModel.setMorningReminder(true)
+    }
+    val context = LocalContext.current
     SettingsScreen(
         preferences = preferences,
         backupMessage = backupMessage,
@@ -84,6 +105,12 @@ fun SettingsRoute(
             onSpeedByDefault = viewModel::setSpeedByDefault,
             onSleepNeed = viewModel::setSleepNeed,
             onSex = viewModel::setSex,
+            onBirthDate = viewModel::setBirthDate,
+            onMorningReminder = { on ->
+                val allowed = context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+                if (on && !allowed) askToNotify.launch(Manifest.permission.POST_NOTIFICATIONS) else viewModel.setMorningReminder(on)
+            },
+            onSessionWeather = viewModel::setSessionWeather,
             onBackUp = { saveBackup.launch(viewModel.backupFileName()) },
             onRestore = { openBackup.launch(arrayOf(BackupRepository.MIME_TYPE, "text/plain", "application/octet-stream")) },
             onBackupMessageShown = viewModel::backupMessageShown,
@@ -105,6 +132,9 @@ class SettingsActions(
     val onSpeedByDefault: (Boolean) -> Unit = {},
     val onSleepNeed: (Duration?) -> Unit = {},
     val onSex: (Sex) -> Unit = {},
+    val onBirthDate: (LocalDate?) -> Unit = {},
+    val onMorningReminder: (Boolean) -> Unit = {},
+    val onSessionWeather: (Boolean) -> Unit = {},
     val onBackUp: () -> Unit = {},
     val onRestore: () -> Unit = {},
     val onBackupMessageShown: () -> Unit = {},
@@ -153,6 +183,7 @@ fun SettingsScreen(
                     onSelect = actions.onSex,
                 )
             }
+            item { BirthDateItem(preferences.birthDate, actions.onBirthDate) }
             item { SectionLabel(stringResource(R.string.settings_section_appearance)) }
             item { ThemeRow(preferences.theme, actions.onTheme) }
             item { DarkModeRow(preferences.darkMode, actions.onDarkMode) }
@@ -212,6 +243,14 @@ fun SettingsScreen(
                     onSelect = actions.onSleepNeed,
                 )
             }
+            item {
+                SwitchItem(
+                    title = stringResource(R.string.settings_morning_reminder),
+                    summary = stringResource(R.string.settings_morning_reminder_summary),
+                    checked = preferences.morningReminder,
+                    onChange = actions.onMorningReminder,
+                )
+            }
             item { SectionLabel(stringResource(R.string.settings_section_data)) }
             item {
                 SettingsItem(
@@ -219,6 +258,14 @@ fun SettingsScreen(
                     summary = stringResource(R.string.settings_data_sources_summary),
                     icon = PacingLabIcons.Database,
                     onClick = onOpenDataSources,
+                )
+            }
+            item {
+                SwitchItem(
+                    title = stringResource(R.string.settings_session_weather),
+                    summary = stringResource(R.string.settings_session_weather_summary),
+                    checked = preferences.sessionWeather,
+                    onChange = actions.onSessionWeather,
                 )
             }
             item {
@@ -297,6 +344,52 @@ private fun DarkModeRow(selected: DarkMode, onSelect: (DarkMode) -> Unit, modifi
                 ) { Text(stringResource(mode.label())) }
             }
         }
+    }
+}
+
+/** The athlete's birth date, for comparisons with people of the same age; a date picker sets it. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BirthDateItem(date: LocalDate?, onChange: (LocalDate?) -> Unit, modifier: Modifier = Modifier) {
+    var picking by rememberSaveable { mutableStateOf(false) }
+    val locale = LocalConfiguration.current.locales[0]
+    val format = remember(locale) { DateTimeFormatter.ofPattern("d MMMM yyyy", locale) }
+    ListItem(
+        headlineContent = { Text(stringResource(R.string.settings_birth_date)) },
+        supportingContent = {
+            Text(
+                date?.let { stringResource(R.string.settings_birth_date_set, format.format(it)) }
+                    ?: stringResource(R.string.settings_birth_date_summary),
+            )
+        },
+        modifier = modifier.clickable { picking = true },
+    )
+    if (picking) {
+        val state = rememberDatePickerState(
+            initialSelectedDateMillis = date?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli(),
+            initialDisplayMode = DisplayMode.Input,
+        )
+        DatePickerDialog(
+            onDismissRequest = { picking = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        state.selectedDateMillis?.let { onChange(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
+                        picking = false
+                    },
+                ) { Text(stringResource(R.string.settings_birth_date_save)) }
+            },
+            dismissButton = {
+                if (date != null) {
+                    TextButton(
+                        onClick = {
+                            onChange(null)
+                            picking = false
+                        },
+                    ) { Text(stringResource(R.string.settings_birth_date_clear)) }
+                }
+            },
+        ) { DatePicker(state = state) }
     }
 }
 

@@ -8,6 +8,7 @@ enum class SleepCardKind(val id: String, @param:StringRes val title: Int, @param
     TILES("tiles", R.string.card_tiles_title, R.string.card_tiles),
     NIGHT("stages", R.string.card_night_title, R.string.card_night),
     SCORE("score", R.string.sleep_score_title, R.string.card_score),
+    HEALTH("health", R.string.sleep_health_title, R.string.card_health),
     QUALITY("quality", R.string.sleep_quality_title, R.string.card_quality),
     HEART_RATE("heart", R.string.sleep_heart_rate_title, R.string.card_heart_rate),
     RECOVERY("body", R.string.sleep_body_title, R.string.card_recovery),

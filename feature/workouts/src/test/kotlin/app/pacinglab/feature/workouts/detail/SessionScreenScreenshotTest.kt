@@ -1,5 +1,7 @@
 package app.pacinglab.feature.workouts.detail
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
@@ -16,17 +18,22 @@ import app.pacinglab.core.analytics.intervals.PhaseKind
 import app.pacinglab.core.analytics.load.LoadScores
 import app.pacinglab.core.analytics.performance.Decoupling
 import app.pacinglab.core.analytics.performance.RunHalf
+import app.pacinglab.core.analytics.session.FormMinute
+import app.pacinglab.core.analytics.session.FormSummary
 import app.pacinglab.core.analytics.session.PhaseSummary
 import app.pacinglab.core.analytics.session.SessionAnalysis
 import app.pacinglab.core.analytics.session.Split
 import app.pacinglab.core.analytics.zones.ZoneDistribution
 import app.pacinglab.core.analytics.zones.Zones
+import app.pacinglab.core.data.weather.SessionWeatherState
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Route
+import app.pacinglab.core.model.SessionWeather
 import app.pacinglab.core.model.Sport
+import app.pacinglab.core.model.WeatherCondition
 import app.pacinglab.core.model.ZoneModel
 import app.pacinglab.feature.workouts.list.SessionItem
 import assertk.assertThat
@@ -254,6 +261,41 @@ class SessionScreenScreenshotTest {
 
         compose.onNodeWithText("Threshold", useUnmergedTree = true).assertDoesNotExist()
         compose.onNodeWithText("Above VT2", useUnmergedTree = true).assertExists()
+    }
+
+    /** A warm, humid evening and a run with reps: the weather with its heat note, and cadence and stride. */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun weatherAndRunningForm() {
+        val start = Instant.parse("2026-07-14T17:30:00Z").toEpochMilli()
+        val minutes = (0 until 40).map { i ->
+            val fast = i in 10..30 && (i - 10) % 5 < 3
+            val speed = if (fast) 4.6 else 3.0
+            val cadence = if (fast) 182.0 + i % 3 else 166.0 + i % 4
+            FormMinute(start + i * 60_000L, cadence, speed * 60 / cadence, speed)
+        }
+        val weather = SessionWeather(
+            time = Instant.ofEpochMilli(start + 20 * 60_000L),
+            condition = WeatherCondition.PARTLY_CLOUDY,
+            temperature = 24.0,
+            apparentTemperature = 26.0,
+            dewPoint = 17.0,
+            humidity = 66.0,
+            windSpeed = 3.0,
+            windGusts = 7.0,
+            precipitation = 0.0,
+        )
+        compose.setContent {
+            PacingLabTheme {
+                Surface {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        ConditionsCard(SessionWeatherState.Found(weather), Locale.UK)
+                        RunningFormCard(RunningFormView(FormSummary(168.0, 1.07, 40), FormSummary(183.0, 1.51, 12), minutes), Locale.UK)
+                    }
+                }
+            }
+        }
+        compose.onRoot().captureRoboImage()
     }
 
     private fun captureHeartRateCard(darkTheme: Boolean) {

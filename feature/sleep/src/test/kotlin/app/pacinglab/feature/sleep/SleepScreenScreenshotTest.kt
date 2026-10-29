@@ -34,7 +34,7 @@ import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h3600dp-xxhdpi")
+@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h4200dp-xxhdpi")
 class SleepScreenScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
@@ -116,14 +116,16 @@ class SleepScreenScreenshotTest {
         )
     }
 
-    private val loaded = SleepUiState.Loaded(
-        nights,
-        SleepScore.all(nights),
-        nights.associate {
-            it.date to SleepScore.need(nights, it.date)
-        },
-        rested = mapOf(nights.last().date to 4),
-    )
+    private val loaded = SleepHistory.of(nights).let { history ->
+        SleepUiState.Loaded(
+            history.nights,
+            history.scores,
+            history.needs,
+            rested = mapOf(nights.last().date to 4),
+            health = history.health,
+            debts = history.debts,
+        )
+    }
 
     @Test
     fun lastNight() = capture(loaded)
@@ -175,7 +177,7 @@ class SleepScreenScreenshotTest {
         )
         val days = pairs.indices.map { last.minusDays((pairs.size - 1 - it).toLong()) }
         FeelingAgreement.of(
-            days.zip(pairs).associate { (day, pair) -> day to SleepScore(pair.first, 1.0, 1.0, 1.0, 1.0, midpointMinuteOfDay = 180) },
+            days.zip(pairs).associate { (day, pair) -> day to SleepScore(pair.first, 1.0, 1.0) },
             days.zip(pairs).associate { (day, pair) -> day to pair.second },
         )
     }

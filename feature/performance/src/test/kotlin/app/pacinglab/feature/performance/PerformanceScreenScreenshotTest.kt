@@ -19,14 +19,20 @@ import app.pacinglab.core.analytics.performance.EfficiencyPoint
 import app.pacinglab.core.analytics.performance.Effort
 import app.pacinglab.core.analytics.performance.EffortBests
 import app.pacinglab.core.analytics.performance.EffortSource
+import app.pacinglab.core.analytics.performance.FitnessAge
+import app.pacinglab.core.analytics.performance.MarathonShapes
 import app.pacinglab.core.analytics.performance.RaceDistance
 import app.pacinglab.core.analytics.performance.RacePredictions
+import app.pacinglab.core.analytics.performance.RunDistance
 import app.pacinglab.core.analytics.performance.RunEfforts
+import app.pacinglab.core.analytics.performance.TrainingPaceCalculator
 import app.pacinglab.core.analytics.performance.Vo2MaxPoint
 import app.pacinglab.core.analytics.performance.Vo2MaxSource
 import app.pacinglab.core.analytics.performance.Vo2MaxTrend
+import app.pacinglab.core.analytics.session.RepRecovery
 import app.pacinglab.core.data.repository.EfficiencyHistory
 import app.pacinglab.core.data.repository.RunningPerformance
+import app.pacinglab.core.data.repository.SessionRecoveryPoint
 import app.pacinglab.core.data.repository.Vo2MaxHistory
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import assertk.assertThat
@@ -44,7 +50,7 @@ import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h3600dp-xxhdpi")
+@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h3800dp-xxhdpi")
 class PerformanceScreenScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
@@ -132,8 +138,10 @@ class PerformanceScreenScreenshotTest {
             allTime = bests,
             recent = bests,
             criticalSpeed = criticalSpeed,
-            predictions = RacePredictions.of(55.6, criticalSpeed.fit),
+            predictions = RacePredictions.of(55.6, criticalSpeed.fit, shape),
             vo2max = 55.6,
+            shape = shape,
+            paces = TrainingPaceCalculator.of(55.6),
             decoupling = listOf(
                 DecouplingPoint(today.minusDays(400), "d1", 0.7),
                 DecouplingPoint(today.minusDays(320), "d2", 6.1),
@@ -141,6 +149,23 @@ class PerformanceScreenScreenshotTest {
                 DecouplingPoint(today.minusDays(60), "d4", 2.0),
             ),
         ),
+        fitness = FitnessComparison(FitnessAge.of(55.6), age = 40, averageAtAge = FitnessAge.average(40.0)),
+        recoveries = listOf(24.0, 23.0, 26.5, 22.0, 27.0, 25.0, 28.5, 27.0, 30.0, 29.0).mapIndexed { i, drop ->
+            SessionRecoveryPoint(today.minusDays(100L - 10 * i), "r$i", RepRecovery(drop, 4, 178))
+        },
+    )
+
+    /** Twenty weeks of 30 km with a 16 km long run every other week. */
+    private val shape = MarathonShapes.of(
+        (0 until 140).mapNotNull { back ->
+            when {
+                back % 14 == 0 -> RunDistance(today.minusDays(back.toLong()), 16_000.0)
+                back % 7 in setOf(2, 4, 6) -> RunDistance(today.minusDays(back.toLong()), 8_000.0)
+                else -> null
+            }
+        },
+        55.6,
+        today,
     )
 
     @Test

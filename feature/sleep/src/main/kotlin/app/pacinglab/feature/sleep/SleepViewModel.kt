@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.pacinglab.core.analytics.recovery.FeelingAgreement
 import app.pacinglab.core.analytics.recovery.Night
+import app.pacinglab.core.analytics.recovery.SleepDebt
+import app.pacinglab.core.analytics.recovery.SleepHealth
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.data.repository.Dashboard
 import app.pacinglab.core.data.repository.DashboardLayout
@@ -29,6 +31,8 @@ sealed interface SleepUiState {
      * @property nights every night, oldest first.
      * @property scores the score of each night.
      * @property needs the sleep need going into each night.
+     * @property health sleep health over the two weeks up to each morning that has enough nights.
+     * @property debts sleep debt going into each morning that has enough nights.
      * @property rested how rested the athlete said they felt each morning, 1 to 5.
      * @property cards the athlete's arrangement of the screen, hidden cards included.
      * @property today the date now, for asking about this morning rather than a past one.
@@ -38,6 +42,8 @@ sealed interface SleepUiState {
         val scores: Map<LocalDate, SleepScore>,
         val needs: Map<LocalDate, Long>,
         val rested: Map<LocalDate, Int> = emptyMap(),
+        val health: Map<LocalDate, SleepHealth> = emptyMap(),
+        val debts: Map<LocalDate, SleepDebt> = emptyMap(),
         val cards: List<PlacedCard> = DashboardLayout().arrange(SleepCardKind.catalog),
         val today: LocalDate? = null,
     ) : SleepUiState {
@@ -63,6 +69,8 @@ class SleepViewModel @Inject constructor(
             history.scores,
             history.needs,
             rested,
+            history.health,
+            history.debts,
             layout.arrange(SleepCardKind.catalog),
             today = LocalDate.now(clock),
         )

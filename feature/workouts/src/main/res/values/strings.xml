@@ -165,4 +165,28 @@
         <item quantity="other">%d minutes after the warm-up, split in two halves of equal time</item>
     </plurals>
     <string name="decoupling_info" formatted="false">On a long steady run, heart rate drifts up at an unchanged pace once aerobic endurance runs short. Decoupling compares speed per heartbeat in the second half with the first (Friel); under 5 % counts as good aerobic endurance for this duration.\n\nThe first 10 minutes are left out as warm-up. Hills, heat and dehydration also raise heart rate, so the number describes the run as well as the runner.</string>
+    <string name="conditions_title">Weather</string>
+    <string name="conditions_temperature">%1$d °C</string>
+    <string name="conditions_feels_like">feels like %1$d °C</string>
+    <string name="conditions_dew_point">Dew point %1$d °C, humidity %2$d %%</string>
+    <string name="conditions_wind">Wind %1$s m/s</string>
+    <string name="conditions_gusts">(gusts %1$s)</string>
+    <string name="conditions_rain">Rain %1$s mm</string>
+    <string name="conditions_heat">Heat stress: WBGT about %1$d °C in the shade. Heart rate runs higher and drifts more in the heat, so heart rate based measures of this session read worse than your fitness.</string>
+    <string name="conditions_unreachable">The weather service could not be reached; it is tried again next time you open the session.</string>
+    <string name="conditions_missing">No weather data for this place and time.</string>
+    <string name="conditions_info" formatted="false">The weather at the place the session started, from Open-Meteo: the forecast service\'s hourly values for the last months (with DMI\'s model in Denmark), the ERA5 reanalysis archive for older sessions. Values are taken halfway through the session, between the hours around it.\n\nOnly the start of the route, rounded to about a kilometre, and the date leave the phone, once per session; nothing is looked up for sessions without a route. Settings > Data can switch this off.\n\n# Heat\nHeat stress is the wet-bulb globe temperature in the shade (Australian Bureau of Meteorology\'s approximation from temperature and humidity); sun adds to it. From 18 °C, the American College of Sports Medicine\'s moderate band, heart rate at a given pace runs higher and climbs through a run (cardiovascular drift; González-Alonso 1999), so VO2max estimates, efficiency and decoupling of such a run look worse than your fitness. Dew point is the humidity that matters: above about 15 °C sweat evaporates poorly.</string>
+    <string name="decoupling_heat">It was warm: part of the drift is likely heat rather than fitness.</string>
+    <string name="form_title">Cadence and stride</string>
+    <string name="form_cadence">Cadence</string>
+    <string name="form_cadence_value">%1$d spm</string>
+    <string name="form_stride">Stride length</string>
+    <string name="form_stride_value">%1$s m</string>
+    <string name="form_reps">Reps: %1$d spm, %2$s m per step</string>
+    <string name="form_by_minute">Cadence minute by minute</string>
+    <plurals name="form_minutes">
+        <item quantity="one">Median over %d running minute</item>
+        <item quantity="other">Median over %d running minutes</item>
+    </plurals>
+    <string name="form_info" formatted="false">Steps per minute (both feet) and the distance covered by one step, from the step counts the watch records once a minute during a session.\n\n- Only running minutes count: faster than 8 km/h and at least 130 steps.\n- Stride length is the minute\'s speed over its cadence; the reps line is the reps\' distance over their steps.\n- Per minute is coarse for short reps: a 1-minute rep shares its step records with the recovery around it.\n\nMost runners speed up by lengthening the stride more than by raising cadence; cadence rises with speed too, typically from about 160 to over 180 at fast paces. Garmin measures both stride by stride with a sensor; these minute values agree on steady running but smooth over short changes.</string>
 </resources>

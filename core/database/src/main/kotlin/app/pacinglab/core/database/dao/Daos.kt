@@ -8,6 +8,7 @@ import app.pacinglab.core.database.entity.DailyVitalsEntity
 import app.pacinglab.core.database.entity.EffortEntity
 import app.pacinglab.core.database.entity.MeasurementEntity
 import app.pacinglab.core.database.entity.PhysiologyEntity
+import app.pacinglab.core.database.entity.SessionWeatherEntity
 import app.pacinglab.core.database.entity.SleepSessionEntity
 import app.pacinglab.core.database.entity.SyncStateEntity
 import app.pacinglab.core.database.entity.WellnessEntity
@@ -126,6 +127,21 @@ interface EffortDao {
 }
 
 @Dao
+interface SessionWeatherDao {
+    @Query("SELECT * FROM session_weather WHERE workout_id = :workoutId")
+    fun observe(workoutId: String): Flow<SessionWeatherEntity?>
+
+    @Query("SELECT * FROM session_weather WHERE workout_id = :workoutId")
+    suspend fun get(workoutId: String): SessionWeatherEntity?
+
+    @Upsert
+    suspend fun upsert(entry: SessionWeatherEntity)
+
+    @Query("DELETE FROM session_weather")
+    suspend fun clear()
+}
+
+@Dao
 interface WellnessDao {
     @Query("SELECT * FROM wellness ORDER BY epoch_day")
     fun observeAll(): Flow<List<WellnessEntity>>
@@ -166,6 +182,9 @@ abstract class DailyVitalsDao {
 
     @Query("SELECT MAX(epoch_day) FROM daily_vitals")
     abstract suspend fun latest(): Long?
+
+    @Query("SELECT MAX(epoch_day) FROM daily_vitals WHERE vo2max IS NOT NULL")
+    abstract suspend fun latestVo2Max(): Long?
 
     @Upsert
     protected abstract suspend fun upsert(entries: List<DailyVitalsEntity>)

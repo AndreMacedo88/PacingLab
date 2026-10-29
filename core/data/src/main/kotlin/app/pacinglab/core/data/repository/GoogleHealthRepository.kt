@@ -46,7 +46,7 @@ data class GoogleHealthStatus(
 /**
  * The Google Health API as a secondary source. Health Connect stays the source of sleep, workouts
  * and heart rate; the API adds Fitbit's own nightly HRV, SpO2 and skin temperature, which Health
- * Connect does not carry or carries only in part. Reads happen with every sync once the athlete has
+ * Connect does not carry or carries only in part, and Fitbit's daily VO2max with its variance. Reads happen with every sync once the athlete has
  * connected, from a few days before the newest stored morning (late values arrive after the watch
  * syncs) or, the first time, from [HISTORY_DAYS] ago.
  */
@@ -64,8 +64,8 @@ class GoogleHealthRepository @Inject constructor(
             connected = prefs[CONNECTED] == true,
             lastSync = prefs[LAST_SYNC]?.let(Instant::ofEpochMilli),
             problem = prefs[PROBLEM]?.let { name -> GoogleHealthProblem.entries.firstOrNull { it.name == name } },
-            days = vitals.size,
-            newest = vitals.lastOrNull()?.date,
+            days = vitals.count { it.hasNightValues },
+            newest = vitals.lastOrNull { it.hasNightValues }?.date,
         )
     }
 
@@ -93,8 +93,9 @@ class GoogleHealthRepository @Inject constructor(
         if (dataStore.data.first()[CONNECTED] != true) return@withLock null
         val today = LocalDate.now(clock)
         val since = store.latest()?.minusDays(REREAD_DAYS)?.coerceAtLeast(today.minusDays(HISTORY_DAYS)) ?: today.minusDays(HISTORY_DAYS)
+        val vo2maxSince = store.latestVo2Max()?.minusDays(REREAD_DAYS) ?: today.minusDays(VO2MAX_HISTORY_DAYS)
         val problem = try {
-            store.merge(source.readDailyVitals(since))
+            store.merge(source.readDailyVitals(since, vo2maxSince))
             null
         } catch (_: SourceAuthorizationException) {
             GoogleHealthProblem.SIGN_IN_NEEDED
@@ -117,6 +118,12 @@ class GoogleHealthRepository @Inject constructor(
     companion object {
         /** How far back the first read goes; older nights have no Health Connect sleep to join. */
         const val HISTORY_DAYS = 120L
+
+        /**
+         * How far back VO2max is read the first time: its daily series holds every run measurement Fitbit
+         * made, which the trend uses however old.
+         */
+        const val VO2MAX_HISTORY_DAYS = 3 * 365L
 
         /** Mornings read again each time, for values the watch app finishes later. */
         const val REREAD_DAYS = 3L

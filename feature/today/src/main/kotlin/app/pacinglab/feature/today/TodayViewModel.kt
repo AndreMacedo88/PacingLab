@@ -6,12 +6,15 @@ import app.pacinglab.core.analytics.load.AnchorTimeline
 import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.FormDay
 import app.pacinglab.core.analytics.load.TrainingLoads
+import app.pacinglab.core.analytics.load.TrainingStatus
 import app.pacinglab.core.analytics.load.WeekSummary
 import app.pacinglab.core.analytics.load.WorkoutLoad
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.NightlyMetric
 import app.pacinglab.core.analytics.recovery.NightlyRange
 import app.pacinglab.core.analytics.recovery.Readiness
+import app.pacinglab.core.analytics.recovery.SleepDebt
+import app.pacinglab.core.analytics.recovery.SleepHealth
 import app.pacinglab.core.analytics.recovery.SleepHistory
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.analytics.workout.TrainingSession
@@ -29,6 +32,7 @@ import app.pacinglab.core.data.repository.PlacedCard
 import app.pacinglab.core.data.repository.RunningPerformance
 import app.pacinglab.core.data.repository.SessionKindRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
+import app.pacinglab.core.data.repository.TrainingStatusRepository
 import app.pacinglab.core.data.repository.Vo2MaxHistory
 import app.pacinglab.core.data.repository.WellnessRepository
 import app.pacinglab.core.data.repository.WorkoutRepository
@@ -102,6 +106,7 @@ data class TodayExtras(
     val running: RunningPerformance? = null,
     val efficiency: EfficiencyHistory? = null,
     val weather: WeatherState? = null,
+    val trainingStatus: TrainingStatus? = null,
 )
 
 sealed interface TodayUiState {
@@ -124,6 +129,8 @@ sealed interface TodayUiState {
      * @property rangeNights how many nights last night's range of each metric draws on, towards
      *   [NightlyRange.MIN_NIGHTS]; last night itself does not count.
      * @property cards the athlete's arrangement of Today, hidden cards included.
+     * @property sleepHealth sleep health on each of the last [TodayViewModel.TILE_DAYS] mornings that has it.
+     * @property sleepDebts sleep debt on each of the last [TodayViewModel.TILE_DAYS] mornings that has it.
      */
     data class Loaded(
         val today: LocalDate,
@@ -143,6 +150,8 @@ sealed interface TodayUiState {
         val rangeNights: Map<NightlyMetric, Int> = emptyMap(),
         val cards: List<PlacedCard> = DashboardLayout().arrange(TodayCard.catalog),
         val extras: TodayExtras = TodayExtras(),
+        val sleepHealth: Map<LocalDate, SleepHealth> = emptyMap(),
+        val sleepDebts: Map<LocalDate, SleepDebt> = emptyMap(),
     ) : TodayUiState {
         /** Last night's range of [metric]: the last of [ranges]. */
         fun rangeTonight(metric: NightlyMetric): NightlyRange? = ranges[metric]?.lastOrNull()
@@ -164,6 +173,7 @@ class TodayViewModel @Inject constructor(
     private val dayHeartRate: DayHeartRateRepository,
     private val performance: PerformanceRepository,
     private val weather: WeatherRepository,
+    private val trainingStatus: TrainingStatusRepository,
 ) : ViewModel() {
     private val trainingAnchors = trainingLoad.anchors
 
@@ -183,11 +193,13 @@ class TodayViewModel @Inject constructor(
                 trainingAnchors,
                 performanceCards,
                 if (TodayCard.WEATHER in visible) weather.observe() else flowOf(null),
-            ) { heartRate, anchors, fromPerformance, weatherNow ->
+                if (TodayCard.TRAINING_STATUS in visible) trainingStatus.observeStatus() else flowOf(null),
+            ) { heartRate, anchors, fromPerformance, weatherNow, status ->
                 fromPerformance.copy(
                     heartRate = heartRate,
                     heartRateZones = anchors.at(LocalDate.now(clock))?.let { Zones.of(ZoneModel.LTHR_FIVE, it) },
                     weather = weatherNow,
+                    trainingStatus = status,
                 )
             }
         }
@@ -300,6 +312,8 @@ class TodayViewModel @Inject constructor(
                 (TILE_DAYS - 1 downTo 0).map { back -> NightlyRange.of(inputs.nights, metric, today.minusDays(back.toLong())) }
             },
             rangeNights = NightlyMetric.entries.associateWith { NightlyRange.nightsBefore(inputs.nights, it, today) },
+            sleepHealth = inputs.sleep.health.filterKeys { it > today.minusDays(TILE_DAYS.toLong()) },
+            sleepDebts = inputs.sleep.debts.filterKeys { it > today.minusDays(TILE_DAYS.toLong()) },
         )
     }
 

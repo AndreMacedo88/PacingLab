@@ -19,14 +19,12 @@
     <string name="sleep_summary_held_back">Held back by %1$s.</string>
     <string name="sleep_summary_could_be_better">Within every range; %1$s could still be better.</string>
     <string name="sleep_summary_and">and</string>
-    <string name="sleep_summary_excellent">Long enough, unbroken, regular and well timed.</string>
+    <string name="sleep_summary_excellent">Long enough and unbroken.</string>
     <string name="sleep_shortfall_duration">less sleep than you need</string>
     <string name="sleep_shortfall_efficiency">time awake in bed</string>
     <string name="sleep_shortfall_awake">time awake after falling asleep</string>
     <string name="sleep_shortfall_time_to_sleep">a long time to fall asleep</string>
     <string name="sleep_shortfall_awakenings">long awakenings</string>
-    <string name="sleep_shortfall_regularity">an unusual sleep time</string>
-    <string name="sleep_shortfall_timing">the time of night</string>
     <string name="sleep_lane">%1$s · %2$s</string>
     <string name="sleep_went_to_bed">Went to bed</string>
     <string name="sleep_middle">Middle of the night</string>
@@ -37,7 +35,7 @@
     <string name="stage_light">Light</string>
     <string name="stage_awake">Awake</string>
 
-    <string name="sleep_score_parts">How the score is made up</string>
+    <string name="sleep_score_parts">How last night\'s score is made up</string>
     <string name="sleep_points">%1$d/%2$d</string>
     <string name="sleep_part_duration">Duration</string>
     <string name="sleep_part_continuity">Continuity</string>
@@ -45,8 +43,24 @@
     <string name="sleep_part_timing">Timing</string>
     <string name="sleep_detail_duration">%1$s asleep against a need of %2$s</string>
     <string name="sleep_detail_continuity">Efficiency, time awake, time to fall asleep and long awakenings, below</string>
-    <string name="sleep_detail_regularity">Middle of the night %1$d min from your usual</string>
-    <string name="sleep_detail_timing">Middle of the night at %1$s</string>
+    <string name="sleep_part_efficiency">Efficiency</string>
+    <string name="sleep_detail_regularity_index">Sleep Regularity Index %1$d; 100 is the same times every day</string>
+    <string name="sleep_detail_usual_duration">%1$s asleep on average, %2$d %% of your need</string>
+    <string name="sleep_detail_usual_efficiency">Asleep for %1$d %% of the time in bed on a typical night</string>
+    <string name="sleep_detail_usual_timing">Middle of the night usually at %1$s</string>
+
+    <string name="sleep_health_title">Sleep health</string>
+    <string name="sleep_health_learning">Learning</string>
+    <string name="sleep_health_card_title">Sleep health %1$d · %2$s</string>
+    <plurals name="sleep_health_over">
+        <item quantity="one">Your habits over %d night of the last two weeks</item>
+        <item quantity="other">Your habits over %d nights of the last two weeks</item>
+    </plurals>
+    <string name="sleep_debt_title">Sleep debt</string>
+    <string name="sleep_debt_none">None</string>
+    <string name="sleep_debt_low">Low</string>
+    <string name="sleep_debt_moderate">Moderate</string>
+    <string name="sleep_debt_high">High</string>
 
     <string name="sleep_quality_title">Sleep quality</string>
     <string name="sleep_quality_time_to_sleep">Time to fall asleep</string>
@@ -68,13 +82,16 @@
     <string name="sleep_heart_rate_resting_line">resting %1$d</string>
     <string name="sleep_heart_rate_description">Heart rate during the night, average %1$d, lowest %2$d bpm</string>
 
-    <string name="sleep_body_title">Recovery during the night</string>
+    <string name="sleep_body_title">Vitals</string>
+    <string name="vitals_all_typical">All within your usual range.</string>
+    <string name="vitals_one_outside">%1$s is outside your usual range. One measure on its own often is.</string>
+    <plurals name="vitals_alert">
+        <item quantity="one">%1$d measure outside your usual range: %2$s.</item>
+        <item quantity="other">%1$d measures outside your usual range: %2$s. Several at once can mean an illness starting, alcohol, travel or hard training.</item>
+    </plurals>
     <string name="sleep_hrv">HRV</string>
     <string name="sleep_resting_hr">Resting heart rate</string>
     <string name="sleep_breathing">Breathing rate</string>
-    <string name="sleep_hrv_normal">Normal %1$d–%2$d ms</string>
-    <string name="sleep_usual_bpm">Usual %1$d bpm</string>
-    <string name="sleep_usual_breaths">Usual %1$s /min</string>
     <string name="unit_ms">%1$d ms</string>
     <string name="unit_bpm">%1$d bpm</string>
     <string name="unit_breaths">%1$s /min</string>
@@ -90,11 +107,12 @@
         <item quantity="one">%1$d</item>
         <item quantity="other">%1$d</item>
     </plurals>
-    <string name="sleep_score_info" formatted="false">The score rates a night on the measurable dimensions of sleep health (Buysse 2014): how long, how unbroken, how regular and when you slept.\n\n# Graded, not pass or fail\nEvery measure is graded around its published threshold. Just meeting the threshold earns 60 % of its points; better values earn more, up to full points at an excellent value. A night that just meets every criterion scores about 80, so the score still separates good nights from very good ones.\n\n# The parts\n- Duration, 40 points: time asleep against your need, your usual sleep kept between 7 and 9 hours. Full points at your need, 60 % at 85 % of it, none at 60 %.\n- Continuity, 25 points: the National Sleep Foundation\'s quality criteria as thresholds. Sleep efficiency 85 % (excellent 95 %), awake after falling asleep 20 minutes (excellent 5), time to fall asleep 30 minutes (excellent 10), one long awakening of 5 minutes or more (excellent none).\n- Regularity, 25 points: the middle of the night against your usual over the last two weeks. Excellent within 10 minutes, threshold 45 minutes, nothing beyond two hours. Irregular sleep predicts mortality more strongly than short sleep (Windred 2024).\n- Timing, 10 points: the middle of the night between 02:00 and 04:00, the sleep health criterion. 60 % an hour outside it, nothing beyond two and a half hours.\n\n# What is not scored\n- Sleep stages: wrist sensors tell them apart only roughly, and one night\'s shares say little about its quality.\n- Brief arousals: they are a normal part of healthy sleep.\n\n# Ratings\n- 80 and above: good\n- 65 to 79: fair\n- Below 65: poor\n\n# Compared with Fitbit\nFitbit\'s score also counts deep and REM sleep, restlessness and sleeping heart rate, with weights it does not publish, so the two can differ by 10 points or more. Resting heart rate and HRV count in readiness instead.</string>
+    <string name="sleep_score_info" formatted="false">How restorative the night was: what decides how rested and able you are today. Two parts, both measured on this night alone.\n\n# Graded, not pass or fail\nEvery measure is graded around its published threshold. Just meeting the threshold earns 60 % of its points; better values earn more, up to full points at an excellent value.\n\n# The parts\n- Duration, 60 points: time asleep against your need, your usual sleep kept between 7 and 9 hours. Full points at your need, 60 % at 85 % of it, none at 60 %. Sleep restriction impairs the next day\'s attention and performance in proportion to the shortfall (Van Dongen 2003; Belenky 2003).\n- Continuity, 40 points: the National Sleep Foundation\'s quality criteria as thresholds. Sleep efficiency 85 % (excellent 95 %), awake after falling asleep 20 minutes (excellent 5), time to fall asleep 30 minutes (excellent 10), one long awakening of 5 minutes or more (excellent none). Broken sleep impairs the next day much like short sleep (Stepanski 2002).\n\n# Habits are scored apart\nRegularity, the time of night and your usual amount of sleep matter for long-term health, but they are habits rather than properties of one night. Sleep health scores them over two weeks.\n\n# What is not scored\n- Sleep stages: wrist sensors tell them apart only roughly, and one night\'s shares say little about its quality.\n- Brief arousals: they are a normal part of healthy sleep.\n\n# Ratings\n- 80 and above: good\n- 65 to 79: fair\n- Below 65: poor\n\n# Compared with Fitbit\nFitbit\'s score also counts deep and REM sleep, restlessness and sleeping heart rate, with weights it does not publish, so the two can differ by 10 points or more. Resting heart rate and HRV count in readiness instead.</string>
+    <string name="sleep_health_info" formatted="false">Your sleep habits over the last two weeks, the dimensions of sleep health a watch can measure (Buysse 2014). Composite scores of these dimensions predict health and mortality (Wallace 2018; Brindle 2019); here each counts a quarter. It needs 5 nights in the two weeks.\n\n# The parts\n- Regularity: the Sleep Regularity Index (Phillips 2017), the chance of being asleep or awake at the same moment on consecutive days, from 100 (the same times every day) down. Excellent from 87, threshold 74, nothing below 50. In 61,000 UK Biobank participants the median was 81, and regularity predicted mortality more strongly than duration (Windred 2024). Only the main sleep counts; naps are not recorded.\n- Duration: your average time asleep against your need. Threshold 90 %, full points at your need, nothing below 75 %. Habitually short sleep raises the risk of disease (Cappuccio 2010).\n- Efficiency: the share of time in bed spent asleep on a typical night. Threshold 85 %, excellent 95 %.\n- Timing: the usual middle of the night within 02:00 to 04:00. 60 % an hour outside it, nothing beyond two and a half hours.\n\n# Sleep debt (the tile)\nSleep missed against your need over the last two weeks, as Oura and WHOOP show it. Each night\'s shortfall counts, last night fully and two weeks ago a fourteenth, because recent sleep loss weighs on today more. A night longer than your need pays back half its surplus: recovery sleep restores performance only partly (Belenky 2003; Banks 2010). Nights without a record are skipped. Levels follow Oura: low under 2 hours, moderate 2 to 5, high over 5.</string>
     <string name="sleep_stages_info">The stages as your watch estimated them from movement and heart rate, one lane per stage.\n\n- Deep sleep: the most restorative stage, mostly early in the night.\n- REM sleep: dreaming sleep, longer towards the morning.\n- Light sleep: about half of a normal night.\n- Awake: short awakenings are normal; several a night are part of healthy sleep.\n\nThe line under the headline names what held the night back most: the measures below their threshold, or, on a good night, the ones furthest from excellent.</string>
     <string name="sleep_quality_info">How the night compares with published ranges. The tinted band on each bar is the range, the dot the night.\n\n- Time to fall asleep, awake after falling asleep, long awakenings and sleep efficiency: the National Sleep Foundation\'s sleep quality recommendations (Ohayon 2017).\n- Deep and REM sleep: typical shares for healthy adults. Compared with a sleep lab, wrist sensors misplace a good part of stage time, so these two are shown but not scored.</string>
     <string name="sleep_heart_rate_info">Heart rate during the sleep, averaged over five minutes and smoothed over a quarter of an hour, so that turning over or a brief awakening does not dominate the line.\n\n- Average: the mean over the whole night.\n- Lowest: the calmest quarter of an hour.\n- Resting: the resting heart rate your watch derived from the night, drawn as a line.\n\nHeart rate usually falls through the first half of the night. A night that stays well above your usual, or does not fall, often follows hard training late in the day, alcohol, a big late meal or the start of an illness.</string>
-    <string name="sleep_body_info" formatted="false">Measured while you slept and compared with your own nights: the range is where 80 % of your nights fell, from the 60 nights before for HRV and the 30 before for the others, once there are 14 nights. Tap a row for its history.\n\n- HRV: the median of the watch\'s five-minute values, as Fitbit reports it, or Fitbit\'s own nightly value when the Google Health API is connected. Without it, when the values cover less than 60 % of the time asleep (Fitbit sometimes shares only the first hours of a night), the night has no HRV rather than a wrong one.\n- Resting heart rate: as your watch derived it from the night.\n- Breathing rate: breaths per minute during sleep. A rise of a breath or more above usual is a common early sign of illness.\n- SpO2 and skin temperature: only with the Google Health API connected. SpO2 is the night\'s average oxygen saturation; skin temperature is the difference from Fitbit\'s own baseline for you.</string>
+    <string name="sleep_body_info" formatted="false">Measured while you slept and compared with your own nights: the range is where 80 % of your nights fell, from the 60 nights before for HRV and the 30 before for the others, once there are 14 nights. Tap a row for its history.\n\n- HRV: the median of the watch\'s five-minute values, as Fitbit reports it, or Fitbit\'s own nightly value when the Google Health API is connected. Without it, when the values cover less than 60 % of the time asleep (Fitbit sometimes shares only the first hours of a night), the night has no HRV rather than a wrong one.\n- Resting heart rate: as your watch derived it from the night.\n- Breathing rate: breaths per minute during sleep. A rise of a breath or more above usual is a common early sign of illness.\n- SpO2 and skin temperature: only with the Google Health API connected. SpO2 is the night\'s average oxygen saturation; skin temperature is the difference from Fitbit\'s own baseline for you.\n\n# Several at once\nAny measure leaves its range now and then. When two or more do on the same night, the line at the top warns, as Apple\'s Vitals app does: an illness starting, alcohol, travel or a hard block of training are the usual reasons. It is a prompt to take it easy, not a diagnosis.</string>
     <string name="sleep_metrics_info" formatted="false">The last 7 or 30 nights up to the night shown, with the average beside each chart. Tinted bands are healthy targets from sleep research: a good score, your sleep need, 85 % efficiency and the typical deep and REM shares for adults. They stay fixed on purpose: a habit of short or shallow sleep should not come to look normal. Values outside the band turn orange.\n\nHRV, resting heart rate and breathing rate are different: healthy values vary so much between people that they are compared with your own usual instead.\n\nBed and wake times show one bar per night from going to bed to getting up; bars that line up mean a regular rhythm.</string>
     <string name="sleep_felt">You felt %2$s in the morning (%1$d of 5)</string>
     <string-array name="sleep_rested_words">
@@ -128,14 +146,15 @@
     <string name="feeling_strong">Strong agreement</string>
     <string name="sleep_hrv_partial">Fitbit shared HRV for only part of this night</string>
     <string name="sleep_edit_title">Arrange Sleep</string>
-    <string name="card_tiles_title">Score and time asleep</string>
-    <string name="card_tiles">Two tiles with the last week</string>
+    <string name="card_tiles_title">Scores, time asleep and debt</string>
+    <string name="card_tiles">Four tiles with the last week</string>
     <string name="card_night_title">The night</string>
     <string name="card_night">Headline, stages and times</string>
-    <string name="card_score">How the score came about</string>
+    <string name="card_score">How last night\'s score came about</string>
+    <string name="card_health">Regularity, duration, efficiency and timing over two weeks</string>
     <string name="card_quality">Continuity and stages against published ranges</string>
     <string name="card_heart_rate">Heart rate through the night</string>
-    <string name="card_recovery">HRV, resting heart rate and breathing against your range</string>
+    <string name="card_recovery">HRV, resting heart rate, breathing, SpO2 and skin temperature against your range</string>
     <string name="card_key_metrics">The last 7 or 30 nights</string>
     <string name="card_feeling">The morning question, and your answers against the score</string>
     <string name="sleep_range">Range %1$s–%2$s</string>
