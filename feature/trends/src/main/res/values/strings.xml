@@ -69,8 +69,8 @@
     <string name="focus_title">Intensity focus</string>
     <string name="focus_none">Too little running or riding in the last four weeks to tell.</string>
     <string name="focus_balanced">Balanced: every zone within its target</string>
-    <string name="focus_short">Short of time %1$s</string>
-    <string name="focus_over">Too much time %1$s</string>
+    <string name="focus_short">%1$s: too little time</string>
+    <string name="focus_over">%1$s: too much time</string>
     <string name="focus_share">%1$s · %2$d %% · %3$s</string>
     <string name="focus_target">Target %1$d–%2$d %%</string>
     <string name="focus_in_band">On target</string>

@@ -82,6 +82,7 @@ private fun DomainRow(share: DomainShare, color: Color, modifier: Modifier = Mod
         stringResource(R.string.focus_target, (share.target.start * 100).roundToInt(), (share.target.endInclusive * 100).roundToInt())
     val track = MaterialTheme.colorScheme.surfaceVariant
     val band = color.copy(alpha = BAND_ALPHA)
+    val ring = MaterialTheme.colorScheme.surfaceContainerLow
     Column(
         modifier = modifier.clearAndSetSemantics { contentDescription = "$name $percent %, $target" },
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -94,21 +95,23 @@ private fun DomainRow(share: DomainShare, color: Color, modifier: Modifier = Mod
             )
             StandingPill(share.standing)
         }
-        // The track is 0-100 %; the target band is shaded and the share drawn as a bar in the zone's colour.
-        Canvas(Modifier.fillMaxWidth().height(10.dp)) {
-            val radius = CornerRadius(size.height / 2)
-            drawRoundRect(track, cornerRadius = radius)
+        // As the sleep quality bars: the track is 0-100 %, the target band is shaded in the zone's colour and
+        // the share is a dot in that colour, so the band stays visible wherever the share lies.
+        Canvas(Modifier.fillMaxWidth().height(20.dp)) {
+            val height = 10.dp.toPx()
+            val top = (size.height - height) / 2
+            val radius = CornerRadius(height / 2)
+            fun x(share: Double) = (share.coerceIn(0.0, 1.0) * size.width).toFloat()
+            drawRoundRect(track, Offset(0f, top), Size(size.width, height), radius)
             drawRoundRect(
                 band,
-                topLeft = Offset((size.width * share.target.start).toFloat(), 0f),
-                size = Size((size.width * (share.target.endInclusive - share.target.start)).toFloat(), size.height),
-                cornerRadius = radius,
+                Offset(x(share.target.start), top),
+                Size(x(share.target.endInclusive) - x(share.target.start), height),
+                radius,
             )
-            drawRoundRect(
-                color,
-                size = Size((size.width * share.share).toFloat().coerceAtLeast(size.height), size.height),
-                cornerRadius = radius,
-            )
+            val center = Offset(x(share.share).coerceIn(8.dp.toPx(), size.width - 8.dp.toPx()), size.height / 2)
+            drawCircle(ring, 8.dp.toPx(), center)
+            drawCircle(color, 6.dp.toPx(), center)
         }
         Text(target, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -123,7 +126,7 @@ private fun StandingPill(standing: FocusStanding) {
     }
 }
 
-private const val BAND_ALPHA = 0.25f
+private const val BAND_ALPHA = 0.35f
 
 private fun DistributionModel.label(): Int = when (this) {
     DistributionModel.POLARIZED -> R.string.focus_model_polarized

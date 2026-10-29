@@ -1,11 +1,18 @@
 package app.pacinglab.feature.trends
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
+import app.pacinglab.core.analytics.load.DistributionModel
+import app.pacinglab.core.analytics.load.DomainShare
 import app.pacinglab.core.analytics.load.FitnessModel
+import app.pacinglab.core.analytics.load.IntensityDomain
 import app.pacinglab.core.analytics.load.IntensityFocus
 import app.pacinglab.core.analytics.load.LoadScores
 import app.pacinglab.core.analytics.load.TrainingLoads
@@ -139,6 +146,22 @@ class TrendsScreenScreenshotTest {
         compose.onAllNodesWithText("6 weeks")[0].performClick()
         compose.onNodeWithText("Today", substring = true).assertExists()
         compose.onNode(androidx.compose.ui.test.hasContentDescription(fitness)).assertExists()
+    }
+
+    /** A threshold-heavy month: the share dots lie outside their bands, which stay visible. */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun intensityFocusOffTarget() {
+        val hour = 3_600_000L
+        val shares = listOf(0.30 to 4L, 0.38 to 5L, 0.32 to 4L).mapIndexed { i, (share, hours) ->
+            val domain = IntensityDomain.entries[i]
+            DomainShare(domain, hours * hour, share, IntensityFocus.TARGETS.getValue(domain))
+        }
+        val focus = IntensityFocus(today.minusDays(27), today, shares, polarizationIndex = 1.4, model = DistributionModel.THRESHOLD)
+        compose.setContent {
+            PacingLabTheme { Surface { IntensityFocusCard(focus, Modifier.padding(16.dp)) } }
+        }
+        compose.onRoot().captureRoboImage()
     }
 
     private fun capture(state: TrendsUiState, darkTheme: Boolean = false, range: TrendRange = TrendRange.THREE_MONTHS) {
