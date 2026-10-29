@@ -33,6 +33,8 @@ object PacingLabIcons {
 
     @DrawableRes val Bedtime = R.drawable.ic_bedtime
 
+    @DrawableRes val Check = R.drawable.ic_check
+
     @DrawableRes val CheckCircle = R.drawable.ic_check_circle
 
     @DrawableRes val ChevronLeft = R.drawable.ic_chevron_left
@@ -49,6 +51,8 @@ object PacingLabIcons {
 
     @DrawableRes val Error = R.drawable.ic_error
 
+    @DrawableRes val Filter = R.drawable.ic_filter_list
+
     @DrawableRes val Heart = R.drawable.ic_favorite
 
     @DrawableRes val Info = R.drawable.ic_info
@@ -60,6 +64,8 @@ object PacingLabIcons {
     @DrawableRes val Route = R.drawable.ic_route
 
     @DrawableRes val Share = R.drawable.ic_share
+
+    @DrawableRes val Sort = R.drawable.ic_sort
 
     @DrawableRes val Sync = R.drawable.ic_sync
 

@@ -1,11 +1,20 @@
 package app.pacinglab.feature.workouts.list
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import app.pacinglab.core.data.sync.SyncStatus
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.model.SessionKind
 import app.pacinglab.core.model.Sport
+import assertk.assertThat
+import assertk.assertions.isEqualTo
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Rule
 import org.junit.Test
@@ -59,6 +68,89 @@ class WorkoutsScreenScreenshotTest {
 
     @Test
     fun empty() = capture(WorkoutsUiState(loading = false))
+
+    @Test
+    fun filteredToRecordedRuns() = capture(
+        WorkoutsUiState(
+            loading = false,
+            sessions = sessions,
+            filter = WorkoutFilter(
+                types = setOf(SessionType.INTERVALS, SessionType.SPRINTS),
+                captures = setOf(Capture.RECORDED),
+            ),
+        ),
+    )
+
+    @Test
+    fun sortedByLoad() = capture(
+        WorkoutsUiState(
+            loading = false,
+            sessions = sessions.mapIndexed { i, session -> session.copy(load = listOf(48.0, 92.0, 81.0, 22.0, null, 12.0)[i]) },
+            sort = WorkoutSort.HIGHEST_LOAD,
+        ),
+    )
+
+    @Test
+    fun filterSheet() {
+        compose.setContent {
+            PacingLabTheme {
+                Surface {
+                    FilterSheetContent(
+                        sessions = sessions,
+                        filter = WorkoutFilter(captures = setOf(Capture.DETECTED)),
+                        onFilter = {},
+                        onDone = {},
+                        modifier = Modifier.padding(top = 16.dp),
+                    )
+                }
+            }
+        }
+        compose.onRoot().captureRoboImage()
+    }
+
+    @Test
+    fun choosingASortReportsIt() {
+        var chosen: WorkoutSort? = null
+        compose.setContent {
+            PacingLabTheme {
+                WorkoutsScreen(
+                    state = WorkoutsUiState(loading = false, sessions = sessions),
+                    onRefresh = {},
+                    onOpenSession = {},
+                    onOpenDataSources = {},
+                    zoneId = ZoneOffset.UTC,
+                    onSort = { chosen = it },
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("Sort sessions").performClick()
+        compose.onNodeWithText("Longest distance").performClick()
+
+        assertThat(chosen).isEqualTo(WorkoutSort.FARTHEST)
+    }
+
+    @Test
+    fun clearingFiltersReportsAnEmptyFilter() {
+        var filter: WorkoutFilter? = null
+        compose.setContent {
+            PacingLabTheme {
+                WorkoutsScreen(
+                    state = WorkoutsUiState(loading = false, sessions = sessions, filter = WorkoutFilter(types = setOf(SessionType.WALKS))),
+                    onRefresh = {},
+                    onOpenSession = {},
+                    onOpenDataSources = {},
+                    zoneId = ZoneOffset.UTC,
+                    onFilter = { filter = it },
+                )
+            }
+        }
+
+        compose.onNodeWithText("1 of 6 sessions").assertExists()
+        compose.onNodeWithText("Clear filters").performClick()
+
+        assertThat(filter).isEqualTo(WorkoutFilter())
+    }
 
     private fun capture(state: WorkoutsUiState, darkTheme: Boolean = false) {
         compose.setContent {

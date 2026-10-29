@@ -31,6 +31,7 @@ enum class Capture {
  * @property capture recorded when any part was started on the watch.
  * @property origin the app that wrote the first part.
  * @property kind what a running session was for; null for other sports and while it is worked out.
+ * @property load stress score of the parts with one; null when none has one or while the list does not need it.
  */
 data class SessionItem(
     val id: String,
@@ -47,6 +48,7 @@ data class SessionItem(
     val capture: Capture = Capture.RECORDED,
     val origin: String = "",
     val kind: SessionKind? = null,
+    val load: Double? = null,
 )
 
 fun TrainingSession.toItem(kind: SessionKind? = null): SessionItem {

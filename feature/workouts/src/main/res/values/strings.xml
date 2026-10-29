@@ -8,6 +8,44 @@
     <string name="workouts_no_access">PacingLab can\'t read your workouts yet.</string>
     <string name="workouts_set_up_access">Set up access</string>
     <string name="workouts_sync_failed">The last sync ran into a problem.</string>
+    <string name="workouts_filter">Filter sessions</string>
+    <string name="workouts_filter_on">Filter sessions, filters on</string>
+    <string name="workouts_sort">Sort sessions</string>
+    <string name="workouts_no_match">No sessions match these filters.</string>
+    <string name="workouts_load">Load %1$d</string>
+    <plurals name="workouts_shown">
+        <item quantity="one">%1$d of %2$d session</item>
+        <item quantity="other">%1$d of %2$d sessions</item>
+    </plurals>
+    <plurals name="filter_show">
+        <item quantity="one">Show %1$d session</item>
+        <item quantity="other">Show %1$d sessions</item>
+    </plurals>
+    <string name="filter_clear">Clear filters</string>
+    <string name="filter_type">Type</string>
+    <string name="filter_recorded">How it was recorded</string>
+    <string name="filter_app">App</string>
+    <string name="type_intervals">Intervals</string>
+    <string name="type_sprints">Sprints</string>
+    <string name="type_threshold_tempo">Threshold and tempo runs</string>
+    <string name="type_easy">Easy runs</string>
+    <string name="type_long">Long runs</string>
+    <string name="type_other_runs">Other runs</string>
+    <string name="type_weights">Weights</string>
+    <string name="type_walks">Walks</string>
+    <string name="type_rides">Rides</string>
+    <string name="type_other">Other</string>
+    <string name="capture_recorded_filter">Started on the watch</string>
+    <string name="capture_detected_filter">Detected automatically</string>
+    <string name="capture_entered_filter">Entered by hand</string>
+    <string name="sort_newest">Newest first</string>
+    <string name="sort_oldest">Oldest first</string>
+    <string name="sort_longest">Longest time</string>
+    <string name="sort_farthest">Longest distance</string>
+    <string name="sort_load">Highest load</string>
+    <string name="sort_heart_rate">Highest average heart rate</string>
+    <string name="badge_detected">%1$s, detected by %2$s</string>
+    <string name="badge_entered">%1$s, entered in %2$s</string>
     <string name="workouts_try_again">Try again</string>
     <string name="workouts_paused">Health Connect asked PacingLab to slow down. Syncing continues in a minute.</string>
 
@@ -46,8 +84,6 @@
     <string name="recording_manual">Entered by hand in %1$s</string>
     <string name="recording_unknown">From %1$s</string>
     <string name="recording_no_gps_intervals">No GPS: the watch records none in interval mode.</string>
-    <string name="capture_detected">Detected by %1$s</string>
-    <string name="capture_entered">Entered in %1$s</string>
     <string name="origin_fitbit">Fitbit</string>
     <string name="origin_google_fit">Google Fit</string>
     <string name="unit_speed">%1$s km/h</string>
