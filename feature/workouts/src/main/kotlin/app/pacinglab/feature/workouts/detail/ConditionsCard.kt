@@ -40,7 +40,7 @@ internal fun SessionWeatherState?.heat(): HeatStressLevel? =
  * humidity, wind and rain, and a note when heat stress was high enough to push heart rate up.
  */
 @Composable
-internal fun ConditionsCard(state: SessionWeatherState, locale: Locale, modifier: Modifier = Modifier) {
+internal fun ConditionsCard(state: SessionWeatherState, locale: Locale, modifier: Modifier = Modifier, heatAdjustment: Boolean = true) {
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -51,7 +51,7 @@ internal fun ConditionsCard(state: SessionWeatherState, locale: Locale, modifier
         ) {
             CardHeader(title = stringResource(R.string.conditions_title), info = stringResource(R.string.conditions_info))
             when (state) {
-                is SessionWeatherState.Found -> Weather(state.weather, locale)
+                is SessionWeatherState.Found -> Weather(state.weather, locale, heatAdjustment)
                 SessionWeatherState.Unreachable -> Note(stringResource(R.string.conditions_unreachable))
                 SessionWeatherState.Missing -> Note(stringResource(R.string.conditions_missing))
                 SessionWeatherState.NoPlace, SessionWeatherState.Off -> Unit
@@ -61,7 +61,7 @@ internal fun ConditionsCard(state: SessionWeatherState, locale: Locale, modifier
 }
 
 @Composable
-private fun Weather(weather: SessionWeather, locale: Locale, modifier: Modifier = Modifier) {
+private fun Weather(weather: SessionWeather, locale: Locale, heatAdjustment: Boolean, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(painterResource(weather.condition.icon()), contentDescription = null, modifier = Modifier.size(32.dp))
@@ -89,7 +89,7 @@ private fun Weather(weather: SessionWeather, locale: Locale, modifier: Modifier 
         val wbgt = HeatStress.wbgt(weather.temperature, weather.humidity)
         val level = HeatStress.level(wbgt)
         val factor = HeatAdjustment.speedFactor(wbgt)
-        if (factor > 1) {
+        if (heatAdjustment && factor > 1) {
             Text(
                 stringResource(R.string.conditions_adjusted, "%.1f".format(locale, (factor - 1) * 100)),
                 style = MaterialTheme.typography.bodyMedium,

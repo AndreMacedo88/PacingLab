@@ -52,6 +52,7 @@ fun DashboardEditor(
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(16.dp),
+    hint: String = stringResource(R.string.dashboard_edit_hint),
 ) {
     var items by remember(entries) { mutableStateOf(entries) }
     val listState = rememberLazyListState()
@@ -76,7 +77,7 @@ fun DashboardEditor(
     ) {
         item(key = "hint") {
             Text(
-                stringResource(R.string.dashboard_edit_hint),
+                hint,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp),

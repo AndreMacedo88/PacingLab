@@ -57,6 +57,12 @@ object PacingLabIcons {
 
     @DrawableRes val Info = R.drawable.ic_info
 
+    @DrawableRes val Person = R.drawable.ic_person
+
+    @DrawableRes val Palette = R.drawable.ic_palette
+
+    @DrawableRes val Widgets = R.drawable.ic_widgets
+
     @DrawableRes val Lock = R.drawable.ic_lock
 
     @DrawableRes val OpenInNew = R.drawable.ic_open_in_new

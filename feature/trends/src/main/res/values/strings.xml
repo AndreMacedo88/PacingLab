@@ -92,7 +92,7 @@
     <string name="running_title">Running tolerance</string>
     <string name="running_this_week">Running this week</string>
     <string name="running_km">%1$s km</string>
-    <string name="running_tolerance">Tolerance %1$s km: your usual %2$s km a week plus 30 %%</string>
+    <string name="running_tolerance">Tolerance %1$s km: your usual %2$s km a week plus %3$d %%</string>
     <string name="running_no_tolerance">No running in the four weeks before, so no tolerance yet</string>
     <string name="running_within">Within</string>
     <string name="running_above">Above</string>
@@ -100,7 +100,7 @@
         <item quantity="one">Running distance of the last %1$d week, each with its tolerance</item>
         <item quantity="other">Running distance of the last %1$d weeks, each with its tolerance</item>
     </plurals>
-    <string name="running_info" formatted="false">How far you ran this week against what your legs are used to: the average of the four weeks before plus 30 %. Bars are weeks (Monday to Sunday); the tick over each bar is that week\'s tolerance; a week above it turns orange.\n\nRunners who raised their weekly distance by more than 30 % had more overuse injuries (knee, iliotibial band) than those who stayed within 10 % (Nielsen 2014), and in half-marathon training, increases of 20 to 60 % came with more injuries in the first weeks (Damsted 2019). The evidence is limited, so read it as a caution, not a limit: a big week after a quiet month is the case to watch. Garmin\'s running tolerance rests on the same idea with its own, unpublished rule; it also counts hills and running form, which a Sense does not measure.</string>
+    <string name="running_info" formatted="false">How far you ran this week against what your legs are used to: the average of the four weeks before plus 30 % (Settings > Training can make it 20 or 10 %). Bars are weeks (Monday to Sunday); the tick over each bar is that week\'s tolerance; a week above it turns orange.\n\nRunners who raised their weekly distance by more than 30 % had more overuse injuries (knee, iliotibial band) than those who stayed within 10 % (Nielsen 2014), and in half-marathon training, increases of 20 to 60 % came with more injuries in the first weeks (Damsted 2019). The evidence is limited, so read it as a caution, not a limit: a big week after a quiet month is the case to watch. Garmin\'s running tolerance rests on the same idea with its own, unpublished rule; it also counts hills and running form, which a Sense does not measure.</string>
     <string name="calendar_title">Training calendar</string>
     <string name="calendar_previous">Previous month</string>
     <string name="calendar_next">Next month</string>

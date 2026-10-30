@@ -83,6 +83,7 @@ class PerformanceRepositoryTest {
             load,
             DailyVitalsStore(database),
             SessionWeatherRepository(SessionWeatherStore(database), NoWeather, preferences, clock),
+            preferences,
             clock,
         )
         runTest { physiology.save(PhysiologyEntry(LocalDate.of(2026, 1, 1), maxHr = 190, thresholdHr = 170, restingHr = 50)) }

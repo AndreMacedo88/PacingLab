@@ -190,6 +190,10 @@ fun SleepScreen(
                                     KeyMetricsCard(nights, night.date, loaded.scores, loaded.needs, locale)
                                 }
 
+                                SleepCardKind.TIMING -> item(key = card.id) {
+                                    SleepTimingCard(nights, night, loaded.freeDays)
+                                }
+
                                 SleepCardKind.FEELING -> item(key = card.id) {
                                     FeelingCard(
                                         agreement = loaded.feeling,

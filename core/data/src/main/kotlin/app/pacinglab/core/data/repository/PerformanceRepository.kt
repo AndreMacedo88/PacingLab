@@ -124,12 +124,17 @@ class PerformanceRepository @Inject constructor(
     trainingLoad: TrainingLoadRepository,
     dailyVitals: DailyVitalsStore,
     weather: SessionWeatherRepository,
+    preferences: UserPreferencesRepository,
     private val clock: Clock,
 ) {
-    /** WBGT of every run with weather, by workout id, for the heat adjustment. */
+    /** WBGT of every run with weather, by workout id, to mark warm runs. */
     private val heat: Flow<Map<String, Double>> = weather.observeFound()
         .map { found -> found.mapValues { (_, w) -> HeatStress.wbgt(w.temperature, w.humidity) } }
         .distinctUntilChanged()
+
+    /** The same, for the heat adjustment; empty when the athlete turned it off. */
+    private val adjustingHeat: Flow<Map<String, Double>> =
+        combine(heat, preferences.preferences.map { it.heatAdjustment }.distinctUntilChanged()) { wbgt, on -> if (on) wbgt else emptyMap() }
 
     private class Cached(val value: Double?, val windows: Int)
 
@@ -146,7 +151,7 @@ class PerformanceRepository @Inject constructor(
         trainingLoad.anchors,
         measurements.observeMeasurements(MeasurementKind.VO2_MAX, Instant.EPOCH, FAR_FUTURE),
         fitbitDaily,
-        heat,
+        adjustingHeat,
     ) { all, timeline, recorded, daily, wbgt -> VoInputs(all, timeline, recorded, daily, wbgt) }
         .mapLatest { (all, timeline, recorded, daily, wbgt) ->
             val runs = TrainingSessions.removeDuplicates(all.filter { it.sport == Sport.RUN && TrainingLoads.counts(it) })
@@ -206,7 +211,11 @@ class PerformanceRepository @Inject constructor(
 
     private val efficiencies = ConcurrentHashMap<Key, Cached>()
 
-    private val efficiency: Flow<EfficiencyHistory> = combine(workouts.observeAll(), trainingLoad.anchors, heat) { all, timeline, wbgt ->
+    private val efficiency: Flow<EfficiencyHistory> = combine(workouts.observeAll(), trainingLoad.anchors, adjustingHeat) {
+            all,
+            timeline,
+            wbgt,
+        ->
         Triple(all, timeline, wbgt)
     }
         .mapLatest { (all, timeline, wbgt) ->

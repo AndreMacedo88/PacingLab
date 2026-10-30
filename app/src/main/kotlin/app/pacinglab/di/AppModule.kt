@@ -1,6 +1,7 @@
 package app.pacinglab.di
 
 import android.content.Context
+import app.pacinglab.core.data.repository.HomeScreenWidget
 import app.pacinglab.core.data.sync.AfterSync
 import app.pacinglab.core.maps.MapLibreSnapshots
 import app.pacinglab.core.maps.MapSnapshots
@@ -35,4 +36,8 @@ interface AppBindings {
     @Binds
     @IntoSet
     fun widget(refresher: WidgetRefresher): AfterSync
+
+    /** Settings redraw it when its measures change. */
+    @Binds
+    fun homeScreenWidget(refresher: WidgetRefresher): HomeScreenWidget
 }

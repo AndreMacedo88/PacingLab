@@ -52,16 +52,17 @@ object WeeklyTargets {
 
     /**
      * The last [count] calendar weeks (Monday to Sunday) up to the one holding [until], newest first, each
-     * with its running distance from [runs] (date to metres) and its tolerance. A week whose four weeks
-     * before hold no running at all has no tolerance.
+     * with its running distance from [runs] (date to metres) and its tolerance: the usual week times
+     * [tolerance] ([TOLERANCE] unless the athlete chose a stricter one). A week whose four weeks before
+     * hold no running at all has no tolerance.
      */
-    fun runningWeeks(runs: List<Pair<LocalDate, Double>>, until: LocalDate, count: Int): List<RunningWeek> {
+    fun runningWeeks(runs: List<Pair<LocalDate, Double>>, until: LocalDate, count: Int, tolerance: Double = TOLERANCE): List<RunningWeek> {
         val lastMonday = until.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         fun km(monday: LocalDate) = runs.filter { (date, _) -> date >= monday && date < monday.plusWeeks(1) }.sumOf { it.second } / 1_000
         return List(count) { i ->
             val monday = lastMonday.minusWeeks(i.toLong())
             val usual = (1..USUAL_WEEKS).map { km(monday.minusWeeks(it.toLong())) }.average().takeIf { it > 0 }
-            RunningWeek(monday, km(monday), usual, usual?.let { it * TOLERANCE })
+            RunningWeek(monday, km(monday), usual, usual?.let { it * tolerance })
         }
     }
 }

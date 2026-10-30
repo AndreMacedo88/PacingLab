@@ -133,6 +133,7 @@ sealed interface SessionUiState {
      * @property speedByDefault running speed shows as km/h rather than pace until toggled.
      * @property focus the scope to show first: a part when the screen was opened for one of its workouts.
      * @property weather the weather during the session; null while it is looked up.
+     * @property heatAdjustment the athlete has estimates corrected for heat, so the conditions say by how much.
      */
     data class Loaded(
         val session: SessionItem,
@@ -142,6 +143,7 @@ sealed interface SessionUiState {
         val speedByDefault: Boolean = false,
         val focus: Int = 0,
         val weather: SessionWeatherState? = null,
+        val heatAdjustment: Boolean = true,
     ) : SessionUiState {
         /** The rating of the workouts in [scope] when they share one; null when unrated. */
         fun effortOf(scope: DetailScope): Int? = scope.workoutIds.map { efforts[it] }.distinct().singleOrNull()
@@ -202,12 +204,12 @@ class SessionViewModel @AssistedInject constructor(
     val state: StateFlow<SessionUiState> = combine(
         analysed,
         ratings.observe(),
-        preferences.preferences.map { it.speedByDefault }.distinctUntilChanged(),
+        preferences.preferences.map { it.speedByDefault to it.heatAdjustment }.distinctUntilChanged(),
         weather,
-    ) { state, rated, speed, conditions ->
+    ) { state, rated, (speed, heat), conditions ->
         if (state is SessionUiState.Loaded) {
             val ids = state.scopes.first().workoutIds.toSet()
-            state.copy(efforts = rated.filterKeys { it in ids }, speedByDefault = speed, weather = conditions)
+            state.copy(efforts = rated.filterKeys { it in ids }, speedByDefault = speed, weather = conditions, heatAdjustment = heat)
         } else {
             state
         }

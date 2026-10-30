@@ -92,13 +92,18 @@ class TrendsViewModel @Inject constructor(
 
     private val standing = combine(training.observeStatus(), training.observeFocus()) { status, focus -> status to focus }
 
+    private val extras = combine(
+        kinds.observeKindsByWorkout(),
+        preferences.preferences.map { it.runningIncreasePercent }.distinctUntilChanged(),
+    ) { sessionKinds, increase -> sessionKinds to increase }
+
     private val content = combine(
         repository.observeWorkoutLoads(),
         recovery,
         dashboards.layout(Dashboard.TRENDS),
         standing,
-        kinds.observeKindsByWorkout(),
-    ) { loads, (recoveryDays, variation), layout, (status, focus), sessionKinds ->
+        extras,
+    ) { loads, (recoveryDays, variation), layout, (status, focus), (sessionKinds, increase) ->
         val today = LocalDate.now(clock)
         val days = FitnessModel.series(TrainingLoads.daily(loads), until = today)
         if (days.isEmpty() && loads.isNotEmpty()) {
@@ -119,6 +124,7 @@ class TrendsViewModel @Inject constructor(
                     loads.filter { it.sport == Sport.RUN }.mapNotNull { load -> load.distanceMeters?.let { load.date to it } },
                     until = today,
                     count = RUNNING_WEEKS,
+                    tolerance = 1 + increase / 100.0,
                 ),
                 calendar = TrainingCalendar.days(loads, sessionKinds),
             )

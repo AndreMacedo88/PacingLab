@@ -11,12 +11,13 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** The screens whose cards the athlete can arrange. */
+/** The screens whose cards the athlete can arrange, and the home-screen widget's measures. */
 enum class Dashboard(val key: String) {
     TODAY("today"),
     PERFORMANCE("performance"),
     TRENDS("trends"),
     SLEEP("sleep"),
+    WIDGET("widget"),
 }
 
 /** A card a dashboard can show, in its default place in the catalogue. */

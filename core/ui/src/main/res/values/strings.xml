@@ -23,4 +23,24 @@
     <string name="training_status_detraining_detail">Much less training than usual for a while, and fitness is falling.</string>
     <string name="training_status_overreaching_detail">This week\'s load is far above your usual: more than the body absorbs for long.</string>
     <string name="training_status_strained_detail">Your HRV is below its normal range while training goes on.</string>
+    <string name="widget_measure_readiness">Readiness</string>
+    <string name="widget_measure_readiness_about">Today\'s score and its level</string>
+    <string name="widget_measure_sleep">Sleep</string>
+    <string name="widget_measure_sleep_about">Last night\'s sleep score</string>
+    <string name="widget_measure_form">Form</string>
+    <string name="widget_measure_form_about">Fitness minus fatigue</string>
+    <string name="widget_measure_hrv">HRV</string>
+    <string name="widget_measure_hrv_about">Last night, against your usual range</string>
+    <string name="widget_measure_resting_hr">Resting HR</string>
+    <string name="widget_measure_resting_hr_about">Last night, against your usual range</string>
+    <string name="widget_measure_asleep">Asleep</string>
+    <string name="widget_measure_asleep_about">Time asleep last night</string>
+    <string name="widget_measure_load">Load</string>
+    <string name="widget_measure_load_about">This week\'s training load so far</string>
+    <string name="widget_measure_vo2max">VO2max</string>
+    <string name="widget_measure_vo2max_about">Today\'s value of the trend</string>
+    <string name="widget_measure_status">Training status</string>
+    <string name="widget_measure_status_about">In a word, on the line underneath</string>
+    <string name="widget_measure_vitals">Vitals</string>
+    <string name="widget_measure_vitals_about">How many of last night\'s vitals were outside your range</string>
 </resources>

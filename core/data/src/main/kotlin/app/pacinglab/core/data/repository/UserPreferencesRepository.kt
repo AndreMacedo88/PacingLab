@@ -6,11 +6,13 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import app.pacinglab.core.analytics.load.BanisterWeighting
 import app.pacinglab.core.analytics.workout.TrainingSessions
 import app.pacinglab.core.model.ZoneBoundaries
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
 import java.time.Period
@@ -50,6 +52,10 @@ enum class DarkMode {
  * @property morningReminder a notification asks the morning question when it is still open after waking.
  * @property sessionWeather the weather at the start of each session is looked up when a session opens.
  * @property weeksInFiveZones Trends' weekly table splits time over the five zones rather than the three.
+ * @property freeDays days without work or other fixed start, for sleep timing (the mornings of those days).
+ * @property runningIncreasePercent how far above the usual weekly running distance a week counts as above
+ *   tolerance.
+ * @property heatAdjustment per-run VO2max and aerobic efficiency are corrected for heat.
  */
 data class UserPreferences(
     val sessionMergeGap: Duration = TrainingSessions.DEFAULT_MAX_GAP,
@@ -64,6 +70,9 @@ data class UserPreferences(
     val morningReminder: Boolean = false,
     val sessionWeather: Boolean = true,
     val weeksInFiveZones: Boolean = true,
+    val freeDays: Set<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
+    val runningIncreasePercent: Int = 30,
+    val heatAdjustment: Boolean = true,
 ) {
     /** Age in whole years on [date], or null without a birth date. */
     fun ageOn(date: LocalDate): Int? = birthDate?.let { Period.between(it, date).years }
@@ -89,6 +98,10 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
             morningReminder = values[MORNING_REMINDER] ?: false,
             sessionWeather = values[SESSION_WEATHER] ?: true,
             weeksInFiveZones = values[WEEKS_IN_FIVE_ZONES] ?: true,
+            freeDays = values[FREE_DAYS]?.mapNotNull { name -> DayOfWeek.entries.firstOrNull { it.name == name } }?.toSet()
+                ?: setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
+            runningIncreasePercent = values[RUNNING_INCREASE]?.takeIf { it in RUNNING_INCREASES } ?: 30,
+            heatAdjustment = values[HEAT_ADJUSTMENT] ?: true,
         )
     }
 
@@ -148,12 +161,28 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         dataStore.edit { it[SESSION_WEATHER] = on }
     }
 
+    suspend fun setFreeDays(days: Set<DayOfWeek>) {
+        dataStore.edit { it[FREE_DAYS] = days.mapTo(HashSet()) { day -> day.name } }
+    }
+
+    suspend fun setRunningIncreasePercent(percent: Int) {
+        require(percent in RUNNING_INCREASES) { "Running increase must be one of $RUNNING_INCREASES" }
+        dataStore.edit { it[RUNNING_INCREASE] = percent }
+    }
+
+    suspend fun setHeatAdjustment(on: Boolean) {
+        dataStore.edit { it[HEAT_ADJUSTMENT] = on }
+    }
+
     suspend fun setWeeksInFiveZones(five: Boolean) {
         dataStore.edit { it[WEEKS_IN_FIVE_ZONES] = five }
     }
 
     companion object {
         val MAX_MERGE_GAP: Duration = Duration.ofMinutes(60)
+
+        /** Weekly running increases the tolerance can be set to, in per cent of the usual week. */
+        val RUNNING_INCREASES = listOf(10, 20, 30)
         val MIN_SLEEP_NEED: Duration = Duration.ofHours(6)
         val MAX_SLEEP_NEED: Duration = Duration.ofHours(10)
         private val SESSION_MERGE_GAP_MINUTES = intPreferencesKey("session_merge_gap_minutes")
@@ -169,5 +198,8 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         private val MORNING_REMINDER = booleanPreferencesKey("morning_reminder")
         private val SESSION_WEATHER = booleanPreferencesKey("session_weather")
         private val WEEKS_IN_FIVE_ZONES = booleanPreferencesKey("trends_weeks_five_zones")
+        private val FREE_DAYS = stringSetPreferencesKey("free_days")
+        private val RUNNING_INCREASE = intPreferencesKey("running_increase_percent")
+        private val HEAT_ADJUSTMENT = booleanPreferencesKey("heat_adjustment")
     }
 }

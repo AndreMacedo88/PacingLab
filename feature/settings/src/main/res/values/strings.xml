@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="settings_title">Settings</string>
-    <string name="settings_section_data">Data</string>
     <string name="settings_data_sources_summary">Health Connect access and data diagnostics</string>
     <string name="settings_section_training">Training</string>
-    <string name="settings_section_appearance">Appearance</string>
     <string name="settings_section_sleep">Sleep</string>
     <string name="settings_theme">Colour</string>
     <string name="theme_indigo">Indigo</string>
@@ -181,6 +179,23 @@
     <string name="physiology_set_by_you">Set by you</string>
     <string name="physiology_editor_max_estimated">Optional. Leave empty to use the highest heart rate you held in your workouts, now %1$d bpm.</string>
     <string name="settings_section_profile">Profile</string>
+    <string name="settings_profile_summary">Sex, birth date, heart rate and zones</string>
+    <string name="settings_training_summary">Joining workouts, gym sessions, running tolerance, heat</string>
+    <string name="settings_sleep_summary">Sleep need, free days, morning reminder</string>
+    <string name="settings_appearance_title">Appearance and units</string>
+    <string name="settings_appearance_summary">Colour, light or dark, pace or speed</string>
+    <string name="settings_widget_title">Home-screen widget</string>
+    <string name="settings_widget_summary">Which measures it shows, and in what order</string>
+    <string name="settings_widget_hint">A small widget shows the first figures of this list; a larger one shows more, and a 7-day chart of the first figure when there is room. Training status and vitals go on a line underneath. Drag a measure by its handle to move it; the eye hides it.</string>
+    <string name="settings_data_title">Data and privacy</string>
+    <string name="settings_data_summary">Data sources, weather lookups, backups</string>
+    <string name="settings_free_days">Free days</string>
+    <string name="settings_free_days_summary">Days without work or a fixed start. Sleep timing compares the nights before them with the other nights.</string>
+    <string name="settings_running_increase">Running tolerance</string>
+    <string name="settings_running_increase_summary" formatted="false">How far above your usual week of running a week counts as above tolerance. More injuries came above 30 % in one study (Nielsen 2014); 10 % is a stricter rule of thumb without such evidence.</string>
+    <string name="settings_percent">%1$d %%</string>
+    <string name="settings_heat">Correct estimates for heat</string>
+    <string name="settings_heat_summary">VO2max and aerobic efficiency of warm runs are raised by the cost of heat (Mantzios 2022). Decoupling only marks warm runs either way.</string>
     <string name="settings_sex">Sex</string>
     <string name="settings_sex_summary">Sets how heart rate is weighted in training load: Banister fitted it to blood lactate separately for men and women</string>
     <string name="sex_male">Male</string>

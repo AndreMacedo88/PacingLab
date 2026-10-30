@@ -5,10 +5,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import app.pacinglab.core.data.repository.DarkMode
+import app.pacinglab.core.data.repository.PlacedCard
 import app.pacinglab.core.data.repository.ThemeChoice
 import app.pacinglab.core.data.repository.UserPreferences
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.designsystem.theme.ThemePalette
+import app.pacinglab.core.ui.WidgetMeasure
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -18,6 +20,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.time.DayOfWeek
 import java.time.Duration
 
 @RunWith(RobolectricTestRunner::class)
@@ -29,20 +32,64 @@ class SettingsScreenScreenshotTest {
 
     private val preferences = UserPreferences(sleepNeed = Duration.ofMinutes(480))
 
-    @Test
-    fun settings() = capture(preferences, ThemePalette.INDIGO, dark = false)
+    private val widget = WidgetMeasure.entries.map { PlacedCard(it.id, !it.hiddenByDefault) }
 
     @Test
-    fun settingsAmberDark() =
-        capture(preferences.copy(theme = ThemeChoice.AMBER, darkMode = DarkMode.DARK), ThemePalette.AMBER, dark = true)
+    @Config(qualifiers = PHONE)
+    fun settings() {
+        compose.setContent { PacingLabTheme { SettingsScreen(onOpenSection = {}, onOpenAbout = {}, onBack = {}) } }
+        compose.onRoot().captureRoboImage()
+    }
 
     @Test
-    fun settingsGreenDark() =
-        capture(preferences.copy(theme = ThemeChoice.GREEN, darkMode = DarkMode.DARK), ThemePalette.GREEN, dark = true)
+    @Config(qualifiers = PHONE)
+    fun profile() = capture(SettingsSection.PROFILE)
 
     @Test
-    fun settingsBlueLight() =
-        capture(preferences.copy(theme = ThemeChoice.BLUE, darkMode = DarkMode.LIGHT), ThemePalette.BLUE, dark = false)
+    @Config(qualifiers = PHONE)
+    fun training() = capture(SettingsSection.TRAINING)
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun sleep() = capture(SettingsSection.SLEEP)
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun appearance() = capture(SettingsSection.APPEARANCE)
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun appearanceAmberDark() = capture(
+        SettingsSection.APPEARANCE,
+        preferences.copy(theme = ThemeChoice.AMBER, darkMode = DarkMode.DARK),
+        ThemePalette.AMBER,
+        dark = true,
+    )
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun appearanceGreenDark() = capture(
+        SettingsSection.APPEARANCE,
+        preferences.copy(theme = ThemeChoice.GREEN, darkMode = DarkMode.DARK),
+        ThemePalette.GREEN,
+        dark = true,
+    )
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun appearanceBlueLight() = capture(
+        SettingsSection.APPEARANCE,
+        preferences.copy(theme = ThemeChoice.BLUE, darkMode = DarkMode.LIGHT),
+        ThemePalette.BLUE,
+        dark = false,
+    )
+
+    @Test
+    fun widgetMeasures() = capture(SettingsSection.WIDGET)
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun data() = capture(SettingsSection.DATA)
 
     @Test
     @Config(qualifiers = PHONE)
@@ -52,19 +99,21 @@ class SettingsScreenScreenshotTest {
     }
 
     @Test
+    fun openingAGroupReportsIt() {
+        var opened: SettingsSection? = null
+        compose.setContent { PacingLabTheme { SettingsScreen(onOpenSection = { opened = it }, onOpenAbout = {}, onBack = {}) } }
+
+        compose.onNodeWithText("Sleep").performClick()
+
+        assertThat(opened).isEqualTo(SettingsSection.SLEEP)
+    }
+
+    @Test
     fun choosingAColourReportsIt() {
         var chosen: ThemeChoice? = null
         compose.setContent {
             PacingLabTheme {
-                SettingsScreen(
-                    preferences,
-                    SettingsActions(onTheme = {
-                        chosen = it
-                    }),
-                    onOpenPhysiology = {},
-                    onOpenDataSources = {},
-                    onBack = {},
-                )
+                SettingsSectionScreen(SettingsSection.APPEARANCE, preferences, SettingsActions(onTheme = { chosen = it }), onBack = {})
             }
         }
 
@@ -74,14 +123,28 @@ class SettingsScreenScreenshotTest {
     }
 
     @Test
+    fun aFreeDayIsAddedAndRemoved() {
+        var days: Set<DayOfWeek>? = null
+        compose.setContent {
+            PacingLabTheme {
+                SettingsSectionScreen(SettingsSection.SLEEP, preferences, SettingsActions(onFreeDays = { days = it }), onBack = {})
+            }
+        }
+
+        compose.onNodeWithText("Fri").performClick()
+        assertThat(days).isEqualTo(setOf(DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY))
+        compose.onNodeWithText("Sun").performClick()
+        assertThat(days).isEqualTo(setOf(DayOfWeek.SATURDAY))
+    }
+
+    @Test
     fun aRestoreReportsWhatCameBack() {
         compose.setContent {
             PacingLabTheme {
-                SettingsScreen(
+                SettingsSectionScreen(
+                    SettingsSection.DATA,
                     preferences,
                     SettingsActions(),
-                    onOpenPhysiology = {},
-                    onOpenDataSources = {},
                     onBack = {},
                     backupMessage = BackupMessage.Restored(entries = 12),
                 )
@@ -91,10 +154,15 @@ class SettingsScreenScreenshotTest {
         compose.onNodeWithText("Restored 12 entries and the settings").assertExists()
     }
 
-    private fun capture(preferences: UserPreferences, palette: ThemePalette, dark: Boolean) {
+    private fun capture(
+        section: SettingsSection,
+        preferences: UserPreferences = this.preferences,
+        palette: ThemePalette = ThemePalette.INDIGO,
+        dark: Boolean = false,
+    ) {
         compose.setContent {
             PacingLabTheme(darkTheme = dark, palette = palette) {
-                SettingsScreen(preferences, SettingsActions(), onOpenPhysiology = {}, onOpenDataSources = {}, onBack = {})
+                SettingsSectionScreen(section, preferences, SettingsActions(), onBack = {}, widget = widget)
             }
         }
         compose.onRoot().captureRoboImage()

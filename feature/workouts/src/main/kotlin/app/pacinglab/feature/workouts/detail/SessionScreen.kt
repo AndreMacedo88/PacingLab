@@ -150,6 +150,7 @@ fun SessionScreen(
                 zoneId = zoneId,
                 modifier = Modifier.fillMaxSize().padding(padding),
                 weather = state.weather,
+                heatAdjustment = state.heatAdjustment,
             )
         }
     }
@@ -196,6 +197,7 @@ private fun ScopeContent(
     zoneId: ZoneId,
     modifier: Modifier = Modifier,
     weather: SessionWeatherState? = null,
+    heatAdjustment: Boolean = true,
 ) {
     LazyColumn(
         modifier = modifier,
@@ -218,7 +220,7 @@ private fun ScopeContent(
         }
         // Nothing to show while the weather is looked up, switched off or without a place.
         if (weather != null && weather != SessionWeatherState.Off && weather != SessionWeatherState.NoPlace) {
-            item(key = "conditions") { ConditionsCard(weather, locale) }
+            item(key = "conditions") { ConditionsCard(weather, locale, heatAdjustment = heatAdjustment) }
         }
         item(key = "heart-rate") { HeartRateCard(scope.analysis.zones, scope.heartRate, scope.zoneOffset ?: zoneId, onOpenPhysiology) }
         if (scope.analysis.isIntervalSession) {

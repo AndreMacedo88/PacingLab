@@ -6,20 +6,28 @@ import androidx.lifecycle.viewModelScope
 import app.pacinglab.core.data.repository.BackupFiles
 import app.pacinglab.core.data.repository.BackupFormatException
 import app.pacinglab.core.data.repository.BackupRepository
+import app.pacinglab.core.data.repository.CardSpec
 import app.pacinglab.core.data.repository.DarkMode
+import app.pacinglab.core.data.repository.Dashboard
+import app.pacinglab.core.data.repository.DashboardRepository
+import app.pacinglab.core.data.repository.HomeScreenWidget
+import app.pacinglab.core.data.repository.PlacedCard
 import app.pacinglab.core.data.repository.Sex
 import app.pacinglab.core.data.repository.ThemeChoice
 import app.pacinglab.core.data.repository.UserPreferences
 import app.pacinglab.core.data.repository.UserPreferencesRepository
+import app.pacinglab.core.ui.WidgetMeasure
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
 import javax.inject.Inject
@@ -40,9 +48,16 @@ class SettingsViewModel @Inject constructor(
     private val repository: UserPreferencesRepository,
     private val backupFiles: BackupFiles,
     private val clock: Clock,
+    private val dashboards: DashboardRepository,
+    private val homeScreenWidget: HomeScreenWidget,
 ) : ViewModel() {
     val preferences: StateFlow<UserPreferences> =
         repository.preferences.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), UserPreferences())
+
+    /** The widget's measures in the athlete's order, hidden ones included. */
+    val widget: StateFlow<List<PlacedCard>> = dashboards.layout(Dashboard.WIDGET)
+        .map { it.arrange(WidgetMeasure.entries.map { measure -> CardSpec(measure.id, measure.hiddenByDefault) }) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), emptyList())
 
     private val _backupMessage = MutableStateFlow<BackupMessage?>(null)
     val backupMessage: StateFlow<BackupMessage?> = _backupMessage.asStateFlow()
@@ -66,6 +81,23 @@ class SettingsViewModel @Inject constructor(
     fun setMorningReminder(on: Boolean) = launch { repository.setMorningReminder(on) }
 
     fun setSessionWeather(on: Boolean) = launch { repository.setSessionWeather(on) }
+
+    fun setFreeDays(days: Set<DayOfWeek>) = launch { repository.setFreeDays(days) }
+
+    fun setRunningIncrease(percent: Int) = launch { repository.setRunningIncreasePercent(percent) }
+
+    fun setHeatAdjustment(on: Boolean) = launch { repository.setHeatAdjustment(on) }
+
+    /** Saves the widget's measures and redraws it. */
+    fun arrangeWidget(cards: List<PlacedCard>) = launch {
+        dashboards.save(Dashboard.WIDGET, cards)
+        homeScreenWidget.update()
+    }
+
+    fun resetWidget() = launch {
+        dashboards.reset(Dashboard.WIDGET)
+        homeScreenWidget.update()
+    }
 
     /** The name the file picker suggests for a backup made today. */
     fun backupFileName(): String = BackupRepository.fileName(LocalDate.now(clock))

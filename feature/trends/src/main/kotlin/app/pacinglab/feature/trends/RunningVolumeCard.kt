@@ -30,9 +30,10 @@ import app.pacinglab.core.designsystem.theme.tabularNumbers
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
- * Running distance week by week against the athlete's tolerance (30 % over the four weeks before): this
+ * Running distance week by week against the athlete's tolerance (by default 30 % over the four weeks before): this
  * week's distance with its status, and the last weeks as grey bars (blue is a zone on this screen) with
  * the tolerance as a tick above each; a week over its tolerance takes the out-of-range orange.
  */
@@ -49,8 +50,14 @@ internal fun RunningVolumeCard(weeks: List<RunningWeek>, today: LocalDate, local
                 )
                 Text(
                     text =
-                    now.toleranceKm?.let {
-                        stringResource(R.string.running_tolerance, "%.1f".format(locale, it), "%.1f".format(locale, now.usualKm!!))
+                    now.toleranceKm?.let { tolerance ->
+                        val usual = now.usualKm!!
+                        stringResource(
+                            R.string.running_tolerance,
+                            "%.1f".format(locale, tolerance),
+                            "%.1f".format(locale, usual),
+                            ((tolerance / usual - 1) * 100).roundToInt(),
+                        )
                     }
                         ?: stringResource(R.string.running_no_tolerance),
                     style = MaterialTheme.typography.bodySmall.tabularNumbers(),

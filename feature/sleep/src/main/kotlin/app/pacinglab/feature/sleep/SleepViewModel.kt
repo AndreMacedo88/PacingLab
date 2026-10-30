@@ -12,15 +12,19 @@ import app.pacinglab.core.data.repository.DashboardLayout
 import app.pacinglab.core.data.repository.DashboardRepository
 import app.pacinglab.core.data.repository.NightRepository
 import app.pacinglab.core.data.repository.PlacedCard
+import app.pacinglab.core.data.repository.UserPreferencesRepository
 import app.pacinglab.core.data.repository.WellnessRepository
 import app.pacinglab.core.data.sync.SyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -46,6 +50,7 @@ sealed interface SleepUiState {
         val debts: Map<LocalDate, SleepDebt> = emptyMap(),
         val cards: List<PlacedCard> = DashboardLayout().arrange(SleepCardKind.catalog),
         val today: LocalDate? = null,
+        val freeDays: Set<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
     ) : SleepUiState {
         val feeling: FeelingAgreement by lazy { FeelingAgreement.of(scores, rested) }
     }
@@ -58,12 +63,14 @@ class SleepViewModel @Inject constructor(
     private val scheduler: SyncScheduler,
     private val dashboards: DashboardRepository,
     private val clock: Clock,
+    preferences: UserPreferencesRepository,
 ) : ViewModel() {
     val state: StateFlow<SleepUiState> = combine(
         nights.observeSleep(),
         wellness.observeRested(),
         dashboards.layout(Dashboard.SLEEP),
-    ) { history, rested, layout ->
+        preferences.preferences.map { it.freeDays }.distinctUntilChanged(),
+    ) { history, rested, layout, freeDays ->
         SleepUiState.Loaded(
             history.nights,
             history.scores,
@@ -73,6 +80,7 @@ class SleepViewModel @Inject constructor(
             history.debts,
             layout.arrange(SleepCardKind.catalog),
             today = LocalDate.now(clock),
+            freeDays = freeDays,
         )
     }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), SleepUiState.Loading)
