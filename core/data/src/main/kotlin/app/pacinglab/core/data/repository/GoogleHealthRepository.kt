@@ -94,8 +94,11 @@ class GoogleHealthRepository @Inject constructor(
         val today = LocalDate.now(clock)
         val since = store.latest()?.minusDays(REREAD_DAYS)?.coerceAtLeast(today.minusDays(HISTORY_DAYS)) ?: today.minusDays(HISTORY_DAYS)
         val vo2maxSince = store.latestVo2Max()?.minusDays(REREAD_DAYS) ?: today.minusDays(VO2MAX_HISTORY_DAYS)
+        // Brief awakenings came later than the other values: read their history once, then like the rest.
+        val sleepSince = store.latestBriefAwakenings()?.minusDays(REREAD_DAYS)?.coerceAtLeast(today.minusDays(HISTORY_DAYS))
+            ?: today.minusDays(HISTORY_DAYS)
         val problem = try {
-            store.merge(source.readDailyVitals(since, vo2maxSince))
+            store.merge(source.readDailyVitals(since, vo2maxSince, sleepSince))
             null
         } catch (_: SourceAuthorizationException) {
             GoogleHealthProblem.SIGN_IN_NEEDED

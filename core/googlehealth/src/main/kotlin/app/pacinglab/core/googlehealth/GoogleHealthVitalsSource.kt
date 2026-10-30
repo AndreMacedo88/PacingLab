@@ -3,29 +3,37 @@ package app.pacinglab.core.googlehealth
 import app.pacinglab.core.model.DailyVitals
 import app.pacinglab.core.model.source.SourceAuthorizationException
 import app.pacinglab.core.model.source.VitalsSource
+import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
 
 /**
  * Daily values from the Google Health API: Fitbit's own nightly HRV, SpO2, skin temperature, breathing
- * rate and resting heart rate, and its daily VO2max. Each type is read newest first, page by page, until
- * the pages reach back past the date asked for. VO2max needs a scope of its own; an athlete who left it
- * out of the consent still gets the nightly values.
+ * rate and resting heart rate, its daily VO2max, and the brief awakenings of each night from its sleep
+ * records. Each type is read newest first, page by page, until the pages reach back past the date asked
+ * for. VO2max needs a scope of its own; an athlete who left it out of the consent still gets the nightly
+ * values.
  */
 class GoogleHealthVitalsSource @Inject constructor(
     private val authorization: GoogleHealthAuthorization,
     private val api: GoogleHealthApi,
+    private val clock: Clock,
 ) : VitalsSource {
-    override suspend fun readDailyVitals(since: LocalDate, vo2maxSince: LocalDate): List<DailyVitals> {
+    override suspend fun readDailyVitals(since: LocalDate, vo2maxSince: LocalDate, sleepSince: LocalDate): List<DailyVitals> {
         val token = when (val access = authorization.authorize()) {
             is GoogleHealthAccess.Granted -> access.token
             is GoogleHealthAccess.NeedsConsent -> throw SourceAuthorizationException("Sign-in needed")
             is GoogleHealthAccess.Failed -> throw SourceAuthorizationException(access.reason)
         }
-        return read(token, since, vo2maxSince)
+        return read(token, since, vo2maxSince, sleepSince)
     }
 
-    internal suspend fun read(token: String, since: LocalDate, vo2maxSince: LocalDate = since): List<DailyVitals> {
+    internal suspend fun read(
+        token: String,
+        since: LocalDate,
+        vo2maxSince: LocalDate = since,
+        sleepSince: LocalDate = since,
+    ): List<DailyVitals> {
         val days = DailyType.entries.flatMap { type ->
             if (type == DailyType.VO2MAX) {
                 try {
@@ -36,15 +44,23 @@ class GoogleHealthVitalsSource @Inject constructor(
             } else {
                 readType(token, type, since)
             }
-        }
+        } + readSleep(token, sleepSince)
         return days.groupBy { it.date }.map { (_, values) -> values.reduce { kept, other -> kept.orElse(other) } }.sortedBy { it.date }
     }
 
-    private suspend fun readType(token: String, type: DailyType, since: LocalDate): List<DailyVitals> {
+    private suspend fun readType(token: String, type: DailyType, since: LocalDate) = readPages(token, type.id, since) {
+        DailyPage.parse(it, type)
+    }
+
+    private suspend fun readSleep(token: String, since: LocalDate) =
+        readPages(token, SleepRecords.TYPE, since) { SleepRecords.parse(it, clock.zone) }
+
+    /** [dataType]'s days from [since] on, page by page, newest first, until the pages reach back past it. */
+    private suspend fun readPages(token: String, dataType: String, since: LocalDate, parse: (String) -> DailyPage): List<DailyVitals> {
         val found = mutableListOf<DailyVitals>()
         var pageToken: String? = null
         for (page in 0 until MAX_PAGES) {
-            val result = DailyPage.parse(api.dataPoints(type.id, token, pageToken), type)
+            val result = parse(api.dataPoints(dataType, token, pageToken))
             found += result.days.filter { it.date >= since }
             pageToken = result.next
             if (pageToken == null || result.days.any { it.date < since }) break

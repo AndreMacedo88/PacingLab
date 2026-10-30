@@ -52,15 +52,25 @@ private fun SleepStageType.lane(): Int = when (this) {
 
 /**
  * The night's stages as one lane per stage, each labelled with its total, the blocks joined by thin
- * lines where the stage changes. [laneLabels] are in the order of [STAGE_LANES].
+ * lines where the stage changes. [laneLabels] are in the order of [STAGE_LANES]. With [restlessLabel] and
+ * the night's brief awakenings known, a lane under Awake marks each of them, in a lighter awake colour.
  */
 @Composable
-internal fun StageLanes(night: Night, laneLabels: List<String>, description: String, modifier: Modifier = Modifier) {
+internal fun StageLanes(
+    night: Night,
+    laneLabels: List<String>,
+    description: String,
+    modifier: Modifier = Modifier,
+    restlessLabel: String? = null,
+) {
     val colors = chartColors()
     val track = MaterialTheme.colorScheme.surfaceVariant
     val labelStyle = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.onSurface)
     val measurer = rememberTextMeasurer()
-    Canvas(modifier.fillMaxWidth().height(LANE_HEIGHT * STAGE_LANES.size).semantics { contentDescription = description }) {
+    val brief = night.briefAwakenings?.takeIf { restlessLabel != null }
+    val labels = if (brief != null) listOf(laneLabels.first(), restlessLabel!!) + laneLabels.drop(1) else laneLabels
+    fun laneOf(type: SleepStageType) = type.lane().let { if (brief != null && it > 0) it + 1 else it }
+    Canvas(modifier.fillMaxWidth().height(LANE_HEIGHT * labels.size).semantics { contentDescription = description }) {
         val laneHeight = LANE_HEIGHT.toPx()
         val label = 20.dp.toPx()
         val trackHeight = laneHeight - label - 8.dp.toPx()
@@ -69,13 +79,13 @@ internal fun StageLanes(night: Night, laneLabels: List<String>, description: Str
         fun x(t: Instant) = (t.toEpochMilli() - start) / span * size.width
         fun trackTop(lane: Int) = lane * laneHeight + label
 
-        laneLabels.forEachIndexed { lane, text ->
+        labels.forEachIndexed { lane, text ->
             drawText(measurer, text, Offset(0f, lane * laneHeight), labelStyle)
             drawRoundRect(track, Offset(0f, trackTop(lane)), Size(size.width, trackHeight), CornerRadius(trackHeight / 2))
         }
         var previous: Int? = null
         for (stage in night.stages) {
-            val lane = stage.type.lane()
+            val lane = laneOf(stage.type)
             val left = x(stage.start)
             val right = maxOf(x(stage.end), left + 2.dp.toPx())
             previous?.takeIf { it != lane }?.let { from ->
@@ -96,8 +106,28 @@ internal fun StageLanes(night: Night, laneLabels: List<String>, description: Str
             )
             previous = lane
         }
+        if (brief != null) {
+            // Over the lines between stages that cross it, so that only brief awakenings mark this lane.
+            drawRoundRect(track, Offset(0f, trackTop(RESTLESS_LANE)), Size(size.width, trackHeight), CornerRadius(trackHeight / 2))
+        }
+        brief?.forEach { awakening ->
+            val left = x(awakening.start)
+            val right = maxOf(x(awakening.end), left + 2.dp.toPx())
+            drawRoundRect(
+                color = colors.awake.copy(alpha = RESTLESS_ALPHA),
+                topLeft = Offset(left, trackTop(RESTLESS_LANE)),
+                size = Size(right - left, trackHeight),
+                cornerRadius = CornerRadius(minOf(trackHeight / 2, (right - left) / 2)),
+            )
+        }
     }
 }
+
+/** The restless lane sits right under Awake. */
+private const val RESTLESS_LANE = 1
+
+/** Brief awakenings take the awake colour, lighter, so the two lanes read as related but not the same. */
+private const val RESTLESS_ALPHA = 0.55f
 
 /**
  * Where a value falls on a track: the healthy range as a tinted band, the value as a marker. Values

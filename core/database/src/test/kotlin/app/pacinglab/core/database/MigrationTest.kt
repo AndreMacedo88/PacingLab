@@ -13,6 +13,7 @@ import app.pacinglab.core.database.store.SessionWeatherStore
 import app.pacinglab.core.database.store.StoredSessionWeather
 import app.pacinglab.core.database.store.WellnessStore
 import app.pacinglab.core.database.store.WorkoutStore
+import app.pacinglab.core.model.BriefAwakening
 import app.pacinglab.core.model.DailyVitals
 import app.pacinglab.core.model.PhysiologyEntry
 import app.pacinglab.core.model.RecordingMethod
@@ -206,6 +207,34 @@ class MigrationTest {
 
         assertThat(stored).isEqualTo(listOf(DailyVitals(day, hrvMs = 61.5, vo2max = 52.4, vo2maxVariance = 1.3)))
         assertThat((found as StoredSessionWeather.Found).weather.dewPoint).isEqualTo(6.0)
+    }
+
+    @Test
+    fun `version 10 nightly values survive the upgrade and then keep brief awakenings`() = runTest {
+        val file = databaseFile()
+        createFromSchema(file, version = 10)
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("INSERT INTO daily_vitals (epoch_day, hrv_ms) VALUES (20750, 61.5)")
+            db.execSQL("INSERT INTO daily_vitals (epoch_day, hrv_ms) VALUES (20751, 58.0)")
+        }
+
+        val database = Room.databaseBuilder(context, PacingLabDatabase::class.java, file.path).setDriver(AndroidSQLiteDriver()).build()
+        val vitals = DailyVitalsStore(database)
+        val brief = BriefAwakening(Instant.parse("2026-10-23T02:41:00Z"), Instant.parse("2026-10-23T02:43:00Z"))
+        vitals.merge(
+            listOf(
+                DailyVitals(LocalDate.ofEpochDay(20750), briefAwakenings = listOf(brief, brief.copy(end = brief.end.plusSeconds(60)))),
+                DailyVitals(LocalDate.ofEpochDay(20751), briefAwakenings = emptyList()),
+            ),
+        )
+        val stored = vitals.observe().first()
+        val latest = vitals.latestBriefAwakenings()
+        database.close()
+
+        assertThat(stored.map { it.hrvMs }).isEqualTo(listOf(61.5, 58.0))
+        assertThat(stored[0].briefAwakenings).isEqualTo(listOf(brief, brief.copy(end = brief.end.plusSeconds(60))))
+        assertThat(stored[1].briefAwakenings).isEqualTo(emptyList<BriefAwakening>())
+        assertThat(latest).isEqualTo(LocalDate.ofEpochDay(20751))
     }
 
     private fun databaseFile(): File = context.getDatabasePath("migration-test.db").apply {

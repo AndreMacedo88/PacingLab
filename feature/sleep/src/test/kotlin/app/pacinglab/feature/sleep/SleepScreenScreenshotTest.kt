@@ -16,6 +16,7 @@ import app.pacinglab.core.analytics.recovery.SleepHistory
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.analytics.recovery.SleepingHeartRate
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
+import app.pacinglab.core.model.BriefAwakening
 import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.SleepStage
 import app.pacinglab.core.model.SleepStageType
@@ -133,7 +134,10 @@ class SleepScreenScreenshotTest {
     @Test
     fun lastNightDark() = capture(loaded, darkTheme = true)
 
-    /** With the Google Health API connected: SpO2 and skin temperature join the body card. */
+    /**
+     * With the Google Health API connected: SpO2 and skin temperature join the body card, and brief
+     * awakenings get a lane of their own (one or two in each stretch of light and REM sleep).
+     */
     @Test
     fun withGoogleHealthValues() = capture(
         loaded.copy(
@@ -147,6 +151,18 @@ class SleepScreenScreenshotTest {
                     } else {
                         0.15 * sin(i * 1.1)
                     },
+                    briefAwakenings = night.stages.filter { it.type == SleepStageType.LIGHT || it.type == SleepStageType.REM }
+                        .flatMapIndexed { k, stage ->
+                            val first = stage.start.plus(Duration.ofMinutes(4))
+                            val one = BriefAwakening(first, first.plus(Duration.ofMinutes(1L + k % 3)))
+                            if (stage.type ==
+                                SleepStageType.REM
+                            ) {
+                                listOf(one, BriefAwakening(stage.end.minusSeconds(150), stage.end.minusSeconds(90)))
+                            } else {
+                                listOf(one)
+                            }
+                        },
                 )
             },
         ),

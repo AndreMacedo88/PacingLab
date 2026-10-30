@@ -111,6 +111,8 @@ class DailyVitalsEntity(
     @ColumnInfo(name = "skin_temperature_baseline") val skinTemperatureBaseline: Double?,
     @ColumnInfo(name = "vo2max") val vo2max: Double? = null,
     @ColumnInfo(name = "vo2max_variance") val vo2maxVariance: Double? = null,
+    /** Brief awakenings as "start-end" epoch seconds joined by commas; empty for none, null when unknown. */
+    @ColumnInfo(name = "brief_awakenings") val briefAwakenings: String? = null,
 )
 
 /**

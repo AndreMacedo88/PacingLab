@@ -1,5 +1,6 @@
 package app.pacinglab.core.analytics.recovery
 
+import app.pacinglab.core.model.BriefAwakening
 import app.pacinglab.core.model.DailyVitals
 import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.SleepSession
@@ -30,6 +31,8 @@ import java.time.ZoneOffset
  * @property oxygenSaturation average SpO2 of the night in per cent, from the Google Health API.
  * @property skinTemperature skin temperature relative to the watch app's baseline in degrees Celsius,
  *   from the Google Health API.
+ * @property briefAwakenings awakenings too short for the awake stage, from the Google Health API; shown,
+ *   not scored (brief arousals are part of normal sleep). Null when that source has none for the night.
  */
 data class Night(
     val date: LocalDate,
@@ -47,6 +50,7 @@ data class Night(
     val hrvPartial: Boolean = false,
     val oxygenSaturation: Double? = null,
     val skinTemperature: Double? = null,
+    val briefAwakenings: List<BriefAwakening>? = null,
 ) {
     /** Time in bed: from the start of the sleep record to its end. */
     val inBedMillis: Long get() = Duration.between(start, end).toMillis()
@@ -153,7 +157,8 @@ object Nights {
     /**
      * [nights] with the watch app's own values of the same mornings: its HRV replaces the median of the
      * 5-minute values (so both apps show the same number, partial nights included), its resting heart
-     * rate and breathing rate fill gaps, and SpO2 and skin temperature are added.
+     * rate and breathing rate fill gaps, and SpO2, skin temperature and brief awakenings (those within
+     * the night's record) are added.
      */
     fun withVitals(nights: List<Night>, vitals: List<DailyVitals>): List<Night> {
         if (vitals.isEmpty()) return nights
@@ -167,6 +172,7 @@ object Nights {
                 respiratoryRate = night.respiratoryRate ?: day.breathingRate,
                 oxygenSaturation = day.oxygenSaturation,
                 skinTemperature = day.skinTemperatureDeviation,
+                briefAwakenings = day.briefAwakenings?.filter { it.end > night.start && it.start < night.end },
             )
         }
     }

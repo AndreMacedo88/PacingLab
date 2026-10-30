@@ -1,5 +1,6 @@
 package app.pacinglab.core.model
 
+import java.time.Instant
 import java.time.LocalDate
 
 /**
@@ -13,6 +14,8 @@ import java.time.LocalDate
  *   [skinTemperatureBaseline].
  * @property vo2max the app's cardio fitness estimate of the day in ml/kg/min, with the variance it
  *   reports for it ([vo2maxVariance]); the app keeps it for every day, nights or not.
+ * @property briefAwakenings the main sleep's brief awakenings, a few minutes or less, which the app keeps
+ *   apart from its awake stage; empty when there were none, null when the source had no staged sleep.
  */
 data class DailyVitals(
     val date: LocalDate,
@@ -26,6 +29,7 @@ data class DailyVitals(
     val skinTemperatureBaseline: Double? = null,
     val vo2max: Double? = null,
     val vo2maxVariance: Double? = null,
+    val briefAwakenings: List<BriefAwakening>? = null,
 ) {
     /** Whether any of the night's measures is there (VO2max is not one). */
     val hasNightValues: Boolean
@@ -48,5 +52,9 @@ data class DailyVitals(
         skinTemperatureBaseline = skinTemperatureBaseline ?: older.skinTemperatureBaseline,
         vo2max = vo2max ?: older.vo2max,
         vo2maxVariance = vo2maxVariance ?: older.vo2maxVariance,
+        briefAwakenings = briefAwakenings ?: older.briefAwakenings,
     )
 }
+
+/** A moment of wakefulness during sleep, one to a few minutes, too short for the awake stage. */
+data class BriefAwakening(val start: Instant, val end: Instant)

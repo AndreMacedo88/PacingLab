@@ -31,6 +31,7 @@ import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.theme.chartColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
+import java.time.Duration
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -44,7 +45,17 @@ internal fun NightCard(night: Night, score: SleepScore, locale: Locale, modifier
     }
     SleepCard(stringResource(score.rating.headline()), stringResource(R.string.sleep_stages_info), modifier) {
         Text(summary(score), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (night.stages.isNotEmpty()) StageLanes(night, labels, stringResource(R.string.sleep_stages_description))
+        if (night.stages.isNotEmpty()) {
+            StageLanes(
+                night = night,
+                laneLabels = labels,
+                description = stringResource(R.string.sleep_stages_description),
+                restlessLabel = night.briefAwakenings?.let { brief ->
+                    val millis = brief.sumOf { Duration.between(it.start, it.end).toMillis() }
+                    stringResource(R.string.sleep_lane, stringResource(R.string.stage_restless), Formats.hoursMinutes(millis))
+                },
+            )
+        }
         Row(Modifier.fillMaxWidth()) {
             TimeLabel(
                 time.format(night.start.atZone(night.zone)),

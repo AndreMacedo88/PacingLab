@@ -1,5 +1,6 @@
 package app.pacinglab.core.analytics.recovery
 
+import app.pacinglab.core.model.BriefAwakening
 import app.pacinglab.core.model.DailyVitals
 import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
@@ -185,5 +186,18 @@ class NightsTest {
         assertThat(second.hrvMs).isEqualTo(50.0)
         assertThat(second.skinTemperature!!).isCloseTo(-0.4, 1e-9)
         assertThat(second.oxygenSaturation).isNull()
+    }
+
+    @Test
+    fun `brief awakenings join the night they fall in`() {
+        val night = sleep("n", "2026-10-23T20:30:00Z", "2026-10-24T04:30:00Z", SleepStageType.LIGHT to 480)
+        val nights = Nights.of(listOf(night), emptyList(), emptyList(), emptyList(), cest)
+        val inside = BriefAwakening(Instant.parse("2026-10-24T02:41:00Z"), Instant.parse("2026-10-24T02:43:00Z"))
+        val after = BriefAwakening(Instant.parse("2026-10-24T05:10:00Z"), Instant.parse("2026-10-24T05:11:00Z"))
+
+        val (merged) = Nights.withVitals(nights, listOf(DailyVitals(LocalDate.of(2026, 10, 24), briefAwakenings = listOf(inside, after))))
+
+        assertThat(nights.single().briefAwakenings).isNull()
+        assertThat(merged.briefAwakenings).isEqualTo(listOf(inside))
     }
 }

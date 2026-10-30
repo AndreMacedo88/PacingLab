@@ -50,7 +50,8 @@ class SyncSchedulerTest {
     }
     private val sync = HealthSync(source, WorkoutStore(database), MeasurementStore(database), SyncStateStore(database), visibility, clock)
     private val noVitals = object : VitalsSource {
-        override suspend fun readDailyVitals(since: LocalDate, vo2maxSince: LocalDate): List<DailyVitals> = emptyList()
+        override suspend fun readDailyVitals(since: LocalDate, vo2maxSince: LocalDate, sleepSince: LocalDate): List<DailyVitals> =
+            emptyList()
     }
     private val googleHealth = GoogleHealthRepository(noVitals, DailyVitalsStore(database), testDataStore(), clock)
 

@@ -192,6 +192,9 @@ abstract class DailyVitalsDao {
     @Query("SELECT MAX(epoch_day) FROM daily_vitals WHERE vo2max IS NOT NULL")
     abstract suspend fun latestVo2Max(): Long?
 
+    @Query("SELECT MAX(epoch_day) FROM daily_vitals WHERE brief_awakenings IS NOT NULL")
+    abstract suspend fun latestBriefAwakenings(): Long?
+
     @Upsert
     protected abstract suspend fun upsert(entries: List<DailyVitalsEntity>)
 

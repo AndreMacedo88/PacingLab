@@ -36,7 +36,7 @@ import app.pacinglab.core.database.entity.WorkoutStreamEntity
         DailyVitalsEntity::class,
         SessionWeatherEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
     autoMigrations = [
         // 2: workouts.route_pending
@@ -57,6 +57,8 @@ import app.pacinglab.core.database.entity.WorkoutStreamEntity
         AutoMigration(from = 8, to = 9),
         // 10: daily_vitals.vo2max and vo2max_variance, session_weather
         AutoMigration(from = 9, to = 10),
+        // 11: daily_vitals.brief_awakenings
+        AutoMigration(from = 10, to = 11),
     ],
 )
 abstract class PacingLabDatabase : RoomDatabase() {

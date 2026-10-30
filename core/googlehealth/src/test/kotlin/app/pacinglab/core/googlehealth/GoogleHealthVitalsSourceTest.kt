@@ -1,6 +1,7 @@
 package app.pacinglab.core.googlehealth
 
 import androidx.test.core.app.ApplicationProvider
+import app.pacinglab.core.model.BriefAwakening
 import app.pacinglab.core.model.DailyVitals
 import app.pacinglab.core.model.source.SourceAuthorizationException
 import assertk.assertThat
@@ -11,7 +12,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [Config.NEWEST_SDK])
@@ -67,7 +71,9 @@ class GoogleHealthVitalsSourceTest {
         ),
     )
 
-    private val source = GoogleHealthVitalsSource(GoogleHealthAuthorization(ApplicationProvider.getApplicationContext()), api)
+    private val clock = Clock.fixed(Instant.parse("2026-10-28T12:00:00Z"), ZoneId.of("Europe/Copenhagen"))
+
+    private val source = GoogleHealthVitalsSource(GoogleHealthAuthorization(ApplicationProvider.getApplicationContext()), api, clock)
 
     @Test
     fun `each type is read back to the date asked for and the days are combined`() = runTest {
@@ -103,10 +109,62 @@ class GoogleHealthVitalsSourceTest {
         val refusing = GoogleHealthVitalsSource(
             GoogleHealthAuthorization(ApplicationProvider.getApplicationContext()),
             FakeApi(mapOf("daily-heart-rate-variability" to listOf(hrv(28, 52.1))), refused = setOf("daily-vo2-max")),
+            clock,
         )
 
         val days = refusing.read("token", since = LocalDate.of(2026, 10, 28))
 
         assertThat(days).containsExactly(DailyVitals(LocalDate.of(2026, 10, 28), hrvMs = 52.1))
+    }
+
+    @Test
+    fun `brief awakenings come from each main sleep by the local morning it ended`() = runTest {
+        fun sleep(start: String, end: String, main: Boolean, stages: Boolean, awakenings: List<Pair<String, String>>?) =
+            """{"sleep":{"interval":{"startTime":"$start","startUtcOffset":"0s","endTime":"$end","endUtcOffset":"0s"},""" +
+                (if (stages) """"stages":[{"startTime":"$start","endTime":"$end","type":"LIGHT"}],""" else """"stages":[],""") +
+                """"metadata":{"processed":true,${if (main) "\"mainSleep\":true" else "\"nap\":true"}}""" +
+                (
+                    awakenings?.let { list ->
+                        ""","shortAwakenings":[""" +
+                            list.joinToString(",") { (from, to) -> """{"startTime":"$from","endTime":"$to","type":"LIGHT"}""" } + "]"
+                    } ?: ""
+                    ) + "}}"
+        val sleeping = GoogleHealthVitalsSource(
+            GoogleHealthAuthorization(ApplicationProvider.getApplicationContext()),
+            FakeApi(
+                mapOf(
+                    "sleep" to listOf(
+                        // Ends at 05:30 in Copenhagen on the 28th, although 04:30 UTC.
+                        sleep(
+                            "2026-10-27T22:00:00Z",
+                            "2026-10-28T04:30:00Z",
+                            main = true,
+                            stages = true,
+                            awakenings = listOf(
+                                "2026-10-28T02:47:00Z" to "2026-10-28T02:48:00Z",
+                                "2026-10-28T02:41:00Z" to "2026-10-28T02:43:00Z",
+                            ),
+                        ) + "," + sleep("2026-10-27T15:00:00Z", "2026-10-27T15:20:00Z", main = false, stages = true, awakenings = null),
+                        sleep("2026-10-26T22:00:00Z", "2026-10-27T05:00:00Z", main = true, stages = true, awakenings = null) + "," +
+                            sleep("2026-10-25T22:00:00Z", "2026-10-26T05:00:00Z", main = true, stages = false, awakenings = null),
+                    ),
+                ),
+            ),
+            clock,
+        )
+
+        val days = sleeping.read("token", since = LocalDate.of(2026, 10, 25))
+
+        val awakening = BriefAwakening(Instant.parse("2026-10-28T02:41:00Z"), Instant.parse("2026-10-28T02:43:00Z"))
+        assertThat(days).containsExactly(
+            DailyVitals(LocalDate.of(2026, 10, 27), briefAwakenings = emptyList()),
+            DailyVitals(
+                LocalDate.of(2026, 10, 28),
+                briefAwakenings = listOf(
+                    awakening,
+                    BriefAwakening(Instant.parse("2026-10-28T02:47:00Z"), Instant.parse("2026-10-28T02:48:00Z")),
+                ),
+            ),
+        )
     }
 }
