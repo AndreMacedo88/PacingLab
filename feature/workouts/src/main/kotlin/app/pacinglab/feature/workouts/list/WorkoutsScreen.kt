@@ -139,11 +139,9 @@ fun WorkoutsScreen(
                     item(key = "importing") { ImportingCard(sync, locale, zoneId) }
                 }
                 val outcome = state.lastOutcome
+                // A pause asked for by Health Connect needs nothing from the athlete: the sync carries on by itself,
+                // and a pull to refresh already says so in the snackbar.
                 when {
-                    outcome?.rateLimited == true && sync == SyncStatus.Idle -> item(key = "paused") {
-                        InfoCard(stringResource(R.string.workouts_paused))
-                    }
-
                     outcome?.noAccess == true -> item(key = "no-access") {
                         NoticeCard(
                             stringResource(R.string.workouts_no_access),
@@ -428,21 +426,6 @@ private fun ImportingCard(status: SyncStatus.Importing, locale: Locale, zoneId: 
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun InfoCard(text: String, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.fillMaxWidth().padding(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(16.dp),
-        )
     }
 }
 

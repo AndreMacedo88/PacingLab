@@ -1,6 +1,8 @@
 package app.pacinglab.feature.settings.datasources
 
 import app.pacinglab.core.data.repository.GoogleHealthStatus
+import app.pacinglab.core.data.sync.SyncInfo
+import app.pacinglab.core.data.sync.SyncOutcome
 import app.pacinglab.core.data.sync.SyncStatus
 import app.pacinglab.core.healthconnect.HealthConnectAvailability
 import app.pacinglab.core.healthconnect.HealthConnectFeatureSupport
@@ -25,6 +27,29 @@ data class DataSourcesUiState(
     val googleHealth: GoogleHealthCardState = GoogleHealthCardState(),
 ) {
     val allGranted: Boolean get() = requestedCount > 0 && grantedCount == requestedCount
+
+    /**
+     * This state with what Health Connect reported: its [availability] and, when it is available, how many
+     * of the [requested] permissions are [granted] and the [features] it supports. [routes] is the
+     * permission Health Connect never offers in its dialog.
+     */
+    fun withAccess(
+        availability: HealthConnectAvailability,
+        requested: Set<String>,
+        granted: Set<String>,
+        features: HealthConnectFeatureSupport?,
+        routes: String,
+    ): DataSourcesUiState {
+        if (availability != HealthConnectAvailability.AVAILABLE) return copy(availability = availability)
+        val missing = requested - granted
+        return copy(
+            availability = availability,
+            grantedCount = requested.size - missing.size,
+            requestedCount = requested.size,
+            onlyRoutesMissing = missing == setOf(routes),
+            features = features,
+        )
+    }
 }
 
 sealed interface ProbeState {
@@ -57,7 +82,19 @@ data class SyncCardState(
     val workoutCount: Int = 0,
     val problem: String? = null,
     val paused: Boolean = false,
-)
+) {
+    companion object {
+        /** The card's state from the sync's [status], its stored [info], the [outcome] of the last run and the [workoutCount]. */
+        fun of(status: SyncStatus, info: SyncInfo, outcome: SyncOutcome?, workoutCount: Int) = SyncCardState(
+            status = status,
+            lastSuccess = info.lastSuccess,
+            importComplete = info.importComplete,
+            workoutCount = workoutCount,
+            problem = outcome?.errors?.firstOrNull(),
+            paused = outcome?.rateLimited == true,
+        )
+    }
+}
 
 /**
  * @property connecting access is being asked for, possibly on Google's consent screen.

@@ -47,7 +47,6 @@
     <string name="badge_detected">%1$s, detected by %2$s</string>
     <string name="badge_entered">%1$s, entered in %2$s</string>
     <string name="workouts_try_again">Try again</string>
-    <string name="workouts_paused">Health Connect asked PacingLab to slow down. Syncing continues in a minute.</string>
 
 
     <string name="unit_km">%1$s km</string>

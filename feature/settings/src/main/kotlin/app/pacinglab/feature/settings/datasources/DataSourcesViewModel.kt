@@ -62,21 +62,8 @@ class DataSourcesViewModel @Inject constructor(
     init {
         refresh()
         viewModelScope.launch {
-            combine(healthSync.status, healthSync.info, healthSync.lastOutcome, workouts.observeWorkoutCount()) {
-                    status,
-                    info,
-                    outcome,
-                    count,
-                ->
-                SyncCardState(
-                    status = status,
-                    lastSuccess = info.lastSuccess,
-                    importComplete = info.importComplete,
-                    workoutCount = count,
-                    problem = outcome?.errors?.firstOrNull(),
-                    paused = outcome?.rateLimited == true,
-                )
-            }.collect { sync -> _state.update { it.copy(sync = sync) } }
+            combine(healthSync.status, healthSync.info, healthSync.lastOutcome, workouts.observeWorkoutCount(), SyncCardState::of)
+                .collect { sync -> _state.update { it.copy(sync = sync) } }
         }
         viewModelScope.launch {
             googleHealth.status.collect { status -> _state.update { it.copy(googleHealth = it.googleHealth.copy(status = status)) } }
@@ -134,20 +121,11 @@ class DataSourcesViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             val availability = healthConnect.availability()
-            if (availability != HealthConnectAvailability.AVAILABLE) {
-                _state.update { it.copy(availability = availability) }
-                return@launch
-            }
-            val granted = healthConnect.grantedPermissions()
-            val missing = requestedPermissions - granted
+            val available = availability == HealthConnectAvailability.AVAILABLE
+            val granted = if (available) healthConnect.grantedPermissions() else emptySet()
+            val features = if (available) healthConnect.featureSupport() else null
             _state.update {
-                it.copy(
-                    availability = availability,
-                    grantedCount = requestedPermissions.size - missing.size,
-                    requestedCount = requestedPermissions.size,
-                    onlyRoutesMissing = missing == setOf(HealthConnectPermissions.READ_EXERCISE_ROUTES),
-                    features = healthConnect.featureSupport(),
-                )
+                it.withAccess(availability, requestedPermissions, granted, features, HealthConnectPermissions.READ_EXERCISE_ROUTES)
             }
         }
     }
