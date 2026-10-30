@@ -1,6 +1,12 @@
 package app.pacinglab.core.analytics.load
 
 import app.pacinglab.core.analytics.weather.HeatAdjustment
+import app.pacinglab.core.analytics.zones.ZoneDistribution
+import app.pacinglab.core.analytics.zones.Zones
+import app.pacinglab.core.model.HeartRateAnchors
+import app.pacinglab.core.model.SessionKind
+import app.pacinglab.core.model.Sport
+import app.pacinglab.core.model.ZoneModel
 import assertk.assertThat
 import assertk.assertions.isCloseTo
 import assertk.assertions.isEqualTo
@@ -58,30 +64,39 @@ class WeeklyTargetsTest {
         assertThat(HeatAdjustment.vo2max(50.0, 25.0)).isCloseTo(51.6275, 1e-9)
     }
 
+    private val polarized = Zones.of(ZoneModel.POLARIZED_THREE, HeartRateAnchors(maxHr = 186, thresholdHr = 167, restingHr = 50))
+
+    private fun load(id: String, sport: Sport, millis: LongArray) = WorkoutLoad(
+        workoutId = id,
+        date = monday,
+        durationMillis = millis.sum(),
+        scores = null,
+        intensity = ZoneDistribution(polarized, millis),
+        sport = sport,
+    )
+
     @Test
     fun `gym days are not coloured by heart rate`() {
-        val zones = app.pacinglab.core.analytics.zones.Zones.of(
-            app.pacinglab.core.model.ZoneModel.POLARIZED_THREE,
-            app.pacinglab.core.model.HeartRateAnchors(maxHr = 186, thresholdHr = 167, restingHr = 50),
-        )
-        fun load(id: String, sport: app.pacinglab.core.model.Sport, millis: LongArray) = WorkoutLoad(
-            workoutId = id,
-            date = monday,
-            durationMillis = millis.sum(),
-            scores = null,
-            intensity = app.pacinglab.core.analytics.zones.ZoneDistribution(zones, millis),
-            sport = sport,
-        )
-
-        val gymOnly = TrainingCalendar.days(listOf(load("g", app.pacinglab.core.model.Sport.STRENGTH, longArrayOf(60, 0, 0))))
+        val gymOnly = TrainingCalendar.days(listOf(load("g", Sport.STRENGTH, longArrayOf(60, 0, 0))))
         val withRun = TrainingCalendar.days(
-            listOf(
-                load("g", app.pacinglab.core.model.Sport.STRENGTH, longArrayOf(60, 0, 0)),
-                load("r", app.pacinglab.core.model.Sport.RUN, longArrayOf(30, 2, 10)),
-            ),
+            listOf(load("g", Sport.STRENGTH, longArrayOf(60, 0, 0)), load("r", Sport.RUN, longArrayOf(30, 2, 10))),
         )
 
         assertThat(gymOnly.getValue(monday).intensity).isNull()
         assertThat(withRun.getValue(monday).intensity).isEqualTo(IntensityDomain.ABOVE_VT2)
+    }
+
+    @Test
+    fun `a named run keeps its goal although its heart rate crossed VT2, other runs go by heart rate`() {
+        // A threshold session's warm-up and reps: 18 % of the time above VT2, as on a real threshold day.
+        val warmUp = load("w", Sport.RUN, longArrayOf(10, 0, 0))
+        val reps = load("i", Sport.RUN, longArrayOf(22, 50, 18))
+        val kinds = mapOf("w" to SessionKind.THRESHOLD_INTERVALS, "i" to SessionKind.THRESHOLD_INTERVALS)
+
+        assertThat(TrainingCalendar.days(listOf(warmUp, reps), kinds).getValue(monday).intensity).isEqualTo(IntensityDomain.VT1_TO_VT2)
+        assertThat(TrainingCalendar.days(listOf(warmUp, reps)).getValue(monday).intensity).isEqualTo(IntensityDomain.ABOVE_VT2)
+        // A plain run says nothing about its goal, so its heart rate decides; the hardest session sets the day.
+        val plain = mapOf("w" to SessionKind.EASY_RUN, "i" to SessionKind.RUN)
+        assertThat(TrainingCalendar.days(listOf(warmUp, reps), plain).getValue(monday).intensity).isEqualTo(IntensityDomain.ABOVE_VT2)
     }
 }

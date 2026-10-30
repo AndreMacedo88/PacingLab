@@ -58,6 +58,11 @@ class SessionKindRepository @Inject constructor(
 
     /** The kind of every running session by session id; empty until they are worked out. */
     fun observeKinds(): Flow<Map<String, SessionKind>> = facts.map { all -> all.entries.associate { (session, f) -> session.id to f.kind } }
+
+    /** Each running session's kind under the id of every workout in it. */
+    fun observeKindsByWorkout(): Flow<Map<String, SessionKind>> = facts.map { all ->
+        all.entries.flatMap { (session, f) -> session.workouts.map { it.id to f.kind } }.toMap()
+    }
         .onStart { emit(emptyMap()) }
 
     /** Heart rate recovery after reps of every running session that has it, oldest first. */

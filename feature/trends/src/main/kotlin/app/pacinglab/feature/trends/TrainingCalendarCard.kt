@@ -177,7 +177,8 @@ private fun DayCell(
                 // Below the day number, so that even the largest dot leaves it readable.
                 val largest = size.minDimension * 0.32f
                 val radius = (MIN_RADIUS.toPx() + (largest - MIN_RADIUS.toPx()) * share.toFloat())
-                drawCircle(color.copy(alpha = if (inMonth) 1f else 0.4f), radius, Offset(size.width / 2, size.height * 0.6f))
+                // Days of the months around keep their colour (a faded red reads as pink); their numbers fade.
+                drawCircle(color, radius, Offset(size.width / 2, size.height * 0.6f))
             }
         }
         Text(

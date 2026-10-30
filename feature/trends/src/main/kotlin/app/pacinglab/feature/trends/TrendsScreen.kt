@@ -276,7 +276,8 @@ private fun Value(label: String, value: Double, key: Color?, modifier: Modifier 
 
 /**
  * The latest weeks, newest first: load as a bar, training time and how the time with heart rate splits
- * over the three polarized zones.
+ * over the three polarized zones. Load is grey, as the daily load in the fitness chart, so that it is not
+ * read as the zone of the same blue.
  */
 @Composable
 internal fun WeeksCard(
@@ -289,7 +290,7 @@ internal fun WeeksCard(
     val start = remember(locale) { DateTimeFormatter.ofPattern("d MMM", locale) }
     val maxLoad = (weeks.map { it.load } + bands.values.map { it.high }).maxOrNull()?.takeIf { it > 0 } ?: 1.0
     val zones = zoneColors(3)
-    val bar = chartColors().series[0]
+    val bar = chartColors().muted
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     TrendCard(title = stringResource(R.string.weeks_title), info = stringResource(R.string.weeks_info), modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {

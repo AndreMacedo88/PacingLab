@@ -21,6 +21,7 @@ import app.pacinglab.core.data.repository.DashboardLayout
 import app.pacinglab.core.data.repository.DashboardRepository
 import app.pacinglab.core.data.repository.NightRepository
 import app.pacinglab.core.data.repository.PlacedCard
+import app.pacinglab.core.data.repository.SessionKindRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.repository.TrainingStatusRepository
 import app.pacinglab.core.data.sync.SyncScheduler
@@ -77,6 +78,7 @@ class TrendsViewModel @Inject constructor(
     private val scheduler: SyncScheduler,
     private val dashboards: DashboardRepository,
     training: TrainingStatusRepository,
+    kinds: SessionKindRepository,
 ) : ViewModel() {
     private val recovery = nights.observeSleep().map { sleep ->
         val today = LocalDate.now(clock)
@@ -90,7 +92,8 @@ class TrendsViewModel @Inject constructor(
         recovery,
         dashboards.layout(Dashboard.TRENDS),
         standing,
-    ) { loads, (recoveryDays, variation), layout, (status, focus) ->
+        kinds.observeKindsByWorkout(),
+    ) { loads, (recoveryDays, variation), layout, (status, focus), sessionKinds ->
         val today = LocalDate.now(clock)
         val days = FitnessModel.series(TrainingLoads.daily(loads), until = today)
         if (days.isEmpty() && loads.isNotEmpty()) {
@@ -112,7 +115,7 @@ class TrendsViewModel @Inject constructor(
                     until = today,
                     count = RUNNING_WEEKS,
                 ),
-                calendar = TrainingCalendar.days(loads),
+                calendar = TrainingCalendar.days(loads, sessionKinds),
             )
         }
     }

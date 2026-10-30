@@ -33,8 +33,8 @@ import java.util.Locale
 
 /**
  * Running distance week by week against the athlete's tolerance (30 % over the four weeks before): this
- * week's distance with its status, and the last weeks as bars with the tolerance as a tick above each;
- * a week over its tolerance takes the out-of-range orange.
+ * week's distance with its status, and the last weeks as grey bars (blue is a zone on this screen) with
+ * the tolerance as a tick above each; a week over its tolerance takes the out-of-range orange.
  */
 @Composable
 internal fun RunningVolumeCard(weeks: List<RunningWeek>, today: LocalDate, locale: Locale, modifier: Modifier = Modifier) {
@@ -88,7 +88,7 @@ private fun RunningChart(weeks: List<RunningWeek>, today: LocalDate, locale: Loc
             val left = i * slot + (slot - barWidth) / 2
             if (week.km > 0) {
                 drawRoundRect(
-                    if (week.above) colors.outOfRange else colors.series[0],
+                    if (week.above) colors.outOfRange else colors.muted,
                     Offset(left, y(week.km)),
                     Size(barWidth, bottom - y(week.km)),
                     CornerRadius(3.dp.toPx()),
