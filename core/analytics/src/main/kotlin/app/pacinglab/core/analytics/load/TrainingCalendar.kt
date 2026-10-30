@@ -5,9 +5,10 @@ import java.time.LocalDate
 /**
  * One day of training for the calendar.
  *
- * @property intensity the day's character from heart rate: the highest intensity domain with a
- *   meaningful share of the time ([TrainingCalendar.HIGH_SHARE], [TrainingCalendar.THRESHOLD_SHARE]);
- *   null when no workout had heart rate in zones (a gym session, a walk without heart rate).
+ * @property intensity the day's character from the heart rate of its runs and rides: the highest
+ *   intensity domain with a meaningful share of the time ([TrainingCalendar.HIGH_SHARE],
+ *   [TrainingCalendar.THRESHOLD_SHARE]); null on days with only other training (gym, walks) or
+ *   without heart rate.
  * @property workoutIds the day's workouts, the one with the most load first.
  */
 data class CalendarDay(
@@ -34,7 +35,10 @@ object TrainingCalendar {
     /** Every day with a counted workout in [loads], by date. */
     fun days(loads: List<WorkoutLoad>): Map<LocalDate, CalendarDay> = loads.groupBy { it.date }.mapValues { (date, day) ->
         val millis = LongArray(IntensityDomain.entries.size)
-        for (load in day) load.intensity?.millis?.forEachIndexed { i, ms -> if (i < millis.size) millis[i] += ms }
+        // Zones describe endurance work; a gym session's heart rate says little about how hard it was.
+        for (load in day.filter { it.sport == null || it.sport in IntensityFocus.SPORTS }) {
+            load.intensity?.millis?.forEachIndexed { i, ms -> if (i < millis.size) millis[i] += ms }
+        }
         CalendarDay(
             date = date,
             load = day.sumOf { it.scores?.stressScore ?: 0.0 },

@@ -57,4 +57,31 @@ class WeeklyTargetsTest {
         // The cost above rest scales: 3.5 + 1.035 x (50 - 3.5).
         assertThat(HeatAdjustment.vo2max(50.0, 25.0)).isCloseTo(51.6275, 1e-9)
     }
+
+    @Test
+    fun `gym days are not coloured by heart rate`() {
+        val zones = app.pacinglab.core.analytics.zones.Zones.of(
+            app.pacinglab.core.model.ZoneModel.POLARIZED_THREE,
+            app.pacinglab.core.model.HeartRateAnchors(maxHr = 186, thresholdHr = 167, restingHr = 50),
+        )
+        fun load(id: String, sport: app.pacinglab.core.model.Sport, millis: LongArray) = WorkoutLoad(
+            workoutId = id,
+            date = monday,
+            durationMillis = millis.sum(),
+            scores = null,
+            intensity = app.pacinglab.core.analytics.zones.ZoneDistribution(zones, millis),
+            sport = sport,
+        )
+
+        val gymOnly = TrainingCalendar.days(listOf(load("g", app.pacinglab.core.model.Sport.STRENGTH, longArrayOf(60, 0, 0))))
+        val withRun = TrainingCalendar.days(
+            listOf(
+                load("g", app.pacinglab.core.model.Sport.STRENGTH, longArrayOf(60, 0, 0)),
+                load("r", app.pacinglab.core.model.Sport.RUN, longArrayOf(30, 2, 10)),
+            ),
+        )
+
+        assertThat(gymOnly.getValue(monday).intensity).isNull()
+        assertThat(withRun.getValue(monday).intensity).isEqualTo(IntensityDomain.ABOVE_VT2)
+    }
 }
