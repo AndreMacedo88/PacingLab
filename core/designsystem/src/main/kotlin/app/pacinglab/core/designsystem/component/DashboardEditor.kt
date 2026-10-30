@@ -43,7 +43,8 @@ data class DashboardEntry(val id: String, val title: String, val description: St
 /**
  * Arranges a dashboard: drag a card by its handle to move it, tap the eye to hide or show it. Hidden
  * cards keep their place, dimmed, so that showing one again puts it back where it was. Every change is
- * reported with the whole list, in order. Screen readers get "move up" and "move down" actions.
+ * reported with the whole list, in order. Screen readers get "move up" and "move down" actions. [header]
+ * goes between the hint and the cards, for settings that belong with the arrangement.
  */
 @Composable
 fun DashboardEditor(
@@ -53,6 +54,7 @@ fun DashboardEditor(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     hint: String = stringResource(R.string.dashboard_edit_hint),
+    header: (@Composable () -> Unit)? = null,
 ) {
     var items by remember(entries) { mutableStateOf(entries) }
     val listState = rememberLazyListState()
@@ -83,6 +85,7 @@ fun DashboardEditor(
                 modifier = Modifier.padding(bottom = 8.dp),
             )
         }
+        if (header != null) item(key = "header") { header() }
         items(items, key = { it.id }) { entry ->
             ReorderableItem(reorderState, key = entry.id) { dragging ->
                 val index = items.indexOf(entry)

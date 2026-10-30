@@ -33,7 +33,6 @@ import app.pacinglab.core.designsystem.theme.StatusColors
 import app.pacinglab.core.designsystem.theme.chartColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import java.time.DayOfWeek
-import java.time.format.TextStyle
 import java.util.Locale
 
 /**
@@ -113,12 +112,7 @@ internal fun SleepTimingCard(nights: List<Night>, night: Night, freeDays: Set<Da
             locale = locale,
         )
         Text(
-            stringResource(
-                R.string.timing_basis,
-                work.nights,
-                free.nights,
-                DayOfWeek.entries.filter { it in freeDays }.joinToString(", ") { it.getDisplayName(TextStyle.SHORT, locale) },
-            ),
+            stringResource(R.string.timing_basis, work.nights, free.nights),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

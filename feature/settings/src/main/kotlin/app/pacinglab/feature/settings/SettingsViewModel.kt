@@ -3,6 +3,7 @@ package app.pacinglab.feature.settings
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.data.repository.BackupFiles
 import app.pacinglab.core.data.repository.BackupFormatException
 import app.pacinglab.core.data.repository.BackupRepository
@@ -11,11 +12,13 @@ import app.pacinglab.core.data.repository.DarkMode
 import app.pacinglab.core.data.repository.Dashboard
 import app.pacinglab.core.data.repository.DashboardRepository
 import app.pacinglab.core.data.repository.HomeScreenWidget
+import app.pacinglab.core.data.repository.NightRepository
 import app.pacinglab.core.data.repository.PlacedCard
 import app.pacinglab.core.data.repository.Sex
 import app.pacinglab.core.data.repository.ThemeChoice
 import app.pacinglab.core.data.repository.UserPreferences
 import app.pacinglab.core.data.repository.UserPreferencesRepository
+import app.pacinglab.core.data.repository.WidgetChart
 import app.pacinglab.core.ui.WidgetMeasure
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,6 +53,7 @@ class SettingsViewModel @Inject constructor(
     private val clock: Clock,
     private val dashboards: DashboardRepository,
     private val homeScreenWidget: HomeScreenWidget,
+    nights: NightRepository,
 ) : ViewModel() {
     val preferences: StateFlow<UserPreferences> =
         repository.preferences.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), UserPreferences())
@@ -58,6 +62,11 @@ class SettingsViewModel @Inject constructor(
     val widget: StateFlow<List<PlacedCard>> = dashboards.layout(Dashboard.WIDGET)
         .map { it.arrange(WidgetMeasure.entries.map { measure -> CardSpec(measure.id, measure.hiddenByDefault) }) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), emptyList())
+
+    /** The sleep need worked out from the nights, which the setting shows while it is automatic; null without nights. */
+    val automaticSleepNeed: StateFlow<Duration?> = nights.observeNights()
+        .map { all -> if (all.isEmpty()) null else Duration.ofMillis(SleepScore.need(all, LocalDate.now(clock))) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), null)
 
     private val _backupMessage = MutableStateFlow<BackupMessage?>(null)
     val backupMessage: StateFlow<BackupMessage?> = _backupMessage.asStateFlow()
@@ -91,6 +100,12 @@ class SettingsViewModel @Inject constructor(
     /** Saves the widget's measures and redraws it. */
     fun arrangeWidget(cards: List<PlacedCard>) = launch {
         dashboards.save(Dashboard.WIDGET, cards)
+        homeScreenWidget.update()
+    }
+
+    /** Chooses what the widget charts and redraws it. */
+    fun setWidgetChart(chart: WidgetChart) = launch {
+        repository.setWidgetChart(chart)
         homeScreenWidget.update()
     }
 

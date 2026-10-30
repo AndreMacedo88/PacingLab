@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Four cells wide and one high to start; it can shrink to two cells or grow, and shows more as it does.
-     Redrawn after syncs rather than on a timer. -->
+<!-- Four cells wide and two high to start, room for the vitals panel, three figures and the chart; it
+     shrinks to a single cell (one measure) or grows, and shows more as it does. Redrawn after syncs and
+     changes in Settings rather than on a timer. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/widget_description"
     android:initialLayout="@layout/glance_default_loading_layout"
     android:minWidth="250dp"
-    android:minHeight="80dp"
-    android:minResizeWidth="110dp"
-    android:minResizeHeight="50dp"
+    android:minHeight="180dp"
+    android:minResizeWidth="40dp"
+    android:minResizeHeight="40dp"
     android:resizeMode="horizontal|vertical"
     android:targetCellWidth="4"
-    android:targetCellHeight="1"
+    android:targetCellHeight="2"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen" />

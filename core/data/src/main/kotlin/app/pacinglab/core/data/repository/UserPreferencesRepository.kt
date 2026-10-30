@@ -39,6 +39,17 @@ enum class DarkMode {
     DARK,
 }
 
+/** What the widget's 7-day chart shows, independently of the measures it shows as figures. */
+enum class WidgetChart {
+    READINESS,
+    SLEEP_SCORE,
+    HRV,
+    RESTING_HR,
+    FORM,
+    TIME_ASLEEP,
+    NONE,
+}
+
 /**
  * App preferences that are not physiology (those have effective dates and live elsewhere).
  *
@@ -56,6 +67,7 @@ enum class DarkMode {
  * @property runningIncreasePercent how far above the usual weekly running distance a week counts as above
  *   tolerance.
  * @property heatAdjustment per-run VO2max and aerobic efficiency are corrected for heat.
+ * @property widgetChart what the home-screen widget charts over the last seven days.
  */
 data class UserPreferences(
     val sessionMergeGap: Duration = TrainingSessions.DEFAULT_MAX_GAP,
@@ -71,8 +83,9 @@ data class UserPreferences(
     val sessionWeather: Boolean = true,
     val weeksInFiveZones: Boolean = true,
     val freeDays: Set<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
-    val runningIncreasePercent: Int = 30,
+    val runningIncreasePercent: Int = UserPreferencesRepository.DEFAULT_RUNNING_INCREASE,
     val heatAdjustment: Boolean = true,
+    val widgetChart: WidgetChart = WidgetChart.READINESS,
 ) {
     /** Age in whole years on [date], or null without a birth date. */
     fun ageOn(date: LocalDate): Int? = birthDate?.let { Period.between(it, date).years }
@@ -100,8 +113,11 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
             weeksInFiveZones = values[WEEKS_IN_FIVE_ZONES] ?: true,
             freeDays = values[FREE_DAYS]?.mapNotNull { name -> DayOfWeek.entries.firstOrNull { it.name == name } }?.toSet()
                 ?: setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
-            runningIncreasePercent = values[RUNNING_INCREASE]?.takeIf { it in RUNNING_INCREASES } ?: 30,
+            runningIncreasePercent = values[RUNNING_INCREASE]?.takeIf { it in RUNNING_INCREASE_RANGE } ?: DEFAULT_RUNNING_INCREASE,
             heatAdjustment = values[HEAT_ADJUSTMENT] ?: true,
+            widgetChart = values[WIDGET_CHART]?.let { name ->
+                WidgetChart.entries.firstOrNull { it.name == name }
+            } ?: WidgetChart.READINESS,
         )
     }
 
@@ -166,7 +182,7 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
     }
 
     suspend fun setRunningIncreasePercent(percent: Int) {
-        require(percent in RUNNING_INCREASES) { "Running increase must be one of $RUNNING_INCREASES" }
+        require(percent in RUNNING_INCREASE_RANGE) { "Running increase must be within $RUNNING_INCREASE_RANGE" }
         dataStore.edit { it[RUNNING_INCREASE] = percent }
     }
 
@@ -178,11 +194,19 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         dataStore.edit { it[WEEKS_IN_FIVE_ZONES] = five }
     }
 
+    suspend fun setWidgetChart(chart: WidgetChart) {
+        dataStore.edit { it[WIDGET_CHART] = chart.name }
+    }
+
     companion object {
         val MAX_MERGE_GAP: Duration = Duration.ofMinutes(60)
 
-        /** Weekly running increases the tolerance can be set to, in per cent of the usual week. */
-        val RUNNING_INCREASES = listOf(10, 20, 30)
+        /**
+         * Weekly running increases the tolerance can be set to, in per cent of the usual week. The default is
+         * the one with evidence behind it (Nielsen 2014).
+         */
+        val RUNNING_INCREASE_RANGE = 5..50
+        const val DEFAULT_RUNNING_INCREASE = 30
         val MIN_SLEEP_NEED: Duration = Duration.ofHours(6)
         val MAX_SLEEP_NEED: Duration = Duration.ofHours(10)
         private val SESSION_MERGE_GAP_MINUTES = intPreferencesKey("session_merge_gap_minutes")
@@ -201,5 +225,6 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         private val FREE_DAYS = stringSetPreferencesKey("free_days")
         private val RUNNING_INCREASE = intPreferencesKey("running_increase_percent")
         private val HEAT_ADJUSTMENT = booleanPreferencesKey("heat_adjustment")
+        private val WIDGET_CHART = stringPreferencesKey("widget_chart")
     }
 }

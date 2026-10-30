@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.pacinglab.android.application)
     alias(libs.plugins.pacinglab.android.compose)
     alias(libs.plugins.pacinglab.hilt)
+    alias(libs.plugins.pacinglab.android.screenshot)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.baselineprofile)
 }

@@ -57,6 +57,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.pacinglab.core.analytics.recovery.SleepScore
+import app.pacinglab.core.analytics.workout.TrainingSessions
 import app.pacinglab.core.data.repository.BackupRepository
 import app.pacinglab.core.data.repository.DarkMode
 import app.pacinglab.core.data.repository.PlacedCard
@@ -64,6 +66,7 @@ import app.pacinglab.core.data.repository.Sex
 import app.pacinglab.core.data.repository.ThemeChoice
 import app.pacinglab.core.data.repository.UserPreferences
 import app.pacinglab.core.data.repository.UserPreferencesRepository
+import app.pacinglab.core.data.repository.WidgetChart
 import app.pacinglab.core.designsystem.component.DashboardEditor
 import app.pacinglab.core.designsystem.component.DashboardEntry
 import app.pacinglab.core.designsystem.format.Formats
@@ -91,6 +94,7 @@ fun SettingsSectionRoute(
     val preferences by viewModel.preferences.collectAsStateWithLifecycle()
     val backupMessage by viewModel.backupMessage.collectAsStateWithLifecycle()
     val widget by viewModel.widget.collectAsStateWithLifecycle()
+    val automaticSleepNeed by viewModel.automaticSleepNeed.collectAsStateWithLifecycle()
     val saveBackup = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(BackupRepository.MIME_TYPE)) { uri ->
         uri?.let(viewModel::backUp)
     }
@@ -105,6 +109,7 @@ fun SettingsSectionRoute(
         preferences = preferences,
         backupMessage = backupMessage,
         widget = widget,
+        automaticSleepNeed = automaticSleepNeed,
         actions = SettingsActions(
             onTheme = viewModel::setTheme,
             onDarkMode = viewModel::setDarkMode,
@@ -124,6 +129,7 @@ fun SettingsSectionRoute(
             onHeatAdjustment = viewModel::setHeatAdjustment,
             onArrangeWidget = viewModel::arrangeWidget,
             onResetWidget = viewModel::resetWidget,
+            onWidgetChart = viewModel::setWidgetChart,
             onBackUp = { saveBackup.launch(viewModel.backupFileName()) },
             onRestore = { openBackup.launch(arrayOf(BackupRepository.MIME_TYPE, "text/plain", "application/octet-stream")) },
             onBackupMessageShown = viewModel::backupMessageShown,
@@ -152,6 +158,7 @@ class SettingsActions(
     val onHeatAdjustment: (Boolean) -> Unit = {},
     val onArrangeWidget: (List<PlacedCard>) -> Unit = {},
     val onResetWidget: () -> Unit = {},
+    val onWidgetChart: (WidgetChart) -> Unit = {},
     val onBackUp: () -> Unit = {},
     val onRestore: () -> Unit = {},
     val onBackupMessageShown: () -> Unit = {},
@@ -169,6 +176,7 @@ fun SettingsSectionScreen(
     onOpenPhysiology: () -> Unit = {},
     onOpenDataSources: () -> Unit = {},
     widget: List<PlacedCard> = emptyList(),
+    automaticSleepNeed: Duration? = null,
     backupMessage: BackupMessage? = null,
 ) {
     val snackbar = remember { SnackbarHostState() }
@@ -192,7 +200,7 @@ fun SettingsSectionScreen(
         },
     ) { padding ->
         if (section == SettingsSection.WIDGET) {
-            WidgetMeasures(widget, actions, Modifier.fillMaxSize().padding(padding))
+            WidgetMeasures(widget, preferences.widgetChart, actions, Modifier.fillMaxSize().padding(padding))
             return@Scaffold
         }
         LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -220,19 +228,20 @@ fun SettingsSectionScreen(
 
                 SettingsSection.TRAINING -> {
                     item {
-                        ChoiceItem(
+                        RangeItem(
                             title = stringResource(R.string.settings_merge_gap),
                             summary = stringResource(R.string.settings_merge_gap_summary),
-                            options = MERGE_GAPS.map { gap ->
-                                val label = if (gap.isZero) {
+                            value = preferences.sessionMergeGap.toMinutes().toInt().coerceIn(MERGE_GAP_MINUTES),
+                            range = MERGE_GAP_MINUTES,
+                            format = { minutes ->
+                                if (minutes == 0) {
                                     stringResource(R.string.settings_merge_gap_off)
                                 } else {
-                                    stringResource(R.string.settings_minutes, gap.toMinutes())
+                                    stringResource(R.string.settings_minutes, minutes)
                                 }
-                                label to gap
                             },
-                            selected = preferences.sessionMergeGap,
-                            onSelect = actions.onMergeGap,
+                            onChange = { actions.onMergeGap(Duration.ofMinutes(it.toLong())) },
+                            default = TrainingSessions.DEFAULT_MAX_GAP.toMinutes().toInt(),
                         )
                     }
                     item {
@@ -244,14 +253,15 @@ fun SettingsSectionScreen(
                         )
                     }
                     item {
-                        ChoiceItem(
+                        RangeItem(
                             title = stringResource(R.string.settings_running_increase),
                             summary = stringResource(R.string.settings_running_increase_summary),
-                            options = UserPreferencesRepository.RUNNING_INCREASES.map {
-                                stringResource(R.string.settings_percent, it) to it
-                            },
-                            selected = preferences.runningIncreasePercent,
-                            onSelect = actions.onRunningIncrease,
+                            value = preferences.runningIncreasePercent,
+                            range = UserPreferencesRepository.RUNNING_INCREASE_RANGE,
+                            step = RUNNING_INCREASE_STEP,
+                            format = { stringResource(R.string.settings_percent, it) },
+                            onChange = actions.onRunningIncrease,
+                            default = UserPreferencesRepository.DEFAULT_RUNNING_INCREASE,
                         )
                     }
                     item {
@@ -265,16 +275,7 @@ fun SettingsSectionScreen(
                 }
 
                 SettingsSection.SLEEP -> {
-                    item {
-                        ChoiceItem(
-                            title = stringResource(R.string.settings_sleep_need),
-                            summary = stringResource(R.string.settings_sleep_need_summary),
-                            options = listOf(stringResource(R.string.settings_sleep_need_automatic) to null) +
-                                SLEEP_NEEDS.map { Formats.hoursMinutes(it.toMillis()) to it },
-                            selected = preferences.sleepNeed,
-                            onSelect = actions.onSleepNeed,
-                        )
-                    }
+                    item { SleepNeedItem(preferences.sleepNeed, automaticSleepNeed, actions.onSleepNeed) }
                     item { FreeDaysItem(preferences.freeDays, actions.onFreeDays) }
                     item {
                         SwitchItem(
@@ -340,9 +341,9 @@ fun SettingsSectionScreen(
     }
 }
 
-/** The widget's measures, ordered and shown or hidden like a dashboard's cards. */
+/** The widget's measures, ordered and shown or hidden like a dashboard's cards, with what its chart shows above them. */
 @Composable
-private fun WidgetMeasures(widget: List<PlacedCard>, actions: SettingsActions, modifier: Modifier = Modifier) {
+private fun WidgetMeasures(widget: List<PlacedCard>, chart: WidgetChart, actions: SettingsActions, modifier: Modifier = Modifier) {
     val entries = widget.mapNotNull { placed ->
         WidgetMeasure.of(placed.id)?.let { DashboardEntry(it.id, stringResource(it.label), stringResource(it.description), placed.visible) }
     }
@@ -352,6 +353,71 @@ private fun WidgetMeasures(widget: List<PlacedCard>, actions: SettingsActions, m
         onReset = actions.onResetWidget,
         modifier = modifier,
         hint = stringResource(R.string.settings_widget_hint),
+        header = { WidgetChartChoice(chart, actions.onWidgetChart) },
+    )
+}
+
+/** What the widget charts, as chips; it sits in the editor's list, which brings its own side margins. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun WidgetChartChoice(chart: WidgetChart, onSelect: (WidgetChart) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.settings_widget_chart), style = MaterialTheme.typography.bodyLarge)
+        Text(
+            stringResource(R.string.settings_widget_chart_summary),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (option in WidgetChart.entries) {
+                FilterChip(selected = option == chart, onClick = { onSelect(option) }, label = { Text(stringResource(option.label())) })
+            }
+        }
+    }
+}
+
+/**
+ * Sleep need: automatic (the default) or fixed. While automatic, the slider is off and shows the need worked
+ * out from the nights; choosing a fixed need starts from that value, to the nearest quarter of an hour.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SleepNeedItem(need: Duration?, automatic: Duration?, onChange: (Duration?) -> Unit, modifier: Modifier = Modifier) {
+    val fixed = need?.toMinutes()?.toInt()
+    val worked = automatic?.toMinutes()?.toInt() ?: SleepScore.MIN_NEED.toMinutes().toInt()
+    val start = ((worked + SLEEP_NEED_STEP / 2) / SLEEP_NEED_STEP * SLEEP_NEED_STEP).coerceIn(SLEEP_NEED_MINUTES)
+    val choices = listOf(R.string.settings_sleep_need_automatic, R.string.settings_sleep_need_fixed)
+    RangeItem(
+        title = stringResource(R.string.settings_sleep_need),
+        summary = stringResource(R.string.settings_sleep_need_summary),
+        value = fixed ?: worked,
+        range = SLEEP_NEED_MINUTES,
+        // Off, the slider shows the automatic need to the minute; on, it moves in quarter hours.
+        step = if (fixed != null) SLEEP_NEED_STEP else 1,
+        format = { Formats.hoursMinutes(it * MINUTE_MILLIS) },
+        onChange = { onChange(Duration.ofMinutes(it.toLong())) },
+        modifier = modifier,
+        band = ADVISED_SLEEP_MINUTES,
+        bandLabel = stringResource(R.string.settings_sleep_need_band),
+        enabled = fixed != null,
+        note = if (fixed == null) stringResource(R.string.settings_sleep_need_now) else null,
+        above = {
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                choices.forEachIndexed { i, label ->
+                    val automaticChoice = i == 0
+                    SegmentedButton(
+                        selected = automaticChoice == (fixed == null),
+                        onClick = {
+                            when {
+                                automaticChoice && fixed != null -> onChange(null)
+                                !automaticChoice && fixed == null -> onChange(Duration.ofMinutes(start.toLong()))
+                            }
+                        },
+                        shape = SegmentedButtonDefaults.itemShape(i, choices.size),
+                    ) { Text(stringResource(label)) }
+                }
+            }
+        },
     )
 }
 
@@ -511,5 +577,22 @@ private fun DarkMode.label(): Int = when (this) {
     DarkMode.DARK -> R.string.dark_mode_dark
 }
 
-private val MERGE_GAPS = listOf(0L, 2L, 5L, 10L, 15L).map { Duration.ofMinutes(it) }
-private val SLEEP_NEEDS = listOf(420L, 450L, 480L, 510L, 540L).map { Duration.ofMinutes(it) }
+private fun WidgetChart.label(): Int = when (this) {
+    WidgetChart.READINESS -> WidgetMeasure.READINESS.label
+    WidgetChart.SLEEP_SCORE -> WidgetMeasure.SLEEP_SCORE.label
+    WidgetChart.HRV -> WidgetMeasure.HRV.label
+    WidgetChart.RESTING_HR -> WidgetMeasure.RESTING_HR.label
+    WidgetChart.FORM -> WidgetMeasure.FORM.label
+    WidgetChart.TIME_ASLEEP -> WidgetMeasure.TIME_ASLEEP.label
+    WidgetChart.NONE -> R.string.settings_widget_chart_none
+}
+
+/** Never joined up to half an hour apart: beyond that, workouts of one sport are separate sessions. */
+private val MERGE_GAP_MINUTES = 0..30
+private const val RUNNING_INCREASE_STEP = 5
+private val SLEEP_NEED_MINUTES = 360..600
+private const val SLEEP_NEED_STEP = 15
+
+/** The 7 to 9 hours advised for adults (National Sleep Foundation, Hirshkowitz 2015). */
+private val ADVISED_SLEEP_MINUTES = 420..540
+private const val MINUTE_MILLIS = 60_000L

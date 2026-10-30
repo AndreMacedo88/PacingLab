@@ -42,5 +42,5 @@
     <string name="widget_measure_status">Training status</string>
     <string name="widget_measure_status_about">In a word, on the line underneath</string>
     <string name="widget_measure_vitals">Vitals</string>
-    <string name="widget_measure_vitals_about">How many of last night\'s vitals were outside your range</string>
+    <string name="widget_measure_vitals_about">Last night\'s vitals against your ranges, in a panel of four tiles</string>
 </resources>

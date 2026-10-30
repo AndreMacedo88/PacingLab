@@ -18,12 +18,16 @@
     <string name="settings_speed_by_default">Show speed in km/h</string>
     <string name="settings_speed_by_default_summary">Instead of pace per kilometre when a session opens</string>
     <string name="settings_merge_gap">Join workouts into one session</string>
-    <string name="settings_merge_gap_summary">Workouts of the same sport this close together, such as a warm-up and intervals</string>
+    <string name="settings_merge_gap_summary">Workouts of the same sport this close together count as one session, such as a warm-up and intervals recorded apart. Switching from one watch mode to the next takes a minute or two; much longer joins workouts that were meant to be separate.</string>
     <string name="settings_merge_gap_off">Never</string>
     <string name="settings_minutes">%1$d min</string>
     <string name="settings_sleep_need">Sleep need</string>
-    <string name="settings_sleep_need_summary">Automatic follows your usual sleep, kept between 7 and 9 hours</string>
+    <string name="settings_sleep_need_summary">Automatic, the default, follows your usual time asleep over the last 30 nights, kept between 7 and 9 hours. A fixed need replaces it in the sleep score and sleep debt.</string>
     <string name="settings_sleep_need_automatic">Automatic</string>
+    <string name="settings_sleep_need_fixed">Fixed</string>
+    <string name="settings_sleep_need_now">automatic</string>
+    <string name="settings_sleep_need_band">Adults are advised 7 to 9 h</string>
+    <string name="settings_default">Default: %1$s</string>
     <string name="settings_physiology_summary">Max, threshold and resting heart rate, and your zones</string>
 
     <string name="physiology_title">Heart rate and zones</string>
@@ -186,7 +190,10 @@
     <string name="settings_appearance_summary">Colour, light or dark, pace or speed</string>
     <string name="settings_widget_title">Home-screen widget</string>
     <string name="settings_widget_summary">Which measures it shows, and in what order</string>
-    <string name="settings_widget_hint">A small widget shows the first figures of this list; a larger one shows more, and a 7-day chart of the first figure when there is room. Training status and vitals go on a line underneath. Drag a measure by its handle to move it; the eye hides it.</string>
+    <string name="settings_widget_hint">Each measure takes a tile, in this order, as many as the widget\'s size allows: one cell holds one measure. Vitals take a panel of four tiles when there is room and a single tile with a count when there is not; the training status goes on a line underneath. Drag a measure by its handle to move it; the eye hides it.</string>
+    <string name="settings_widget_chart">Chart</string>
+    <string name="settings_widget_chart_summary">The last seven days of one measure, under the tiles when the widget has room for it after all of them. It need not be one of the tiles. Readiness unless you choose another.</string>
+    <string name="settings_widget_chart_none">None</string>
     <string name="settings_data_title">Data and privacy</string>
     <string name="settings_data_summary">Data sources, weather lookups, backups</string>
     <string name="settings_free_days">Free days</string>
