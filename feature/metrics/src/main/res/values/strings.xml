@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="navigate_back">Back</string>
     <string name="span_week">Week</string>
     <string name="span_month">Month</string>
@@ -17,7 +17,10 @@
     <string name="metric_breathing">Breathing rate</string>
     <string name="metric_sleeping_hr">Sleeping heart rate</string>
     <string name="metric_chart_description">%1$s, %2$s, against your usual range</string>
-    <string name="metric_range">Your range %1$s–%2$s, from %3$d nights</string>
+    <plurals name="metric_range">
+        <item quantity="one">Your range %1$s–%2$s, from %3$d night</item>
+        <item quantity="other">Your range %1$s–%2$s, from %3$d nights</item>
+    </plurals>
     <string name="metric_partial">Part of the night</string>
     <string name="metric_average">Average</string>
     <string name="metric_lowest">Lowest</string>
@@ -46,7 +49,7 @@
     <string name="heart_rate_title">Heart rate</string>
     <string name="heart_rate_today">Today</string>
     <string name="metric_heart_rate_none">No heart rate from the watch on this day.</string>
-    <string name="metric_heart_rate_chart">Heart rate over the day, from %1$d to %2$d beats a minute</string>
+    <string name="metric_heart_rate_chart" tools:ignore="PluralsCandidate">Heart rate over the day, from %1$d to %2$d beats a minute</string>
     <string name="metric_heart_rate_resting">Resting</string>
     <string name="heart_rate_zones">Time in zones</string>
     <string name="about_heart_rate" formatted="false">All-day heart rate as the watch recorded it, read from Health Connect when you open this page rather than stored. The watch\'s app passes heart rate on when it syncs with the watch, so today\'s line can stop some minutes before now.\n\nThe line is coloured by your heart rate zones, anchored on your threshold heart rate; touch it to read a time. Resting heart rate is the watch\'s value for the night that ended on this day.</string>

@@ -153,7 +153,11 @@ fun PacingLabApp(modifier: Modifier = Modifier, syncProblems: Flow<SyncProblem> 
                     openSettings = openSettings,
                 )
                 performanceEntries(openWorkout = { backStack.add(SessionKey(it)) }, openSettings = openSettings)
-                trendsEntries(openPhysiology = { backStack.add(PhysiologyKey) }, openSettings = openSettings)
+                trendsEntries(
+                    openPhysiology = { backStack.add(PhysiologyKey) },
+                    openSettings = openSettings,
+                    openSession = { backStack.add(SessionKey(it)) },
+                )
                 settingsEntries(
                     navigateTo = { backStack.add(it) },
                     navigateBack = { backStack.removeLastOrNull() },

@@ -17,7 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -33,6 +35,7 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 /**
  * Aerobic decoupling of every steady long run: the latest value with its verdict, and a dot per run
@@ -68,13 +71,24 @@ internal fun DecouplingCard(points: List<DecouplingPoint>, onOpenWorkout: (Strin
                     )
                 }
                 Text(
-                    stringResource(R.string.decoupling_latest, date.format(latest.date)),
+                    text = if (latest.warm) {
+                        stringResource(R.string.decoupling_latest_warm, date.format(latest.date), latest.wbgt!!.roundToInt())
+                    } else {
+                        stringResource(R.string.decoupling_latest, date.format(latest.date))
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
         if (points.size > 1) DecouplingChart(points, locale)
+        if (points.any { it.warm }) {
+            Text(
+                stringResource(R.string.decoupling_warm_legend),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -91,7 +105,7 @@ private fun DecouplingChart(points: List<DecouplingPoint>, locale: Locale, modif
     val days = ChronoUnit.DAYS.between(first, last).coerceAtLeast(1).toFloat()
     val high = maxOf(10.0, ceil(points.maxOf { it.percent } / 5) * 5)
     val low = minOf(0.0, points.minOf { it.percent })
-    val description = stringResource(R.string.decoupling_chart_description, points.size)
+    val description = pluralStringResource(R.plurals.decoupling_chart_description, points.size, points.size)
     Canvas(modifier.fillMaxWidth().height(110.dp).semantics { contentDescription = description }) {
         val left = 28.dp.toPx()
         val right = size.width - 8.dp.toPx()
@@ -114,8 +128,19 @@ private fun DecouplingChart(points: List<DecouplingPoint>, locale: Locale, modif
         for (point in points) {
             val x = left + ChronoUnit.DAYS.between(first, point.date) / days * (right - left)
             val center = Offset(x, y(point.percent))
+            val color = if (point.percent < AerobicDecoupling.WELL_COUPLED) dot else colors.outOfRange
             drawCircle(ring, 5.5.dp.toPx(), center)
-            drawCircle(if (point.percent < AerobicDecoupling.WELL_COUPLED) dot else colors.outOfRange, 4.dp.toPx(), center)
+            // A warm run is drawn hollow: heat adds to its drift, so it is not quite comparable.
+            if (point.warm) {
+                drawCircle(
+                    color,
+                    3.4.dp.toPx(),
+                    center,
+                    style = Stroke(1.6.dp.toPx()),
+                )
+            } else {
+                drawCircle(color, 4.dp.toPx(), center)
+            }
         }
         val start = measurer.measure(date.format(first), style)
         val end = measurer.measure(date.format(last), style)

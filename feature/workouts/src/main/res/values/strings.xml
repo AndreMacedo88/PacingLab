@@ -172,7 +172,7 @@
     <string name="conditions_wind">Wind %1$s m/s</string>
     <string name="conditions_gusts">(gusts %1$s)</string>
     <string name="conditions_rain">Rain %1$s mm</string>
-    <string name="conditions_heat">Heat stress: WBGT about %1$d °C in the shade. Heart rate runs higher and drifts more in the heat, so heart rate based measures of this session read worse than your fitness.</string>
+    <string name="conditions_heat">Heat stress: WBGT about %1$d °C in the shade. Heart rate runs higher and drifts more in the heat.</string>
     <string name="conditions_unreachable">The weather service could not be reached; it is tried again next time you open the session.</string>
     <string name="conditions_missing">No weather data for this place and time.</string>
     <string name="conditions_info" formatted="false">The weather at the place the session started, from Open-Meteo: the forecast service\'s hourly values for the last months (with DMI\'s model in Denmark), the ERA5 reanalysis archive for older sessions. Values are taken halfway through the session, between the hours around it.\n\nOnly the start of the route, rounded to about a kilometre, and the date leave the phone, once per session; nothing is looked up for sessions without a route. Settings > Data can switch this off.\n\n# Heat\nHeat stress is the wet-bulb globe temperature in the shade (Australian Bureau of Meteorology\'s approximation from temperature and humidity); sun adds to it. From 18 °C, the American College of Sports Medicine\'s moderate band, heart rate at a given pace runs higher and climbs through a run (cardiovascular drift; González-Alonso 1999), so VO2max estimates, efficiency and decoupling of such a run look worse than your fitness. Dew point is the humidity that matters: above about 15 °C sweat evaporates poorly.</string>
@@ -189,4 +189,5 @@
         <item quantity="other">Median over %d running minutes</item>
     </plurals>
     <string name="running_form_info" formatted="false">Steps per minute (both feet) and the distance covered by one step, from the step counts the watch records once a minute during a session.\n\n- Only running minutes count: faster than 8 km/h and at least 130 steps.\n- Stride length is the minute\'s speed over its cadence; the reps line is the reps\' distance over their steps.\n- Per minute is coarse for short reps: a 1-minute rep shares its step records with the recovery around it.\n\nMost runners speed up by lengthening the stride more than by raising cadence; cadence rises with speed too, typically from about 160 to over 180 at fast paces. Garmin measures both stride by stride with a sensor; these minute values agree on steady running but smooth over short changes.</string>
+    <string name="conditions_adjusted">Heart rate based estimates of this run (VO2max, aerobic efficiency) count %1$s %% higher, to stand for cool conditions (Mantzios 2022).</string>
 </resources>

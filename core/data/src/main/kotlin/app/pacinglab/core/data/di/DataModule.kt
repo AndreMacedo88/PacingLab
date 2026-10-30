@@ -17,6 +17,7 @@ import app.pacinglab.core.data.weather.OpenMeteoPastService
 import app.pacinglab.core.data.weather.OpenMeteoService
 import app.pacinglab.core.data.weather.PastWeatherService
 import app.pacinglab.core.data.weather.PlatformApproximateLocation
+import app.pacinglab.core.data.weather.RunWeatherFiller
 import app.pacinglab.core.data.weather.WeatherCache
 import app.pacinglab.core.data.weather.WeatherService
 import dagger.Binds
@@ -56,6 +57,10 @@ interface DataBindings {
     @Binds
     @IntoSet
     fun morningReminder(reminder: MorningReminder): AfterSync
+
+    @Binds
+    @IntoSet
+    fun runWeather(filler: RunWeatherFiller): AfterSync
 
     /** Other modules may add work after syncs; without any the set is empty. */
     @Multibinds

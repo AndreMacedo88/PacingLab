@@ -134,6 +134,12 @@ interface SessionWeatherDao {
     @Query("SELECT * FROM session_weather WHERE workout_id = :workoutId")
     suspend fun get(workoutId: String): SessionWeatherEntity?
 
+    @Query("SELECT * FROM session_weather")
+    fun observeAll(): Flow<List<SessionWeatherEntity>>
+
+    @Query("SELECT workout_id FROM session_weather")
+    suspend fun ids(): List<String>
+
     @Upsert
     suspend fun upsert(entry: SessionWeatherEntity)
 

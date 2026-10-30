@@ -6,12 +6,16 @@ import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import app.pacinglab.core.analytics.performance.Vo2MaxSource
 import app.pacinglab.core.data.testPreferences
+import app.pacinglab.core.data.weather.PastWeatherService
+import app.pacinglab.core.data.weather.SessionWeatherRepository
 import app.pacinglab.core.database.PacingLabDatabase
 import app.pacinglab.core.database.store.DailyVitalsStore
 import app.pacinglab.core.database.store.EffortStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
+import app.pacinglab.core.database.store.SessionWeatherStore
 import app.pacinglab.core.database.store.WorkoutStore
+import app.pacinglab.core.model.Coordinates
 import app.pacinglab.core.model.DataSource
 import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Measurement
@@ -37,6 +41,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.IOException
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -72,7 +77,14 @@ class PerformanceRepositoryTest {
                 EffortRepository(EffortStore(database)),
                 clock,
             )
-        repository = PerformanceRepository(workouts, measurements, load, DailyVitalsStore(database), clock)
+        repository = PerformanceRepository(
+            workouts,
+            measurements,
+            load,
+            DailyVitalsStore(database),
+            SessionWeatherRepository(SessionWeatherStore(database), NoWeather, preferences, clock),
+            clock,
+        )
         runTest { physiology.save(PhysiologyEntry(LocalDate.of(2026, 1, 1), maxHr = 190, thresholdHr = 170, restingHr = 50)) }
     }
 
@@ -138,4 +150,9 @@ class PerformanceRepositoryTest {
             WorkoutStreams(HeartRateSeries(times, IntArray(n) { 160 }), SampleSeries(times, DoubleArray(n) { 4.0 }), Route.EMPTY, null),
         )
     }
+}
+
+/** A weather service never asked: these tests have no weather. */
+private object NoWeather : PastWeatherService {
+    override suspend fun fetch(place: Coordinates, from: LocalDate, to: LocalDate, recent: Boolean): String = throw IOException("offline")
 }

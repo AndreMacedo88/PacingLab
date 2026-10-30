@@ -21,9 +21,13 @@ import app.pacinglab.core.analytics.load.Vo2MaxDirection
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.StatusColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
+import app.pacinglab.core.ui.detail
+import app.pacinglab.core.ui.icon
+import app.pacinglab.core.ui.label
+import app.pacinglab.core.ui.tint
 import java.util.Locale
 import kotlin.math.roundToInt
-import app.pacinglab.core.designsystem.R as DesignR
+import app.pacinglab.core.ui.R as UiR
 
 /**
  * The training status in a word with the evidence behind it: this week's load against the usual, the
@@ -32,7 +36,7 @@ import app.pacinglab.core.designsystem.R as DesignR
 @Composable
 internal fun TrainingStatusCard(status: TrainingStatus?, locale: Locale, modifier: Modifier = Modifier) {
     TrendCard(
-        title = stringResource(DesignR.string.training_status_title),
+        title = stringResource(UiR.string.training_status_title),
         info = stringResource(R.string.status_info),
         modifier = modifier,
     ) {
@@ -105,42 +109,4 @@ private fun Reason(name: String, value: String, modifier: Modifier = Modifier) {
             modifier = Modifier.weight(1.4f),
         )
     }
-}
-
-private fun TrainingStatusKind.label(): Int = when (this) {
-    TrainingStatusKind.PRODUCTIVE -> DesignR.string.training_status_productive
-    TrainingStatusKind.MAINTAINING -> DesignR.string.training_status_maintaining
-    TrainingStatusKind.PEAKING -> DesignR.string.training_status_peaking
-    TrainingStatusKind.RECOVERY -> DesignR.string.training_status_recovery
-    TrainingStatusKind.UNPRODUCTIVE -> DesignR.string.training_status_unproductive
-    TrainingStatusKind.DETRAINING -> DesignR.string.training_status_detraining
-    TrainingStatusKind.OVERREACHING -> DesignR.string.training_status_overreaching
-    TrainingStatusKind.STRAINED -> DesignR.string.training_status_strained
-}
-
-private fun TrainingStatusKind.detail(): Int = when (this) {
-    TrainingStatusKind.PRODUCTIVE -> DesignR.string.training_status_productive_detail
-    TrainingStatusKind.MAINTAINING -> DesignR.string.training_status_maintaining_detail
-    TrainingStatusKind.PEAKING -> DesignR.string.training_status_peaking_detail
-    TrainingStatusKind.RECOVERY -> DesignR.string.training_status_recovery_detail
-    TrainingStatusKind.UNPRODUCTIVE -> DesignR.string.training_status_unproductive_detail
-    TrainingStatusKind.DETRAINING -> DesignR.string.training_status_detraining_detail
-    TrainingStatusKind.OVERREACHING -> DesignR.string.training_status_overreaching_detail
-    TrainingStatusKind.STRAINED -> DesignR.string.training_status_strained_detail
-}
-
-private fun TrainingStatusKind.icon(): Int = when (this) {
-    TrainingStatusKind.PRODUCTIVE, TrainingStatusKind.PEAKING -> PacingLabIcons.ArrowUp
-    TrainingStatusKind.MAINTAINING, TrainingStatusKind.RECOVERY -> PacingLabIcons.CheckCircle
-    TrainingStatusKind.UNPRODUCTIVE, TrainingStatusKind.DETRAINING -> PacingLabIcons.ArrowDown
-    TrainingStatusKind.OVERREACHING, TrainingStatusKind.STRAINED -> PacingLabIcons.Warning
-}
-
-private fun TrainingStatusKind.tint() = when (this) {
-    TrainingStatusKind.PRODUCTIVE, TrainingStatusKind.PEAKING, TrainingStatusKind.MAINTAINING, TrainingStatusKind.RECOVERY ->
-        StatusColors.Good
-
-    TrainingStatusKind.UNPRODUCTIVE, TrainingStatusKind.DETRAINING -> StatusColors.Warning
-
-    TrainingStatusKind.OVERREACHING, TrainingStatusKind.STRAINED -> StatusColors.Serious
 }

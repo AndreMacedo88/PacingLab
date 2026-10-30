@@ -18,7 +18,10 @@ import kotlin.math.abs
 data class EfficiencyEstimate(val speedAtReference: Double, val windows: Int)
 
 /** One run's efficiency on its date. */
-data class EfficiencyPoint(val date: LocalDate, val speedAtReference: Double, val windows: Int)
+data class EfficiencyPoint(val date: LocalDate, val speedAtReference: Double, val windows: Int, val wbgt: Double? = null) {
+    /** Whether heat raised the value to stand for cool conditions ([app.pacinglab.core.analytics.weather.HeatAdjustment]). */
+    val heatAdjusted: Boolean get() = wbgt != null && wbgt > app.pacinglab.core.analytics.weather.HeatAdjustment.OPTIMUM_UPPER
+}
 
 /** The trend on one day: the average of the runs in the [AerobicEfficiency.TREND_DAYS] days up to it. */
 data class EfficiencyDay(val date: LocalDate, val speedAtReference: Double)

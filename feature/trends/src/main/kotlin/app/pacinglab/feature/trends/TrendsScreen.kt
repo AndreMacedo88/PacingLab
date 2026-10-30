@@ -1,6 +1,7 @@
 package app.pacinglab.feature.trends
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +38,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
@@ -49,6 +53,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.FormDay
+import app.pacinglab.core.analytics.load.LoadBand
 import app.pacinglab.core.analytics.load.WeekSummary
 import app.pacinglab.core.data.repository.PlacedCard
 import app.pacinglab.core.designsystem.component.CardHeader
@@ -72,6 +77,7 @@ fun TrendsRoute(
     onOpenPhysiology: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenSession: (String) -> Unit = {},
     viewModel: TrendsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -85,6 +91,7 @@ fun TrendsRoute(
         modifier = modifier,
         onArrange = viewModel::arrange,
         onResetArrangement = viewModel::resetArrangement,
+        onOpenSession = onOpenSession,
     )
 }
 
@@ -101,6 +108,7 @@ fun TrendsScreen(
     onArrange: (List<PlacedCard>) -> Unit = {},
     onResetArrangement: () -> Unit = {},
     initiallyEditing: Boolean = false,
+    onOpenSession: (String) -> Unit = {},
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var editing by rememberSaveable { mutableStateOf(initiallyEditing) }
@@ -173,9 +181,19 @@ fun TrendsScreen(
                                     }
                                 }
 
-                                TrendsCardKind.WEEKS -> item(key = card.id) { WeeksCard(state.weeks, state.today, locale) }
+                                TrendsCardKind.WEEKS -> item(key = card.id) {
+                                    WeeksCard(state.weeks, state.today, locale, bands = state.loadBands)
+                                }
 
                                 TrendsCardKind.FOCUS -> item(key = card.id) { IntensityFocusCard(state.focus) }
+
+                                TrendsCardKind.RUNNING -> if (state.running.any { it.km > 0 }) {
+                                    item(key = card.id) { RunningVolumeCard(state.running, state.today, locale) }
+                                }
+
+                                TrendsCardKind.CALENDAR -> item(key = card.id) {
+                                    TrainingCalendarCard(state.calendar, state.today, locale, onOpenSession)
+                                }
                             }
                         }
                     }
@@ -261,9 +279,15 @@ private fun Value(label: String, value: Double, key: Color?, modifier: Modifier 
  * over the three polarized zones.
  */
 @Composable
-private fun WeeksCard(weeks: List<WeekSummary>, today: LocalDate, locale: Locale, modifier: Modifier = Modifier) {
+internal fun WeeksCard(
+    weeks: List<WeekSummary>,
+    today: LocalDate,
+    locale: Locale,
+    modifier: Modifier = Modifier,
+    bands: Map<LocalDate, LoadBand> = emptyMap(),
+) {
     val start = remember(locale) { DateTimeFormatter.ofPattern("d MMM", locale) }
-    val maxLoad = weeks.maxOfOrNull { it.load }?.takeIf { it > 0 } ?: 1.0
+    val maxLoad = (weeks.map { it.load } + bands.values.map { it.high }).maxOrNull()?.takeIf { it > 0 } ?: 1.0
     val zones = zoneColors(3)
     val bar = chartColors().series[0]
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
@@ -289,16 +313,7 @@ private fun WeeksCard(weeks: List<WeekSummary>, today: LocalDate, locale: Locale
             ) {
                 Text(label, style = MaterialTheme.typography.bodyMedium, maxLines = 1, modifier = Modifier.width(WEEK_WIDTH))
                 Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.weight(1f).height(BAR_HEIGHT)) {
-                        if (week.load > 0) {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth((week.load / maxLoad).toFloat())
-                                    .height(BAR_HEIGHT)
-                                    .background(bar, RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp)),
-                            )
-                        }
-                    }
+                    LoadBar(week.load, bands[week.start], maxLoad, bar, Modifier.weight(1f))
                     Text(
                         text = week.load.roundToInt().toString(),
                         style = MaterialTheme.typography.bodyMedium.tabularNumbers(),
@@ -316,6 +331,12 @@ private fun WeeksCard(weeks: List<WeekSummary>, today: LocalDate, locale: Locale
                 IntensityBar(week.intensityMillis, zones, Modifier.width(INTENSITY_WIDTH).padding(start = 12.dp))
             }
         }
+        if (bands.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(width = 16.dp, height = 10.dp).background(bar.copy(alpha = BAND_ALPHA), RoundedCornerShape(2.dp)))
+                Text(stringResource(R.string.weeks_band_legend), style = MaterialTheme.typography.labelSmall, color = muted)
+            }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             for (i in 0 until 3) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -323,6 +344,29 @@ private fun WeeksCard(weeks: List<WeekSummary>, today: LocalDate, locale: Locale
                     Text(stringResource(ZoneModel.POLARIZED_THREE.zoneName(i)), style = MaterialTheme.typography.labelSmall, color = muted)
                 }
             }
+        }
+    }
+}
+
+/**
+ * A week's load as a bar over the band that builds fitness (shaded in the bar's colour, full height), the
+ * bar thinner than the band so that the band stays visible wherever the load ends.
+ */
+@Composable
+private fun LoadBar(load: Double, band: LoadBand?, scale: Double, color: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier.height(BAR_HEIGHT + 6.dp)) {
+        fun x(value: Double) = (value / scale * size.width).toFloat()
+        if (band != null) {
+            drawRoundRect(
+                color.copy(alpha = BAND_ALPHA),
+                Offset(x(band.low), 0f),
+                Size(x(band.high) - x(band.low), size.height),
+                CornerRadius(3.dp.toPx()),
+            )
+        }
+        if (load > 0) {
+            val height = BAR_HEIGHT.toPx()
+            drawRoundRect(color, Offset(0f, (size.height - height) / 2), Size(x(load), height), CornerRadius(4.dp.toPx()))
         }
     }
 }
@@ -392,3 +436,4 @@ private val WEEK_WIDTH = 72.dp
 private val TIME_WIDTH = 56.dp
 private val INTENSITY_WIDTH = 84.dp
 private val BAR_HEIGHT = 10.dp
+private const val BAND_ALPHA = 0.22f

@@ -7,6 +7,7 @@ import app.pacinglab.core.model.Coordinates
 import app.pacinglab.core.model.SessionWeather
 import app.pacinglab.core.model.WeatherCondition
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.json.JSONException
@@ -15,6 +16,7 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -22,6 +24,9 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.roundToInt
+
+/** A run for the weather lookup: its time and where its route started, if it has one. */
+data class RunPlace(val workoutId: String, val start: Instant, val end: Instant, val place: Coordinates?)
 
 /** What is known about a session's weather. */
 sealed interface SessionWeatherState {
@@ -88,9 +93,62 @@ class SessionWeatherRepository @Inject constructor(
         }
     }
 
+    /** The weather found for every workout that has some, by workout id. */
+    fun observeFound(): Flow<Map<String, SessionWeather>> = store.observeFound()
+
+    /** Workouts whose weather was looked up already, with or without a result. */
+    suspend fun lookedUp(): Set<String> = store.lookedUp()
+
+    /**
+     * Looks up the weather of every run in [runs] that has none yet, for the heat adjustment of heart rate
+     * based estimates. A run without a route takes the place of a route recorded within [NEARBY] of it
+     * (the warm-up before an interval workout); runs from one rounded place share one request over their
+     * dates, so a year of runs from home costs one or two requests. At most [MAX_REQUESTS] a call; the
+     * rest follow with later syncs.
+     */
+    suspend fun fillRuns(runs: List<RunPlace>) {
+        if (!preferences.preferences.first().sessionWeather) return
+        val done = store.lookedUp()
+        val withRoute = runs.filter { it.place != null }
+        val missing = runs.filter { it.workoutId !in done }.mapNotNull { run ->
+            val place = run.place ?: withRoute.firstOrNull { other ->
+                Duration.between(other.start, run.start).abs() <= NEARBY || Duration.between(other.end, run.start).abs() <= NEARBY
+            }?.place
+            place?.let { run to Coordinates(round(it.latitude), round(it.longitude)) }
+        }
+        val today = LocalDate.now(clock)
+        // One request per place and kind of service, at most a year each, to keep responses small.
+        val groups = missing.groupBy { (run, place) ->
+            val date = run.start.atOffset(ZoneOffset.UTC).toLocalDate()
+            Triple(place, date >= today.minusDays(RECENT_DAYS), date.year)
+        }
+        for ((key, group) in groups.entries.take(MAX_REQUESTS)) {
+            val (place, recent) = key.first to key.second
+            val dates = group.flatMap { (run, _) -> listOf(run.start, run.end) }.map { it.atOffset(ZoneOffset.UTC).toLocalDate() }
+            val hours = try {
+                OpenMeteoPast.hours(service.fetch(place, dates.min(), dates.max(), recent))
+            } catch (_: IOException) {
+                return
+            } catch (_: JSONException) {
+                continue
+            }
+            for ((run, _) in group) {
+                val middle = Instant.ofEpochMilli((run.start.toEpochMilli() + run.end.toEpochMilli()) / 2)
+                hours.at(middle)?.let { store.save(run.workoutId, it, clock.instant()) }
+                    ?: store.saveMissing(run.workoutId, clock.instant())
+            }
+        }
+    }
+
     private fun round(degrees: Double) = (degrees * 100).roundToInt() / 100.0
 
     companion object {
+        /** A run without a route takes the place of a route recorded this close in time. */
+        val NEARBY: Duration = Duration.ofHours(3)
+
+        /** Requests per call of [fillRuns]. */
+        const val MAX_REQUESTS = 10
+
         /** Days the forecast service keeps (it serves about three months back); older days come from the archive. */
         const val RECENT_DAYS = 80L
     }
@@ -116,38 +174,46 @@ internal object OpenMeteoPast {
         HOURLY,
     )
 
-    /**
-     * The weather at [time] from the hourly values in [text], interpolated between the hours around it;
-     * precipitation and the sky are those of the hour it falls in. Null when [time] is outside the hours
-     * or the values there are missing.
-     */
-    fun at(text: String, time: Instant): SessionWeather? {
-        val hourly = JSONObject(text).getJSONObject("hourly")
-        val times = hourly.getJSONArray("time")
-        val second = time.epochSecond
-        val after = (0 until times.length()).firstOrNull { times.getLong(it) >= second } ?: return null
-        val before = if (times.getLong(after) == second || after == 0) after else after - 1
-        val t0 = times.getLong(before)
-        val t1 = times.getLong(after)
-        val share = if (t1 == t0) 0.0 else (second - t0).toDouble() / (t1 - t0)
-        fun value(name: String, i: Int): Double? = (hourly.optJSONArray(name)?.opt(i) as? Number)?.toDouble()
-        fun interpolated(name: String): Double? {
-            val a = value(name, before) ?: return null
-            val b = value(name, after) ?: return null
-            return a + (b - a) * share
+    /** The weather at [time] from Open-Meteo's response [text]; see [Hours.at]. */
+    fun at(text: String, time: Instant): SessionWeather? = hours(text).at(time)
+
+    /** The hourly values in Open-Meteo's response [text]; throws [JSONException] when it is not one. */
+    fun hours(text: String): Hours = Hours(JSONObject(text).getJSONObject("hourly"))
+
+    class Hours(private val hourly: JSONObject) {
+        private val times = hourly.getJSONArray("time").let { array -> LongArray(array.length()) { array.getLong(it) } }
+
+        /**
+         * The weather at [time], interpolated between the hours around it; precipitation and the sky are
+         * those of the hour it falls in. Null when [time] is outside the hours or the values there are
+         * missing.
+         */
+        fun at(time: Instant): SessionWeather? {
+            val second = time.epochSecond
+            val after = times.indexOfFirst { it >= second }.takeIf { it >= 0 } ?: return null
+            val before = if (times[after] == second || after == 0) after else after - 1
+            val t0 = times[before]
+            val t1 = times[after]
+            val share = if (t1 == t0) 0.0 else (second - t0).toDouble() / (t1 - t0)
+            fun value(name: String, i: Int): Double? = (hourly.optJSONArray(name)?.opt(i) as? Number)?.toDouble()
+            fun interpolated(name: String): Double? {
+                val a = value(name, before) ?: return null
+                val b = value(name, after) ?: return null
+                return a + (b - a) * share
+            }
+            val temperature = interpolated("temperature_2m") ?: return null
+            return SessionWeather(
+                time = time,
+                condition = value("weather_code", after)?.toInt()?.let(WeatherCondition::ofWmo) ?: WeatherCondition.CLOUDY,
+                temperature = temperature,
+                apparentTemperature = interpolated("apparent_temperature") ?: temperature,
+                dewPoint = interpolated("dew_point_2m") ?: temperature,
+                humidity = interpolated("relative_humidity_2m") ?: return null,
+                windSpeed = interpolated("wind_speed_10m") ?: 0.0,
+                windGusts = interpolated("wind_gusts_10m"),
+                precipitation = value("precipitation", after) ?: 0.0,
+            )
         }
-        val temperature = interpolated("temperature_2m") ?: return null
-        return SessionWeather(
-            time = time,
-            condition = value("weather_code", after)?.toInt()?.let(WeatherCondition::ofWmo) ?: WeatherCondition.CLOUDY,
-            temperature = temperature,
-            apparentTemperature = interpolated("apparent_temperature") ?: temperature,
-            dewPoint = interpolated("dew_point_2m") ?: temperature,
-            humidity = interpolated("relative_humidity_2m") ?: return null,
-            windSpeed = interpolated("wind_speed_10m") ?: 0.0,
-            windGusts = interpolated("wind_gusts_10m"),
-            precipitation = value("precipitation", after) ?: 0.0,
-        )
     }
 }
 

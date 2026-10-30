@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.pacinglab.core.analytics.weather.HeatAdjustment
 import app.pacinglab.core.analytics.weather.HeatStress
 import app.pacinglab.core.analytics.weather.HeatStressLevel
 import app.pacinglab.core.data.weather.SessionWeatherState
@@ -87,6 +88,14 @@ private fun Weather(weather: SessionWeather, locale: Locale, modifier: Modifier 
         )
         val wbgt = HeatStress.wbgt(weather.temperature, weather.humidity)
         val level = HeatStress.level(wbgt)
+        val factor = HeatAdjustment.speedFactor(wbgt)
+        if (factor > 1) {
+            Text(
+                stringResource(R.string.conditions_adjusted, "%.1f".format(locale, (factor - 1) * 100)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         if (level != HeatStressLevel.LOW) {
             Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(

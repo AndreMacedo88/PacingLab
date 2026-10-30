@@ -32,6 +32,7 @@ import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.StatusColors
 import app.pacinglab.core.designsystem.theme.chartColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
+import app.pacinglab.core.ui.VitalsVerdict
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -50,7 +51,7 @@ internal fun VitalsCard(nights: List<Night>, night: Night, onOpenMetric: (Nightl
     val byDate = nights.associateBy { it.date }
     val vitals = remember(nights, night) { Vitals.of(nights, night.date) }
     SleepCard(stringResource(R.string.sleep_body_title), stringResource(R.string.sleep_body_info), modifier) {
-        vitals?.takeIf { it.judged > 0 }?.let { VitalsVerdict(it) }
+        vitals?.takeIf { it.judged > 0 }?.let { VitalsVerdict(it, name = { metric -> stringResource(metric.label()) }) }
         val rows = listOf(
             NightlyMetric.HRV to colors.series[0],
             NightlyMetric.RESTING_HR to colors.restingHr,
@@ -85,37 +86,6 @@ internal fun VitalsCard(nights: List<Night>, night: Night, onOpenMetric: (Nightl
                 onClick = { onOpenMetric(metric) },
             )
         }
-    }
-}
-
-/** How many measures left their range, naming them; two or more is a warning. */
-@Composable
-private fun VitalsVerdict(vitals: Vitals, modifier: Modifier = Modifier) {
-    val outside = vitals.outside
-    val names = outside.map { stringResource(it.metric.label()) }.joinToString(", ")
-    val text = when {
-        outside.isEmpty() -> stringResource(R.string.vitals_all_typical)
-        vitals.alert -> pluralStringResource(R.plurals.vitals_alert, outside.size, outside.size, names)
-        else -> stringResource(R.string.vitals_one_outside, names)
-    }
-    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Icon(
-            painter = painterResource(
-                when {
-                    outside.isEmpty() -> PacingLabIcons.CheckCircle
-                    vitals.alert -> PacingLabIcons.Warning
-                    else -> PacingLabIcons.Info
-                },
-            ),
-            contentDescription = null,
-            tint = when {
-                outside.isEmpty() -> StatusColors.Good
-                vitals.alert -> StatusColors.Warning
-                else -> MaterialTheme.colorScheme.onSurfaceVariant
-            },
-            modifier = Modifier.size(20.dp),
-        )
-        Text(text, style = MaterialTheme.typography.bodyMedium)
     }
 }
 

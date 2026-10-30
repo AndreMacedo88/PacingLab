@@ -22,7 +22,18 @@ data class RunHalf(val speed: Double, val bpm: Double) {
 data class Decoupling(val percent: Double, val firstHalf: RunHalf, val secondHalf: RunHalf, val minutes: Int)
 
 /** One run's decoupling, for the trend. */
-data class DecouplingPoint(val date: LocalDate, val workoutId: String, val percent: Double)
+data class DecouplingPoint(val date: LocalDate, val workoutId: String, val percent: Double, val wbgt: Double? = null) {
+    /**
+     * Whether the run was warm enough for heat to add to the drift (WBGT from 18 °C, ACSM's moderate band).
+     * There is no published rate to take the heat's share out of decoupling, so warm runs are marked
+     * rather than corrected.
+     */
+    val warm: Boolean get() = wbgt != null && wbgt >= WARM_FROM
+
+    companion object {
+        const val WARM_FROM = 18.0
+    }
+}
 
 /**
  * Aerobic decoupling (Pa:HR, Friel): on a long steady run, heart rate drifts up at an unchanged pace once

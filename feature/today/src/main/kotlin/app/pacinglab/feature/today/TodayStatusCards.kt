@@ -28,7 +28,12 @@ import app.pacinglab.core.designsystem.component.RangePill
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.StatusColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
-import app.pacinglab.core.designsystem.R as DesignR
+import app.pacinglab.core.ui.VitalsVerdict
+import app.pacinglab.core.ui.detail
+import app.pacinglab.core.ui.icon
+import app.pacinglab.core.ui.label
+import app.pacinglab.core.ui.tint
+import app.pacinglab.core.ui.R as UiR
 
 /** Last night's vitals as the Sleep screen judges them, from the ranges Today already holds. */
 internal fun TodayUiState.Loaded.vitals(): Vitals? {
@@ -54,7 +59,7 @@ internal fun VitalsTodayCard(vitals: Vitals?, onClick: () -> Unit, modifier: Mod
             )
             return@TodayWideCard
         }
-        if (vitals.judged > 0) VitalsVerdict(vitals)
+        if (vitals.judged > 0) VitalsVerdict(vitals, name = { stringResource(it.label()) })
         for (sign in shown) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -74,41 +79,10 @@ internal fun VitalsTodayCard(vitals: Vitals?, onClick: () -> Unit, modifier: Mod
     }
 }
 
-/** How many measures left their range, naming them; two or more is a warning. */
-@Composable
-private fun VitalsVerdict(vitals: Vitals, modifier: Modifier = Modifier) {
-    val outside = vitals.outside
-    val names = outside.map { stringResource(it.metric.label()) }.joinToString(", ")
-    val text = when {
-        outside.isEmpty() -> stringResource(R.string.vitals_all_typical)
-        vitals.alert -> pluralStringResource(R.plurals.vitals_alert, outside.size, outside.size, names)
-        else -> stringResource(R.string.vitals_one_outside, names)
-    }
-    Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Icon(
-            painter = painterResource(
-                when {
-                    outside.isEmpty() -> PacingLabIcons.CheckCircle
-                    vitals.alert -> PacingLabIcons.Warning
-                    else -> PacingLabIcons.Info
-                },
-            ),
-            contentDescription = null,
-            tint = when {
-                outside.isEmpty() -> StatusColors.Good
-                vitals.alert -> StatusColors.Warning
-                else -> MaterialTheme.colorScheme.onSurfaceVariant
-            },
-            modifier = Modifier.size(20.dp),
-        )
-        Text(text, style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
 /** The training status in a word, what it means, and the load ratio behind it. Opens Trends. */
 @Composable
 internal fun TrainingStatusTodayCard(status: TrainingStatus?, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    TodayWideCard(stringResource(DesignR.string.training_status_title), stringResource(R.string.training_status_info), onClick, modifier) {
+    TodayWideCard(stringResource(UiR.string.training_status_title), stringResource(R.string.training_status_info), onClick, modifier) {
         if (status == null) {
             Text(
                 stringResource(R.string.training_status_none),
@@ -151,43 +125,4 @@ private fun TodayWideCard(
             content()
         }
     }
-}
-
-internal fun TrainingStatusKind.label(): Int = when (this) {
-    TrainingStatusKind.PRODUCTIVE -> DesignR.string.training_status_productive
-    TrainingStatusKind.MAINTAINING -> DesignR.string.training_status_maintaining
-    TrainingStatusKind.PEAKING -> DesignR.string.training_status_peaking
-    TrainingStatusKind.RECOVERY -> DesignR.string.training_status_recovery
-    TrainingStatusKind.UNPRODUCTIVE -> DesignR.string.training_status_unproductive
-    TrainingStatusKind.DETRAINING -> DesignR.string.training_status_detraining
-    TrainingStatusKind.OVERREACHING -> DesignR.string.training_status_overreaching
-    TrainingStatusKind.STRAINED -> DesignR.string.training_status_strained
-}
-
-private fun TrainingStatusKind.detail(): Int = when (this) {
-    TrainingStatusKind.PRODUCTIVE -> DesignR.string.training_status_productive_detail
-    TrainingStatusKind.MAINTAINING -> DesignR.string.training_status_maintaining_detail
-    TrainingStatusKind.PEAKING -> DesignR.string.training_status_peaking_detail
-    TrainingStatusKind.RECOVERY -> DesignR.string.training_status_recovery_detail
-    TrainingStatusKind.UNPRODUCTIVE -> DesignR.string.training_status_unproductive_detail
-    TrainingStatusKind.DETRAINING -> DesignR.string.training_status_detraining_detail
-    TrainingStatusKind.OVERREACHING -> DesignR.string.training_status_overreaching_detail
-    TrainingStatusKind.STRAINED -> DesignR.string.training_status_strained_detail
-}
-
-private fun TrainingStatusKind.icon(): Int = when (this) {
-    TrainingStatusKind.PRODUCTIVE, TrainingStatusKind.PEAKING -> PacingLabIcons.ArrowUp
-    TrainingStatusKind.MAINTAINING, TrainingStatusKind.RECOVERY -> PacingLabIcons.CheckCircle
-    TrainingStatusKind.UNPRODUCTIVE, TrainingStatusKind.DETRAINING -> PacingLabIcons.ArrowDown
-    TrainingStatusKind.OVERREACHING, TrainingStatusKind.STRAINED -> PacingLabIcons.Warning
-}
-
-@Composable
-private fun TrainingStatusKind.tint() = when (this) {
-    TrainingStatusKind.PRODUCTIVE, TrainingStatusKind.PEAKING, TrainingStatusKind.MAINTAINING, TrainingStatusKind.RECOVERY ->
-        StatusColors.Good
-
-    TrainingStatusKind.UNPRODUCTIVE, TrainingStatusKind.DETRAINING -> StatusColors.Warning
-
-    TrainingStatusKind.OVERREACHING, TrainingStatusKind.STRAINED -> StatusColors.Serious
 }

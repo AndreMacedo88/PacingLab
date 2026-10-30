@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -76,6 +77,14 @@ internal fun EfficiencyCard(history: EfficiencyHistory, today: LocalDate, locale
                 )
             }
             EfficiencyChart(history, today, stringResource(R.string.efficiency_description, reference), locale)
+            val warm = history.points.count { it.heatAdjusted }
+            if (warm > 0) {
+                Text(
+                    pluralStringResource(R.plurals.efficiency_heat_adjusted, warm, warm),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

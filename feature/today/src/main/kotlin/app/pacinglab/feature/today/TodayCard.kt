@@ -2,7 +2,7 @@ package app.pacinglab.feature.today
 
 import androidx.annotation.StringRes
 import app.pacinglab.core.data.repository.CardSpec
-import app.pacinglab.core.designsystem.R as DesignR
+import app.pacinglab.core.ui.R as UiR
 
 /**
  * Everything Today can show, in the default order. Wide cards take the whole width; tiles take one
@@ -29,7 +29,7 @@ enum class TodayCard(
     BREATHING_RATE("breathing", false, R.string.tile_breathing, R.string.card_breathing),
     FORM("form", false, R.string.tile_form, R.string.today_card_form),
     WEEK_LOAD("week", false, R.string.tile_week, R.string.card_week),
-    TRAINING_STATUS("training_status", true, DesignR.string.training_status_title, R.string.card_training_status),
+    TRAINING_STATUS("training_status", true, UiR.string.training_status_title, R.string.card_training_status),
     LAST_WORKOUT("workout", true, R.string.workout_title, R.string.card_workout),
     WEATHER("weather", true, R.string.weather_title, R.string.card_weather),
     SLEEPING_HR("sleeping_hr", false, R.string.tile_sleeping_hr, R.string.card_sleeping_hr, hiddenByDefault = true),

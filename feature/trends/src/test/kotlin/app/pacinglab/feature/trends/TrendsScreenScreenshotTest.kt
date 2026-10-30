@@ -1,5 +1,7 @@
 package app.pacinglab.feature.trends
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
@@ -15,8 +17,10 @@ import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.IntensityDomain
 import app.pacinglab.core.analytics.load.IntensityFocus
 import app.pacinglab.core.analytics.load.LoadScores
+import app.pacinglab.core.analytics.load.TrainingCalendar
 import app.pacinglab.core.analytics.load.TrainingLoads
 import app.pacinglab.core.analytics.load.TrainingStatus
+import app.pacinglab.core.analytics.load.WeeklyTargets
 import app.pacinglab.core.analytics.load.WorkoutLoad
 import app.pacinglab.core.analytics.recovery.HrvVariation
 import app.pacinglab.core.analytics.recovery.Night
@@ -25,6 +29,7 @@ import app.pacinglab.core.analytics.zones.ZoneDistribution
 import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.model.HeartRateAnchors
+import app.pacinglab.core.model.Sport
 import app.pacinglab.core.model.ZoneModel
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Rule
@@ -37,12 +42,13 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.util.Locale
 import kotlin.math.exp
 import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h3000dp-xxhdpi")
+@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h3500dp-xxhdpi")
 class TrendsScreenScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
@@ -76,6 +82,8 @@ class TrendsScreenScreenshotTest {
                         durationMillis = minutes * 60_000,
                         scores = LoadScores(scaled * 1.7, scaled, scaled * 2.6, minutes * 60_000),
                         intensity = ZoneDistribution(polarized, LongArray(3) { zones[it] * 60_000 }),
+                        sport = Sport.RUN,
+                        distanceMeters = minutes * 60 * 2.9 * (if (date.isAfter(today.minusDays(10))) 1.5 else 1.0),
                     ),
                 )
             }
@@ -114,6 +122,12 @@ class TrendsScreenScreenshotTest {
         ),
         focus = IntensityFocus.of(loads, today),
         hrvVariation = HrvVariation.of(nights, today),
+        loadBands = WeeklyTargets.loadBands(
+            FitnessModel.series(TrainingLoads.daily(loads), until = today),
+            TrainingLoads.weeks(loads, until = today, count = 8).map { it.start },
+        ),
+        running = WeeklyTargets.runningWeeks(loads.map { it.date to it.distanceMeters!! }, until = today, count = 12),
+        calendar = TrainingCalendar.days(loads),
     )
 
     @Test
@@ -146,6 +160,24 @@ class TrendsScreenScreenshotTest {
         compose.onAllNodesWithText("6 weeks")[0].performClick()
         compose.onNodeWithText("Today", substring = true).assertExists()
         compose.onNode(androidx.compose.ui.test.hasContentDescription(fitness)).assertExists()
+    }
+
+    /** The weekly table with its load band, running tolerance and the calendar, large enough to read. */
+    @Test
+    @Config(qualifiers = "w384dp-h1500dp-xxhdpi")
+    fun weeksRunningAndCalendar() {
+        compose.setContent {
+            PacingLabTheme {
+                Surface {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        WeeksCard(loaded.weeks, today, Locale.UK, bands = loaded.loadBands)
+                        RunningVolumeCard(loaded.running, today, Locale.UK)
+                        TrainingCalendarCard(loaded.calendar, today, Locale.UK, onOpenSession = {})
+                    }
+                }
+            }
+        }
+        compose.onRoot().captureRoboImage()
     }
 
     /** A threshold-heavy month: the share dots lie outside their bands, which stay visible. */

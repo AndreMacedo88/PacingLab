@@ -2,12 +2,17 @@ package app.pacinglab.feature.trends
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.pacinglab.core.analytics.load.CalendarDay
 import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.FormDay
 import app.pacinglab.core.analytics.load.IntensityFocus
+import app.pacinglab.core.analytics.load.LoadBand
+import app.pacinglab.core.analytics.load.RunningWeek
+import app.pacinglab.core.analytics.load.TrainingCalendar
 import app.pacinglab.core.analytics.load.TrainingLoads
 import app.pacinglab.core.analytics.load.TrainingStatus
 import app.pacinglab.core.analytics.load.WeekSummary
+import app.pacinglab.core.analytics.load.WeeklyTargets
 import app.pacinglab.core.analytics.recovery.HrvVariation
 import app.pacinglab.core.analytics.recovery.RecoveryDay
 import app.pacinglab.core.analytics.recovery.RecoveryTrend
@@ -19,6 +24,7 @@ import app.pacinglab.core.data.repository.PlacedCard
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.repository.TrainingStatusRepository
 import app.pacinglab.core.data.sync.SyncScheduler
+import app.pacinglab.core.model.Sport
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
@@ -44,6 +50,9 @@ sealed interface TrendsUiState {
      * @property status today's training status; null with too little history.
      * @property focus the intensity focus of the last four weeks; null with too little endurance training.
      * @property hrvVariation the week's HRV coefficient of variation; null with too few nights.
+     * @property loadBands the load that builds fitness in each of [weeks], by Monday.
+     * @property running running distance of the latest weeks against the athlete's tolerance, newest first.
+     * @property calendar every day with training, for the month grid.
      */
     data class Loaded(
         val days: List<FormDay>,
@@ -54,6 +63,9 @@ sealed interface TrendsUiState {
         val status: TrainingStatus? = null,
         val focus: IntensityFocus? = null,
         val hrvVariation: HrvVariation? = null,
+        val loadBands: Map<LocalDate, LoadBand> = emptyMap(),
+        val running: List<RunningWeek> = emptyList(),
+        val calendar: Map<LocalDate, CalendarDay> = emptyMap(),
     ) : TrendsUiState
 }
 
@@ -84,15 +96,23 @@ class TrendsViewModel @Inject constructor(
         if (days.isEmpty() && loads.isNotEmpty()) {
             TrendsUiState.NeedsHeartRateValues
         } else {
+            val weeks = TrainingLoads.weeks(loads, until = today, count = WEEKS)
             TrendsUiState.Loaded(
                 days,
-                TrainingLoads.weeks(loads, until = today, count = WEEKS),
+                weeks,
                 today,
                 recoveryDays,
                 layout.arrange(TrendsCardKind.catalog),
                 status = status,
                 focus = focus,
                 hrvVariation = variation,
+                loadBands = WeeklyTargets.loadBands(days, weeks.map { it.start }),
+                running = WeeklyTargets.runningWeeks(
+                    loads.filter { it.sport == Sport.RUN }.mapNotNull { load -> load.distanceMeters?.let { load.date to it } },
+                    until = today,
+                    count = RUNNING_WEEKS,
+                ),
+                calendar = TrainingCalendar.days(loads),
             )
         }
     }
@@ -115,5 +135,6 @@ class TrendsViewModel @Inject constructor(
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
         const val WEEKS = 8
+        const val RUNNING_WEEKS = 12
     }
 }

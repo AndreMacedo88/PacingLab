@@ -23,7 +23,7 @@
     <string name="chart_form">Form</string>
 
     <string name="weeks_title">Weekly training</string>
-    <string name="weeks_info" tools:ignore="Typos" formatted="false">Weeks run from Monday to Sunday.\n\n- Load: the stress scores of the week added up.\n- Hours: the duration of every workout that counts as training.\n- Intensity: how the time with heart rate splits over three zones: below the first ventilatory threshold (VT1), between VT1 and VT2, and above VT2.\n\nStudies of successful endurance athletes typically find most of their training time, often around 80 %, below VT1 (Seiler 2010).</string>
+    <string name="weeks_info" tools:ignore="Typos" formatted="false">Weeks run from Monday to Sunday.\n\n- Load: the stress scores of the week added up.\n- Hours: the duration of every workout that counts as training.\n- Intensity: how the time with heart rate splits over three zones: below the first ventilatory threshold (VT1), between VT1 and VT2, and above VT2.\n\nStudies of successful endurance athletes typically find most of their training time, often around 80 %, below VT1 (Seiler 2010).\n\n# The shaded band\nThe load that builds fitness without a jump: from 0.8 to 1.3 times a usual week at the fitness the week started with (7 x fitness). Below it fitness falls; above it the week is a jump the body is not used to. This is the acute to chronic workload ratio\'s sweet spot (Gabbett 2016); its use for injury prediction is disputed (Impellizzeri 2020), so it is a guide, not a target to hit.</string>
     <string name="weeks_week">Week</string>
     <string name="weeks_load">Load</string>
     <string name="weeks_time">Hours</string>
@@ -83,4 +83,29 @@
     <string name="focus_info" formatted="false">How the last four weeks of running and riding split over the three intensity zones, by time with heart rate, against target bands. Garmin\'s load focus shows the same idea with bands it does not publish; these come from the training of successful endurance athletes, which is pyramidal or polarized (Seiler 2010; Stöggl and Sperlich 2015; Kenneally 2018):\n\n- Below VT1: 70 to 90 %. Easy running builds the aerobic base and is what allows the hard sessions.\n- VT1 to VT2: up to 25 %. Tempo and threshold work; more than this tends to stall progress in trained athletes.\n- Above VT2: 5 to 20 %. Intervals at or above threshold.\n\nThe distribution\'s shape follows Treff (2019): polarized when zone 1 > zone 3 > zone 2 with a polarization index above 2, pyramidal when zone 1 > zone 2 > zone 3, threshold-focused or high-intensity when zone 2 or zone 3 is the largest.\n\nHeart rate lags at the start of each rep, so short reps count partly in a lower zone. Gym sessions and other sports are left out.</string>
     <string name="recovery_hrv_cv">7-day variation %1$s %%</string>
     <string name="recovery_hrv_cv_usual">usual %1$s–%2$s %%</string>
+    <string name="card_running">Weekly running distance against your tolerance</string>
+    <string name="card_calendar">A month of training, a dot per day</string>
+    <string name="weeks_band_legend">Shaded: the load that builds fitness</string>
+    <string name="running_title">Running tolerance</string>
+    <string name="running_this_week">Running this week</string>
+    <string name="running_km">%1$s km</string>
+    <string name="running_tolerance">Tolerance %1$s km: your usual %2$s km a week plus 30 %%</string>
+    <string name="running_no_tolerance">No running in the four weeks before, so no tolerance yet</string>
+    <string name="running_within">Within</string>
+    <string name="running_above">Above</string>
+    <plurals name="running_chart_description">
+        <item quantity="one">Running distance of the last %1$d week, each with its tolerance</item>
+        <item quantity="other">Running distance of the last %1$d weeks, each with its tolerance</item>
+    </plurals>
+    <string name="running_info" formatted="false">How far you ran this week against what your legs are used to: the average of the four weeks before plus 30 %. Bars are weeks (Monday to Sunday); the tick over each bar is that week\'s tolerance; a week above it turns orange.\n\nRunners who raised their weekly distance by more than 30 % had more overuse injuries (knee, iliotibial band) than those who stayed within 10 % (Nielsen 2014), and in half-marathon training, increases of 20 to 60 % came with more injuries in the first weeks (Damsted 2019). The evidence is limited, so read it as a caution, not a limit: a big week after a quiet month is the case to watch. Garmin\'s running tolerance rests on the same idea with its own, unpublished rule; it also counts hills and running form, which a Sense does not measure.</string>
+    <string name="calendar_title">Training calendar</string>
+    <string name="calendar_previous">Previous month</string>
+    <string name="calendar_next">Next month</string>
+    <string name="calendar_no_heart_rate">No heart rate</string>
+    <string name="calendar_day_description">%1$s: load %2$d, %3$s</string>
+    <plurals name="calendar_month_summary">
+        <item quantity="one">%1$d session · %2$s · load %3$d</item>
+        <item quantity="other">%1$d sessions · %2$s · load %3$d</item>
+    </plurals>
+    <string name="calendar_info">A dot on each day with training. Its area grows with the day\'s load (the largest dot is the biggest day of the last six months); its colour is the day\'s hardest meaningful intensity, the zone colours of the intensity focus: above VT2 from 15 %% of the day\'s time, between the thresholds from 20 %%, otherwise below VT1. Sessions are named by their goal this way (Seiler 2010): an interval day counts as hard although most of its minutes are easy. Grey days had no heart rate in zones, such as gym sessions.\n\nTap a day to open its main session.</string>
 </resources>

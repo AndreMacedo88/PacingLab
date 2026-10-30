@@ -27,6 +27,14 @@ class SessionWeatherStore @Inject constructor(database: PacingLabDatabase) {
 
     suspend fun get(workoutId: String): StoredSessionWeather? = dao.get(workoutId)?.toDomain()
 
+    /** The weather found for every workout that has some, by workout id. */
+    fun observeFound(): Flow<Map<String, SessionWeather>> = dao.observeAll().map { rows ->
+        rows.mapNotNull { row -> (row.toDomain() as? StoredSessionWeather.Found)?.let { row.workoutId to it.weather } }.toMap()
+    }
+
+    /** Workouts looked up already, with or without a result. */
+    suspend fun lookedUp(): Set<String> = dao.ids().toSet()
+
     suspend fun save(workoutId: String, weather: SessionWeather, fetched: Instant) = dao.upsert(
         SessionWeatherEntity(
             workoutId = workoutId,

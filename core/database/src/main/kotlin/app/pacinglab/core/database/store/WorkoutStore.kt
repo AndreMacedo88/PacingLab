@@ -76,6 +76,13 @@ class WorkoutStore @Inject constructor(database: PacingLabDatabase) {
         )
     }
 
+    /** Where the route of a workout starts, or null without one. */
+    suspend fun routeStart(id: String): Pair<Double, Double>? =
+        dao.stream(id, ROUTE)?.let { StreamCodec.decodeRoute(it.data) }?.takeIf { !it.isEmpty() }?.let {
+            it.latitudes.first() to
+                it.longitudes.first()
+        }
+
     /** Only the heart rate of a workout, for calculations over the whole history. */
     suspend fun heartRate(id: String): HeartRateSeries =
         dao.stream(id, HEART_RATE)?.let { StreamCodec.decodeHeartRate(it.data) } ?: HeartRateSeries.EMPTY

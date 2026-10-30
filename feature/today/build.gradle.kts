@@ -7,6 +7,7 @@ android {
 }
 
 dependencies {
+    implementation(projects.core.ui)
     implementation(projects.core.data)
     implementation(projects.core.maps)
 }

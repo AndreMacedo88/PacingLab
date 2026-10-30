@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -209,7 +210,13 @@ private fun Readout(
         }
         range?.let {
             Text(
-                stringResource(R.string.metric_range, metric.number(it.low, locale), metric.formatted(it.high, locale), it.nights),
+                pluralStringResource(
+                    R.plurals.metric_range,
+                    it.nights,
+                    metric.number(it.low, locale),
+                    metric.formatted(it.high, locale),
+                    it.nights,
+                ),
                 style = MaterialTheme.typography.bodySmall.tabularNumbers(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

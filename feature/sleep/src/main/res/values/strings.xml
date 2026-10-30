@@ -83,12 +83,6 @@
     <string name="sleep_heart_rate_description">Heart rate during the night, average %1$d, lowest %2$d bpm</string>
 
     <string name="sleep_body_title">Vitals</string>
-    <string name="vitals_all_typical">All within your usual range.</string>
-    <string name="vitals_one_outside">%1$s is outside your usual range. One measure on its own often is.</string>
-    <plurals name="vitals_alert">
-        <item quantity="one">%1$d measure outside your usual range: %2$s.</item>
-        <item quantity="other">%1$d measures outside your usual range: %2$s. Several at once can mean an illness starting, alcohol, travel or hard training.</item>
-    </plurals>
     <string name="sleep_hrv">HRV</string>
     <string name="sleep_resting_hr">Resting heart rate</string>
     <string name="sleep_breathing">Breathing rate</string>

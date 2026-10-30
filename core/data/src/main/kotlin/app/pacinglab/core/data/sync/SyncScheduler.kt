@@ -72,10 +72,11 @@ class SyncScheduler @Inject constructor(
             val minimum = launch { delay(MIN_REFRESH_MILLIS) }
             val outcome = sync.sync()
             val google = googleHealth.sync()
-            runAfterSync(afterSync)
             minimum.join()
             problemOf(outcome, google)?.let { _problems.emit(it) }
             pulled.value = false
+            // The widget and the weather lookups follow once the indicator has stopped.
+            runAfterSync(afterSync)
             if (outcome.rateLimited) syncNow()
         }
     }

@@ -8,6 +8,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object TrendsKey : NavKey
 
-fun EntryProviderScope<NavKey>.trendsEntries(openPhysiology: () -> Unit, openSettings: () -> Unit) {
-    entry<TrendsKey> { TrendsRoute(onOpenPhysiology = openPhysiology, onOpenSettings = openSettings) }
+fun EntryProviderScope<NavKey>.trendsEntries(openPhysiology: () -> Unit, openSettings: () -> Unit, openSession: (String) -> Unit = {}) {
+    entry<TrendsKey> { TrendsRoute(onOpenPhysiology = openPhysiology, onOpenSettings = openSettings, onOpenSession = openSession) }
 }

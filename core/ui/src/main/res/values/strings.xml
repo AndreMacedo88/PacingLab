@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="vitals_all_typical">All within your usual range.</string>
+    <string name="vitals_one_outside">%1$s is outside your usual range. One measure on its own often is.</string>
+    <plurals name="vitals_alert">
+        <item quantity="one">%1$d measure outside your usual range: %2$s.</item>
+        <item quantity="other">%1$d measures outside your usual range: %2$s. Several at once can mean an illness starting, alcohol, travel or hard training.</item>
+    </plurals>
+    <string name="training_status_title">Training status</string>
+    <string name="training_status_productive">Productive</string>
+    <string name="training_status_maintaining">Maintaining</string>
+    <string name="training_status_peaking">Peaking</string>
+    <string name="training_status_recovery">Recovery</string>
+    <string name="training_status_unproductive">Unproductive</string>
+    <string name="training_status_detraining">Detraining</string>
+    <string name="training_status_overreaching">Overreaching</string>
+    <string name="training_status_strained">Strained</string>
+    <string name="training_status_productive_detail">Training at your usual load and VO2max is rising.</string>
+    <string name="training_status_maintaining_detail">Training at your usual load holds your fitness.</string>
+    <string name="training_status_peaking_detail">A lighter week after solid training: fresh, with fitness intact.</string>
+    <string name="training_status_recovery_detail">A lighter week lets the body catch up.</string>
+    <string name="training_status_unproductive_detail">Usual load, but VO2max is falling: recovery may not be keeping up.</string>
+    <string name="training_status_detraining_detail">Much less training than usual for a while, and fitness is falling.</string>
+    <string name="training_status_overreaching_detail">This week\'s load is far above your usual: more than the body absorbs for long.</string>
+    <string name="training_status_strained_detail">Your HRV is below its normal range while training goes on.</string>
+</resources>

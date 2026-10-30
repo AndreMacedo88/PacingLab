@@ -38,3 +38,31 @@ object HeatStress {
         else -> HeatStressLevel.EXTREME
     }
 }
+
+/**
+ * How much heat slows running at a given effort, for adjusting heart rate based estimates to cool
+ * conditions. Across 1,258 elite races, performance was best between 7.5 and 15 °C WBGT and fell by 0.3
+ * to 0.4 % for every degree above (Mantzios 2022). A run at the same heart rate in the heat therefore
+ * stands for a speed about that much higher in cool conditions; estimates built from speed at heart rate
+ * (VO2max per run, aerobic efficiency) are scaled by [speedFactor]. The races were run all out, so for
+ * steady easy and moderate running this is an assumption; it agrees in size with heart rate rising a few
+ * beats a minute at a given pace on warm days. Cold is left alone: it hardly raises heart rate.
+ */
+object HeatAdjustment {
+    /** Upper end of the WBGT range with the best performances, °C. */
+    const val OPTIMUM_UPPER = 15.0
+
+    /** Share of speed lost per degree of WBGT above [OPTIMUM_UPPER]: the middle of 0.3 to 0.4 %. */
+    const val PER_DEGREE = 0.0035
+
+    /** The factor a speed run at [wbgt] is multiplied by to stand for cool conditions; 1 up to 15 °C. */
+    fun speedFactor(wbgt: Double): Double = 1 + PER_DEGREE * maxOf(0.0, wbgt - OPTIMUM_UPPER)
+
+    /**
+     * A VO2max estimated from speed at heart rate, adjusted to cool conditions: the oxygen cost above rest
+     * (3.5 ml/kg/min) grows with speed, so that part is scaled by [speedFactor].
+     */
+    fun vo2max(estimate: Double, wbgt: Double): Double = REST + speedFactor(wbgt) * (estimate - REST)
+
+    private const val REST = 3.5
+}

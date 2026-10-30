@@ -29,8 +29,11 @@ import app.pacinglab.core.analytics.performance.TrainingPaces
 import app.pacinglab.core.analytics.performance.Vo2MaxPoint
 import app.pacinglab.core.analytics.performance.Vo2MaxSource
 import app.pacinglab.core.analytics.performance.Vo2MaxTrend
+import app.pacinglab.core.analytics.weather.HeatAdjustment
+import app.pacinglab.core.analytics.weather.HeatStress
 import app.pacinglab.core.analytics.workout.StreamCleaning
 import app.pacinglab.core.analytics.workout.TrainingSessions
+import app.pacinglab.core.data.weather.SessionWeatherRepository
 import app.pacinglab.core.database.store.DailyVitalsStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.WorkoutStore
@@ -120,8 +123,14 @@ class PerformanceRepository @Inject constructor(
     private val measurements: MeasurementStore,
     trainingLoad: TrainingLoadRepository,
     dailyVitals: DailyVitalsStore,
+    weather: SessionWeatherRepository,
     private val clock: Clock,
 ) {
+    /** WBGT of every run with weather, by workout id, for the heat adjustment. */
+    private val heat: Flow<Map<String, Double>> = weather.observeFound()
+        .map { found -> found.mapValues { (_, w) -> HeatStress.wbgt(w.temperature, w.humidity) } }
+        .distinctUntilChanged()
+
     private class Cached(val value: Double?, val windows: Int)
 
     private data class Key(val workoutId: String, val lastModified: Instant, val anchors: HeartRateAnchors?)
@@ -137,8 +146,9 @@ class PerformanceRepository @Inject constructor(
         trainingLoad.anchors,
         measurements.observeMeasurements(MeasurementKind.VO2_MAX, Instant.EPOCH, FAR_FUTURE),
         fitbitDaily,
-    ) { all, timeline, recorded, daily -> VoInputs(all, timeline, recorded, daily) }
-        .mapLatest { (all, timeline, recorded, daily) ->
+        heat,
+    ) { all, timeline, recorded, daily, wbgt -> VoInputs(all, timeline, recorded, daily, wbgt) }
+        .mapLatest { (all, timeline, recorded, daily, wbgt) ->
             val runs = TrainingSessions.removeDuplicates(all.filter { it.sport == Sport.RUN && TrainingLoads.counts(it) })
             val byDay = runs.mapNotNull { workout ->
                 val date = TrainingLoads.dateOf(workout, clock.zone)
@@ -153,7 +163,10 @@ class PerformanceRepository @Inject constructor(
                     }
                     Cached(estimate?.value, estimate?.windows ?: 0).also { estimates[key] = it }
                 }
-                cached.value?.let { Triple(date, it, cached.windows) }
+                // Heat raises heart rate at a pace, so a warm run's estimate stands for a higher one in the cool.
+                cached.value?.let { value ->
+                    Triple(date, wbgt[workout.id]?.let { HeatAdjustment.vo2max(value, it) } ?: value, cached.windows)
+                }
             }.groupBy { it.first }
             val own = byDay.map { (date, day) ->
                 val windows = day.sumOf { it.third }
@@ -188,15 +201,15 @@ class PerformanceRepository @Inject constructor(
         val timeline: AnchorTimeline,
         val recorded: List<Measurement>,
         val daily: List<FitbitDailyVo2Max>,
+        val wbgt: Map<String, Double>,
     )
 
     private val efficiencies = ConcurrentHashMap<Key, Cached>()
 
-    private val efficiency: Flow<EfficiencyHistory> = combine(workouts.observeAll(), trainingLoad.anchors) { all, timeline ->
-        all to
-            timeline
+    private val efficiency: Flow<EfficiencyHistory> = combine(workouts.observeAll(), trainingLoad.anchors, heat) { all, timeline, wbgt ->
+        Triple(all, timeline, wbgt)
     }
-        .mapLatest { (all, timeline) ->
+        .mapLatest { (all, timeline, wbgt) ->
             val runs = TrainingSessions.removeDuplicates(all.filter { it.sport == Sport.RUN && TrainingLoads.counts(it) })
             val points = runs.mapNotNull { workout ->
                 val date = TrainingLoads.dateOf(workout, clock.zone)
@@ -214,7 +227,10 @@ class PerformanceRepository @Inject constructor(
                     )
                     Cached(estimate?.speedAtReference, estimate?.windows ?: 0).also { efficiencies[key] = it }
                 }
-                cached.value?.let { EfficiencyPoint(date, it, cached.windows) }
+                cached.value?.let { speed ->
+                    val runWbgt = wbgt[workout.id]
+                    EfficiencyPoint(date, runWbgt?.let { speed * HeatAdjustment.speedFactor(it) } ?: speed, cached.windows, runWbgt)
+                }
             }.sortedBy { it.date }
             val today = LocalDate.now(clock)
             EfficiencyHistory(
@@ -231,10 +247,15 @@ class PerformanceRepository @Inject constructor(
 
     private val runAnalyses = ConcurrentHashMap<Key, RunAnalysis>()
 
-    private val running: Flow<RunningPerformance> = combine(workouts.observeAll(), trainingLoad.anchors, history) { all, timeline, vo2 ->
-        Triple(all, timeline, vo2)
+    private val running: Flow<RunningPerformance> = combine(workouts.observeAll(), trainingLoad.anchors, history, heat) {
+            all,
+            timeline,
+            vo2,
+            wbgt,
+        ->
+        RunningInputs(all, timeline, vo2, wbgt)
     }
-        .mapLatest { (all, timeline, vo2) ->
+        .mapLatest { (all, timeline, vo2, wbgt) ->
             val today = LocalDate.now(clock)
             val runs = TrainingSessions.removeDuplicates(all.filter { it.sport == Sport.RUN && TrainingLoads.counts(it) })
             val analysed = runs.map { workout ->
@@ -262,13 +283,20 @@ class PerformanceRepository @Inject constructor(
                 shape = shape,
                 paces = vo2max?.let(TrainingPaceCalculator::of),
                 decoupling = analysed.mapNotNull { (dated, analysis) ->
-                    analysis.decoupling?.let { DecouplingPoint(dated.first, dated.second, it) }
+                    analysis.decoupling?.let { DecouplingPoint(dated.first, dated.second, it, wbgt[dated.second]) }
                 }.sortedBy { it.date },
             )
         }
         .flowOn(Dispatchers.Default)
 
     fun observeRunning(): Flow<RunningPerformance> = running
+
+    private data class RunningInputs(
+        val workouts: List<Workout>,
+        val timeline: AnchorTimeline,
+        val vo2: Vo2MaxHistory,
+        val wbgt: Map<String, Double>,
+    )
 
     /**
      * Efforts come from the GPS track where there is one. Without it the watch's own speed is used, except

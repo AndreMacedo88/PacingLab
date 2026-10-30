@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -114,7 +115,7 @@ private fun SpeedDurationChart(durations: Map<Int, BestPair>, locale: Locale, mo
     val slowest = ceil(paces.max() / PACE_STEP) * PACE_STEP
     val step = if (slowest - fastest > 4 * 60) 2 * PACE_STEP else PACE_STEP
     val longest = durations.keys.max().toDouble()
-    val description = stringResource(R.string.efforts_chart_description, durations.size)
+    val description = pluralStringResource(R.plurals.efforts_chart_description, durations.size, durations.size)
     val ticks = DURATION_TICKS.map { seconds ->
         seconds to
             if (seconds <

@@ -38,6 +38,7 @@ import app.pacinglab.core.data.repository.NightRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.repository.TrainingStatusRepository
 import app.pacinglab.core.data.sync.AfterSync
+import app.pacinglab.core.ui.label
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -137,7 +138,7 @@ class TodayWidget : GlanceAppWidget() {
             Spacer(GlanceModifier.height(6.dp))
             Text(
                 text = listOfNotNull(
-                    snapshot.status?.let { context.getString(it.word()) },
+                    snapshot.status?.let { context.getString(it.label()) },
                     snapshot.vitalsOutside?.let {
                         if (it == 0) {
                             context.getString(R.string.widget_vitals_typical)
@@ -171,17 +172,6 @@ class TodayWidget : GlanceAppWidget() {
         SleepRating.GOOD -> R.string.widget_good
         SleepRating.FAIR -> R.string.widget_fair
         SleepRating.POOR -> R.string.widget_poor
-    }
-
-    private fun TrainingStatusKind.word(): Int = when (this) {
-        TrainingStatusKind.PRODUCTIVE -> app.pacinglab.core.designsystem.R.string.training_status_productive
-        TrainingStatusKind.MAINTAINING -> app.pacinglab.core.designsystem.R.string.training_status_maintaining
-        TrainingStatusKind.PEAKING -> app.pacinglab.core.designsystem.R.string.training_status_peaking
-        TrainingStatusKind.RECOVERY -> app.pacinglab.core.designsystem.R.string.training_status_recovery
-        TrainingStatusKind.UNPRODUCTIVE -> app.pacinglab.core.designsystem.R.string.training_status_unproductive
-        TrainingStatusKind.DETRAINING -> app.pacinglab.core.designsystem.R.string.training_status_detraining
-        TrainingStatusKind.OVERREACHING -> app.pacinglab.core.designsystem.R.string.training_status_overreaching
-        TrainingStatusKind.STRAINED -> app.pacinglab.core.designsystem.R.string.training_status_strained
     }
 
     private companion object {
