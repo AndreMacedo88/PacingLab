@@ -52,7 +52,7 @@ class TrainingLoadRepository @Inject constructor(
     private val ratings: EffortRepository,
     private val clock: Clock,
 ) {
-    private class Cached(val scores: LoadScores?, val intensity: ZoneDistribution?)
+    private class Cached(val scores: LoadScores?, val intensity: ZoneDistribution?, val zones: ZoneDistribution? = null)
 
     private data class CacheKey(
         val workoutId: String,
@@ -181,7 +181,17 @@ class TrainingLoadRepository @Inject constructor(
             } else {
                 (cached.scores ?: LoadScores.ZERO).copy(stressScore = EffortLoad.stressScore(effort, millis))
             }
-            WorkoutLoad(workout.id, date, millis, scores, cached.intensity, effort, workout.sport, workout.summary.distanceMeters)
+            WorkoutLoad(
+                workoutId = workout.id,
+                date = date,
+                durationMillis = millis,
+                scores = scores,
+                intensity = cached.intensity,
+                effort = effort,
+                sport = workout.sport,
+                distanceMeters = workout.summary.distanceMeters,
+                zones = cached.zones,
+            )
         }
     }
 
@@ -192,6 +202,7 @@ class TrainingLoadRepository @Inject constructor(
         return Cached(
             HeartRateLoad.of(heartRate, anchors, weighting),
             TimeInZones.compute(heartRate, Zones.of(ZoneModel.POLARIZED_THREE, anchors)),
+            TimeInZones.compute(heartRate, Zones.of(ZoneModel.LTHR_FIVE, anchors)),
         )
     }
 }

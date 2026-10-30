@@ -49,6 +49,7 @@ enum class DarkMode {
  * @property birthDate the athlete's, for comparisons with people of the same age; null when not given.
  * @property morningReminder a notification asks the morning question when it is still open after waking.
  * @property sessionWeather the weather at the start of each session is looked up when a session opens.
+ * @property weeksInFiveZones Trends' weekly table splits time over the five zones rather than the three.
  */
 data class UserPreferences(
     val sessionMergeGap: Duration = TrainingSessions.DEFAULT_MAX_GAP,
@@ -62,6 +63,7 @@ data class UserPreferences(
     val birthDate: LocalDate? = null,
     val morningReminder: Boolean = false,
     val sessionWeather: Boolean = true,
+    val weeksInFiveZones: Boolean = true,
 ) {
     /** Age in whole years on [date], or null without a birth date. */
     fun ageOn(date: LocalDate): Int? = birthDate?.let { Period.between(it, date).years }
@@ -86,6 +88,7 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
             birthDate = values[BIRTH_DATE]?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
             morningReminder = values[MORNING_REMINDER] ?: false,
             sessionWeather = values[SESSION_WEATHER] ?: true,
+            weeksInFiveZones = values[WEEKS_IN_FIVE_ZONES] ?: true,
         )
     }
 
@@ -145,6 +148,10 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         dataStore.edit { it[SESSION_WEATHER] = on }
     }
 
+    suspend fun setWeeksInFiveZones(five: Boolean) {
+        dataStore.edit { it[WEEKS_IN_FIVE_ZONES] = five }
+    }
+
     companion object {
         val MAX_MERGE_GAP: Duration = Duration.ofMinutes(60)
         val MIN_SLEEP_NEED: Duration = Duration.ofHours(6)
@@ -161,5 +168,6 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         private val BIRTH_DATE = stringPreferencesKey("birth_date")
         private val MORNING_REMINDER = booleanPreferencesKey("morning_reminder")
         private val SESSION_WEATHER = booleanPreferencesKey("session_weather")
+        private val WEEKS_IN_FIVE_ZONES = booleanPreferencesKey("trends_weeks_five_zones")
     }
 }

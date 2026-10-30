@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -92,6 +94,7 @@ fun TrendsRoute(
         onArrange = viewModel::arrange,
         onResetArrangement = viewModel::resetArrangement,
         onOpenSession = onOpenSession,
+        onWeeksZonesChange = viewModel::setWeeksInFiveZones,
     )
 }
 
@@ -109,6 +112,7 @@ fun TrendsScreen(
     onResetArrangement: () -> Unit = {},
     initiallyEditing: Boolean = false,
     onOpenSession: (String) -> Unit = {},
+    onWeeksZonesChange: (Boolean) -> Unit = {},
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var editing by rememberSaveable { mutableStateOf(initiallyEditing) }
@@ -182,7 +186,14 @@ fun TrendsScreen(
                                 }
 
                                 TrendsCardKind.WEEKS -> item(key = card.id) {
-                                    WeeksCard(state.weeks, state.today, locale, bands = state.loadBands)
+                                    WeeksCard(
+                                        state.weeks,
+                                        state.today,
+                                        locale,
+                                        bands = state.loadBands,
+                                        fiveZones = state.fiveZones,
+                                        onZonesChange = onWeeksZonesChange,
+                                    )
                                 }
 
                                 TrendsCardKind.FOCUS -> item(key = card.id) { IntensityFocusCard(state.focus) }
@@ -276,9 +287,10 @@ private fun Value(label: String, value: Double, key: Color?, modifier: Modifier 
 
 /**
  * The latest weeks, newest first: load as a bar, training time and how the time with heart rate splits
- * over the three polarized zones. Load is grey, as the daily load in the fitness chart, so that it is not
- * read as the zone of the same blue.
+ * over the five zones or the three polarized ones ([fiveZones], switched under the table). Load is grey,
+ * as the daily load in the fitness chart, so that it is not read as the zone of the same blue.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun WeeksCard(
     weeks: List<WeekSummary>,
@@ -286,10 +298,13 @@ internal fun WeeksCard(
     locale: Locale,
     modifier: Modifier = Modifier,
     bands: Map<LocalDate, LoadBand> = emptyMap(),
+    fiveZones: Boolean = false,
+    onZonesChange: (Boolean) -> Unit = {},
 ) {
     val start = remember(locale) { DateTimeFormatter.ofPattern("d MMM", locale) }
     val maxLoad = (weeks.map { it.load } + bands.values.map { it.high }).maxOrNull()?.takeIf { it > 0 } ?: 1.0
-    val zones = zoneColors(3)
+    val model = if (fiveZones) ZoneModel.LTHR_FIVE else ZoneModel.POLARIZED_THREE
+    val zones = zoneColors(if (fiveZones) 5 else 3)
     val bar = chartColors().muted
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     TrendCard(title = stringResource(R.string.weeks_title), info = stringResource(R.string.weeks_info), modifier = modifier) {
@@ -329,7 +344,11 @@ internal fun WeeksCard(
                     textAlign = TextAlign.End,
                     modifier = Modifier.width(TIME_WIDTH),
                 )
-                IntensityBar(week.intensityMillis, zones, Modifier.width(INTENSITY_WIDTH).padding(start = 12.dp))
+                IntensityBar(
+                    if (fiveZones) week.zoneMillis else week.intensityMillis,
+                    zones,
+                    Modifier.width(INTENSITY_WIDTH).padding(start = 12.dp),
+                )
             }
         }
         if (bands.isNotEmpty()) {
@@ -338,13 +357,20 @@ internal fun WeeksCard(
                 Text(stringResource(R.string.weeks_band_legend), style = MaterialTheme.typography.labelSmall, color = muted)
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            for (i in 0 until 3) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Box(Modifier.size(10.dp).background(zones[i], RoundedCornerShape(2.dp)))
-                    Text(stringResource(ZoneModel.POLARIZED_THREE.zoneName(i)), style = MaterialTheme.typography.labelSmall, color = muted)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            FlowRow(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                for (i in zones.indices) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(Modifier.size(10.dp).background(zones[i], RoundedCornerShape(2.dp)))
+                        Text(stringResource(model.zoneName(i)), style = MaterialTheme.typography.labelSmall, color = muted)
+                    }
                 }
             }
+            ZoneCountToggle(five = fiveZones, onChange = onZonesChange, modifier = Modifier.padding(start = 8.dp))
         }
     }
 }
@@ -372,7 +398,7 @@ private fun LoadBar(load: Double, band: LoadBand?, scale: Double, color: Color, 
     }
 }
 
-/** Shares of the three zones as one bar split into segments with a small gap between them. */
+/** Shares of the zones as one bar split into segments with a small gap between them. */
 @Composable
 private fun IntensityBar(millis: LongArray, colors: List<Color>, modifier: Modifier = Modifier) {
     val total = millis.sum()

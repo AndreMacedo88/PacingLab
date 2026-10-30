@@ -23,7 +23,7 @@
     <string name="chart_form">Form</string>
 
     <string name="weeks_title">Weekly training</string>
-    <string name="weeks_info" tools:ignore="Typos" formatted="false">Weeks run from Monday to Sunday.\n\n- Load: the stress scores of the week added up.\n- Hours: the duration of every workout that counts as training.\n- Intensity: how the time with heart rate splits over three zones: below the first ventilatory threshold (VT1), between VT1 and VT2, and above VT2.\n\nStudies of successful endurance athletes typically find most of their training time, often around 80 %, below VT1 (Seiler 2010).\n\n# The shaded band\nThe load that builds fitness without a jump: from 0.8 to 1.3 times a usual week at the fitness the week started with (7 x fitness). Below it fitness falls; above it the week is a jump the body is not used to. This is the acute to chronic workload ratio\'s sweet spot (Gabbett 2016); its use for injury prediction is disputed (Impellizzeri 2020), so it is a guide, not a target to hit.</string>
+    <string name="weeks_info" tools:ignore="Typos" formatted="false">Weeks run from Monday to Sunday.\n\n- Load: the stress scores of the week added up.\n- Hours: the duration of every workout that counts as training.\n- Intensity: how the time with heart rate splits over your five zones, as on the session pages, or over the three of the intensity focus: below the first ventilatory threshold (VT1), between VT1 and VT2, and above VT2. The switch under the table picks one. The two do not nest exactly: the threshold zone straddles VT2.\n\nStudies of successful endurance athletes typically find most of their training time, often around 80 %, below VT1 (Seiler 2010).\n\n# The shaded band\nThe load that builds fitness without a jump: from 0.8 to 1.3 times a usual week at the fitness the week started with (7 x fitness). Below it fitness falls; above it the week is a jump the body is not used to. This is the acute to chronic workload ratio\'s sweet spot (Gabbett 2016); its use for injury prediction is disputed (Impellizzeri 2020), so it is a guide, not a target to hit.</string>
     <string name="weeks_week">Week</string>
     <string name="weeks_load">Load</string>
     <string name="weeks_time">Hours</string>
@@ -86,6 +86,9 @@
     <string name="card_running">Weekly running distance against your tolerance</string>
     <string name="card_calendar">A month of training, a dot per day</string>
     <string name="weeks_band_legend">Shaded: the load that builds fitness</string>
+    <string name="weeks_zones">Zones</string>
+    <string name="weeks_zones_five">5 zones</string>
+    <string name="weeks_zones_three">3 zones</string>
     <string name="running_title">Running tolerance</string>
     <string name="running_this_week">Running this week</string>
     <string name="running_km">%1$s km</string>

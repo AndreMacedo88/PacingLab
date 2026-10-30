@@ -24,6 +24,7 @@ import kotlin.math.abs
  *
  * @property scores null when the workout has no heart rate or no resting heart rate is known for its date.
  * @property intensity time in the three polarized zones; null without heart rate anchors for the date.
+ * @property zones time in the five threshold-based zones, likewise.
  */
 data class WorkoutLoad(
     val workoutId: String,
@@ -34,12 +35,14 @@ data class WorkoutLoad(
     val effort: Int? = null,
     val sport: Sport? = null,
     val distanceMeters: Double? = null,
+    val zones: ZoneDistribution? = null,
 )
 
 /**
  * One calendar week (Monday to Sunday) of training.
  *
  * @property intensityMillis time below VT1, between VT1 and VT2 and above VT2.
+ * @property zoneMillis time in each of the five threshold-based zones.
  * @property strain Foster's monotony and strain; null for a week without load.
  */
 data class WeekSummary(
@@ -49,6 +52,7 @@ data class WeekSummary(
     val workouts: Int,
     val intensityMillis: LongArray,
     val strain: WeekStrain?,
+    val zoneMillis: LongArray = LongArray(5),
 ) {
     override fun equals(other: Any?): Boolean = other is WeekSummary &&
         start == other.start &&
@@ -56,7 +60,8 @@ data class WeekSummary(
         durationMillis == other.durationMillis &&
         workouts == other.workouts &&
         intensityMillis.contentEquals(other.intensityMillis) &&
-        strain == other.strain
+        strain == other.strain &&
+        zoneMillis.contentEquals(other.zoneMillis)
 
     override fun hashCode(): Int = start.hashCode()
 }
@@ -90,9 +95,10 @@ object TrainingLoads {
             val start = lastMonday.minusWeeks(i.toLong())
             val inWeek = loads.filter { it.date >= start && it.date < start.plusWeeks(1) }
             val intensity = LongArray(3)
+            val five = LongArray(5)
             for (load in inWeek) {
-                val zones = load.intensity ?: continue
-                for (z in 0 until minOf(3, zones.millis.size)) intensity[z] += zones.millis[z]
+                load.intensity?.millis?.let { for (z in 0 until minOf(3, it.size)) intensity[z] += it[z] }
+                load.zones?.millis?.let { for (z in 0 until minOf(5, it.size)) five[z] += it[z] }
             }
             val days = DoubleArray(7) { daily[start.plusDays(it.toLong())] ?: 0.0 }
             WeekSummary(
@@ -102,6 +108,7 @@ object TrainingLoads {
                 workouts = inWeek.size,
                 intensityMillis = intensity,
                 strain = WeekStrain.of(days),
+                zoneMillis = five,
             )
         }
     }

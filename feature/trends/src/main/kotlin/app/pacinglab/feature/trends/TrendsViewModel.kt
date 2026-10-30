@@ -24,6 +24,7 @@ import app.pacinglab.core.data.repository.PlacedCard
 import app.pacinglab.core.data.repository.SessionKindRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.repository.TrainingStatusRepository
+import app.pacinglab.core.data.repository.UserPreferencesRepository
 import app.pacinglab.core.data.sync.SyncScheduler
 import app.pacinglab.core.model.Sport
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -54,6 +56,7 @@ sealed interface TrendsUiState {
      * @property loadBands the load that builds fitness in each of [weeks], by Monday.
      * @property running running distance of the latest weeks against the athlete's tolerance, newest first.
      * @property calendar every day with training, for the month grid.
+     * @property fiveZones the weekly table splits time over the five zones rather than the three.
      */
     data class Loaded(
         val days: List<FormDay>,
@@ -67,6 +70,7 @@ sealed interface TrendsUiState {
         val loadBands: Map<LocalDate, LoadBand> = emptyMap(),
         val running: List<RunningWeek> = emptyList(),
         val calendar: Map<LocalDate, CalendarDay> = emptyMap(),
+        val fiveZones: Boolean = true,
     ) : TrendsUiState
 }
 
@@ -79,6 +83,7 @@ class TrendsViewModel @Inject constructor(
     private val dashboards: DashboardRepository,
     training: TrainingStatusRepository,
     kinds: SessionKindRepository,
+    private val preferences: UserPreferencesRepository,
 ) : ViewModel() {
     private val recovery = nights.observeSleep().map { sleep ->
         val today = LocalDate.now(clock)
@@ -87,7 +92,7 @@ class TrendsViewModel @Inject constructor(
 
     private val standing = combine(training.observeStatus(), training.observeFocus()) { status, focus -> status to focus }
 
-    val state: StateFlow<TrendsUiState> = combine(
+    private val content = combine(
         repository.observeWorkoutLoads(),
         recovery,
         dashboards.layout(Dashboard.TRENDS),
@@ -120,12 +125,23 @@ class TrendsViewModel @Inject constructor(
         }
     }
         .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TrendsUiState.Loading)
+
+    // Kept apart, so that switching the weekly table's zones does not recompute everything.
+    val state: StateFlow<TrendsUiState> = combine(content, preferences.preferences.map { it.weeksInFiveZones }.distinctUntilChanged()) {
+            state,
+            five,
+        ->
+        if (state is TrendsUiState.Loaded) state.copy(fiveZones = five) else state
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TrendsUiState.Loading)
 
     val refreshing: StateFlow<Boolean> =
         scheduler.refreshing.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)
 
     fun refresh() = scheduler.refresh()
+
+    fun setWeeksInFiveZones(five: Boolean) {
+        viewModelScope.launch { preferences.setWeeksInFiveZones(five) }
+    }
 
     fun arrange(cards: List<PlacedCard>) {
         viewModelScope.launch { dashboards.save(Dashboard.TRENDS, cards) }

@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -32,6 +34,7 @@ import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.Sport
 import app.pacinglab.core.model.ZoneModel
 import com.github.takahirom.roborazzi.captureRoboImage
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -55,6 +58,16 @@ class TrendsScreenScreenshotTest {
 
     private val today = LocalDate.of(2026, 10, 21)
     private val polarized = Zones.of(ZoneModel.POLARIZED_THREE, HeartRateAnchors(maxHr = 186, thresholdHr = 167))
+    private val five = Zones.of(ZoneModel.LTHR_FIVE, HeartRateAnchors(maxHr = 186, thresholdHr = 167))
+
+    /** The three domains' minutes spread over the five zones, roughly as threshold-based zones fall. */
+    private fun fiveFrom(minutes: LongArray) = longArrayOf(
+        minutes[0] * 45 / 100,
+        minutes[0] - minutes[0] * 45 / 100,
+        minutes[1] * 60 / 100,
+        minutes[1] - minutes[1] * 60 / 100 + minutes[2] * 60 / 100,
+        minutes[2] - minutes[2] * 60 / 100,
+    )
 
     /**
      * A year of four sessions a week: intervals on Tuesday, easy runs on Thursday and Sunday, strength on
@@ -82,6 +95,7 @@ class TrendsScreenScreenshotTest {
                         durationMillis = minutes * 60_000,
                         scores = LoadScores(scaled * 1.7, scaled, scaled * 2.6, minutes * 60_000),
                         intensity = ZoneDistribution(polarized, LongArray(3) { zones[it] * 60_000 }),
+                        zones = ZoneDistribution(five, fiveFrom(zones).map { it * 60_000 }.toLongArray()),
                         sport = Sport.RUN,
                         distanceMeters = minutes * 60 * 2.9 * (if (date.isAfter(today.minusDays(10))) 1.5 else 1.0),
                     ),
@@ -170,7 +184,7 @@ class TrendsScreenScreenshotTest {
             PacingLabTheme {
                 Surface {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        WeeksCard(loaded.weeks, today, Locale.UK, bands = loaded.loadBands)
+                        WeeksCard(loaded.weeks, today, Locale.UK, bands = loaded.loadBands, fiveZones = true)
                         RunningVolumeCard(loaded.running, today, Locale.UK)
                         TrainingCalendarCard(loaded.calendar, today, Locale.UK, onOpenSession = {})
                     }
@@ -178,6 +192,30 @@ class TrendsScreenScreenshotTest {
             }
         }
         compose.onRoot().captureRoboImage()
+    }
+
+    /** The weekly table in the three zones of the intensity focus. */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun weeksInThreeZones() {
+        compose.setContent {
+            PacingLabTheme {
+                Surface { WeeksCard(loaded.weeks, today, Locale.UK, Modifier.padding(16.dp), bands = loaded.loadBands, fiveZones = false) }
+            }
+        }
+        compose.onRoot().captureRoboImage()
+    }
+
+    @Test
+    fun theZoneSwitchFlipsBetweenFiveAndThree() {
+        var chosen: Boolean? = null
+        compose.setContent {
+            PacingLabTheme { WeeksCard(loaded.weeks, today, Locale.UK, fiveZones = true, onZonesChange = { chosen = it }) }
+        }
+
+        compose.onNodeWithContentDescription("Zones").assertIsOn().performClick()
+
+        assertEquals(false, chosen)
     }
 
     /** A threshold-heavy month: the share dots lie outside their bands, which stay visible. */
