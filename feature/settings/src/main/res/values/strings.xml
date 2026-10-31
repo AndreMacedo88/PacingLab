@@ -17,6 +17,8 @@
     <string name="settings_strength_in_load_summary">Rated sessions count by your effort rating, others by heart rate</string>
     <string name="settings_speed_by_default">Show speed in km/h</string>
     <string name="settings_speed_by_default_summary">Instead of pace per kilometre when a session opens</string>
+    <string name="settings_route_coloring">Route colours</string>
+    <string name="settings_route_coloring_summary">What the line on session maps shows: heart rate zone, pace, or one colour. The full-screen map can switch for a look without changing this.</string>
     <string name="settings_merge_gap">Join workouts into one session</string>
     <string name="settings_merge_gap_summary">Workouts of the same sport this close together count as one session, such as a warm-up and intervals recorded apart. Switching from one watch mode to the next takes a minute or two; much longer joins workouts that were meant to be separate.</string>
     <string name="settings_merge_gap_off">Never</string>
@@ -187,7 +189,7 @@
     <string name="settings_training_summary">Joining workouts, gym sessions, running tolerance, heat</string>
     <string name="settings_sleep_summary">Sleep need, free days, morning reminder</string>
     <string name="settings_appearance_title">Appearance and units</string>
-    <string name="settings_appearance_summary">Colour, light or dark, pace or speed</string>
+    <string name="settings_appearance_summary">Colour, light or dark, pace or speed, route colours</string>
     <string name="settings_widget_title">Home-screen widget</string>
     <string name="settings_widget_summary">Which measures it shows, and in what order</string>
     <string name="settings_widget_hint">Each measure takes a tile, in this order, as many as the widget\'s size allows: one cell holds one measure. Vitals take a panel of four tiles when there is room and a single tile with a count when there is not; the training status goes on a line underneath. Drag a measure by its handle to move it; the eye hides it.</string>

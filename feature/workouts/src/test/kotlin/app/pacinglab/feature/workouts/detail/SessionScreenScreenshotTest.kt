@@ -115,7 +115,15 @@ class SessionScreenScreenshotTest {
         val n = 120
         val latitudes = DoubleArray(n) { i -> 55.6800 + 0.0045 * sin(Math.PI * i / (n - 1)) + 0.0004 * sin(6 * Math.PI * i / (n - 1)) }
         val longitudes = DoubleArray(n) { i -> 12.5700 + 0.0060 * (1 - cos(2 * Math.PI * i / (n - 1))) / 2 }
-        Route(LongArray(n) { it * 3_000L }, latitudes, longitudes, DoubleArray(n) { Double.NaN }, DoubleArray(n) { Double.NaN })
+        Route(
+            LongArray(n) {
+                start.toEpochMilli() + it * 3_000L
+            },
+            latitudes,
+            longitudes,
+            DoubleArray(n) { Double.NaN },
+            DoubleArray(n) { Double.NaN },
+        )
     }
 
     /**

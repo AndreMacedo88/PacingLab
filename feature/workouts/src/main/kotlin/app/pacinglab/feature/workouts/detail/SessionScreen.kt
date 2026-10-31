@@ -17,6 +17,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,14 +49,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.intervals.PhaseKind
 import app.pacinglab.core.analytics.load.EffortLoad
 import app.pacinglab.core.data.weather.SessionWeatherState
-import app.pacinglab.core.designsystem.chart.ZoneLegend
 import app.pacinglab.core.designsystem.component.label
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import app.pacinglab.core.maps.InteractiveRouteMap
+import app.pacinglab.core.maps.RouteLegend
 import app.pacinglab.core.maps.RouteMap
+import app.pacinglab.core.maps.RouteShades
+import app.pacinglab.core.maps.rememberRouteShades
 import app.pacinglab.core.model.RecordingMethod
+import app.pacinglab.core.model.Route
+import app.pacinglab.core.model.RouteColoring
 import app.pacinglab.core.model.Sport
 import app.pacinglab.feature.workouts.R
 import app.pacinglab.feature.workouts.list.title
@@ -151,6 +156,7 @@ fun SessionScreen(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 weather = state.weather,
                 heatAdjustment = state.heatAdjustment,
+                routeColoring = state.routeColoring,
             )
         }
     }
@@ -198,6 +204,7 @@ private fun ScopeContent(
     modifier: Modifier = Modifier,
     weather: SessionWeatherState? = null,
     heatAdjustment: Boolean = true,
+    routeColoring: RouteColoring = RouteColoring.ZONES_FIVE,
 ) {
     LazyColumn(
         modifier = modifier,
@@ -216,7 +223,7 @@ private fun ScopeContent(
             item(key = "effort") { EffortCard(effort, wholeMillis, onRateEffort) }
         }
         if (scope.routes.isNotEmpty()) {
-            item(key = "map") { RouteSection(scope) }
+            item(key = "map") { RouteSection(scope, routeColoring, toggle.showSpeed) }
         }
         // Nothing to show while the weather is looked up, switched off or without a place.
         if (weather != null && weather != SessionWeatherState.Off && weather != SessionWeatherState.NoPlace) {
@@ -321,14 +328,18 @@ private fun Metric(label: String, value: String, unit: String?, modifier: Modifi
 }
 
 @Composable
-private fun RouteSection(scope: DetailScope, modifier: Modifier = Modifier) {
+private fun RouteSection(scope: DetailScope, coloring: RouteColoring, showSpeed: Boolean, modifier: Modifier = Modifier) {
     var expanded by rememberSaveable { mutableStateOf(false) }
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    val shades = rememberRouteShades(scope.routes, scope.heartRate, scope.analysis.zones.map { it.zoneSet }, scope.sport, showSpeed)
+    val shade = shades.of(coloring)
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         RouteMap(
             routes = scope.routes,
             contentDescription = stringResource(R.string.map_description),
             modifier = Modifier.clickable(onClickLabel = stringResource(R.string.map_open)) { expanded = true },
+            shade = shade,
         )
+        RouteLegend(shade)
         if (scope.routeOnlyFrom.isNotEmpty()) {
             Text(
                 text = stringResource(R.string.map_only_from, scope.routeOnlyFrom.joinToString(", ")),
@@ -337,14 +348,18 @@ private fun RouteSection(scope: DetailScope, modifier: Modifier = Modifier) {
             )
         }
     }
-    if (expanded) RouteMapDialog(scope, onDismiss = { expanded = false })
+    if (expanded) RouteMapDialog(scope.routes, shades, coloring, ride = scope.sport == Sport.RIDE, onDismiss = { expanded = false })
 }
 
-/** The route full screen on a map that pans and zooms, coloured by heart rate zone. */
+/**
+ * The route full screen on a map that pans and zooms, coloured as the small map at first; the buttons
+ * under the title switch what it is coloured by while the map is open, without changing the setting.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RouteMapDialog(scope: DetailScope, onDismiss: () -> Unit) {
-    val zones = scope.analysis.zones.firstOrNull()?.zoneSet?.takeIf { !scope.heartRate.isEmpty() }
+private fun RouteMapDialog(routes: List<Route>, shades: RouteShades, coloring: RouteColoring, ride: Boolean, onDismiss: () -> Unit) {
+    var chosen by rememberSaveable { mutableStateOf(coloring.within(shades.available)) }
+    val shade = shades.of(chosen)
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize()) {
             Column {
@@ -356,8 +371,21 @@ private fun RouteMapDialog(scope: DetailScope, onDismiss: () -> Unit) {
                         }
                     },
                 )
-                InteractiveRouteMap(scope.routes, scope.heartRate, zones, Modifier.weight(1f).fillMaxWidth())
-                if (zones != null) ZoneLegend(zones, Modifier.padding(16.dp))
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    RouteColoring.entries.forEach { option ->
+                        FilterChip(
+                            selected = option == chosen,
+                            onClick = { chosen = option },
+                            label = { Text(stringResource(option.label(speed = ride))) },
+                            enabled = option in shades.available,
+                        )
+                    }
+                }
+                InteractiveRouteMap(routes, shade, Modifier.weight(1f).fillMaxWidth())
+                RouteLegend(shade, Modifier.padding(16.dp))
             }
         }
     }

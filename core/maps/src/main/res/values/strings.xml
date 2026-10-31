@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="map_attribution" translatable="false">OpenFreeMap © OpenMapTiles Data from OpenStreetMap</string>
+    <string name="route_legend_pace">%1$s /km</string>
+    <string name="route_legend_speed">%1$s km/h</string>
+    <string name="route_legend_description">Route coloured by pace, from %1$s to %2$s</string>
 </resources>

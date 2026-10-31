@@ -19,6 +19,7 @@ import app.pacinglab.core.data.repository.ThemeChoice
 import app.pacinglab.core.data.repository.UserPreferences
 import app.pacinglab.core.data.repository.UserPreferencesRepository
 import app.pacinglab.core.data.repository.WidgetChart
+import app.pacinglab.core.model.RouteColoring
 import app.pacinglab.core.ui.WidgetMeasure
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -80,6 +81,8 @@ class SettingsViewModel @Inject constructor(
     fun setMergeGap(gap: Duration) = launch { repository.setSessionMergeGap(gap) }
 
     fun setSpeedByDefault(speed: Boolean) = launch { repository.setSpeedByDefault(speed) }
+
+    fun setRouteColoring(coloring: RouteColoring) = launch { repository.setRouteColoring(coloring) }
 
     fun setSleepNeed(need: Duration?) = launch { repository.setSleepNeed(need) }
 

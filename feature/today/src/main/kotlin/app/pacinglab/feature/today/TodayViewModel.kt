@@ -33,6 +33,7 @@ import app.pacinglab.core.data.repository.RunningPerformance
 import app.pacinglab.core.data.repository.SessionKindRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.repository.TrainingStatusRepository
+import app.pacinglab.core.data.repository.UserPreferencesRepository
 import app.pacinglab.core.data.repository.Vo2MaxHistory
 import app.pacinglab.core.data.repository.WellnessRepository
 import app.pacinglab.core.data.repository.WorkoutRepository
@@ -41,6 +42,7 @@ import app.pacinglab.core.data.weather.WeatherRepository
 import app.pacinglab.core.data.weather.WeatherState
 import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Route
+import app.pacinglab.core.model.RouteColoring
 import app.pacinglab.core.model.SessionKind
 import app.pacinglab.core.model.Sport
 import app.pacinglab.core.model.ZoneModel
@@ -83,6 +85,7 @@ data class LastWorkout(
     val heartRate: HeartRateSeries = HeartRateSeries.EMPTY,
     val zones: ZoneSet? = null,
     val kind: SessionKind? = null,
+    val polarizedZones: ZoneSet? = null,
 )
 
 /** A recent gym session the athlete has not rated yet. */
@@ -152,6 +155,7 @@ sealed interface TodayUiState {
         val extras: TodayExtras = TodayExtras(),
         val sleepHealth: Map<LocalDate, SleepHealth> = emptyMap(),
         val sleepDebts: Map<LocalDate, SleepDebt> = emptyMap(),
+        val routeColoring: RouteColoring = RouteColoring.ZONES_FIVE,
     ) : TodayUiState {
         /** Last night's range of [metric]: the last of [ranges]. */
         fun rangeTonight(metric: NightlyMetric): NightlyRange? = ranges[metric]?.lastOrNull()
@@ -174,6 +178,7 @@ class TodayViewModel @Inject constructor(
     private val performance: PerformanceRepository,
     private val weather: WeatherRepository,
     private val trainingStatus: TrainingStatusRepository,
+    preferences: UserPreferencesRepository,
 ) : ViewModel() {
     private val trainingAnchors = trainingLoad.anchors
 
@@ -214,14 +219,16 @@ class TodayViewModel @Inject constructor(
         .mapLatest { build(it) }
         .flowOn(Dispatchers.Default)
 
+    private val arrangement = combine(cards, preferences.preferences.map { it.routeColoring }.distinctUntilChanged(), ::Pair)
+
     val state: StateFlow<TodayUiState> = combine(
         built,
         workouts.observeSessions(),
         ratings.observe(),
-        cards,
+        arrangement,
         extras,
-    ) { state, sessions, rated, placed, extra ->
-        state.copy(gymToRate = gymToRate(sessions, rated, state.today), cards = placed, extras = extra)
+    ) { state, sessions, rated, (placed, coloring), extra ->
+        state.copy(gymToRate = gymToRate(sessions, rated, state.today), cards = placed, extras = extra, routeColoring = coloring)
     }.stateIn<TodayUiState>(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TodayUiState.Loading)
 
     /** Saves the athlete's arrangement of Today. */
@@ -325,6 +332,7 @@ class TodayViewModel @Inject constructor(
         val scored = session.workouts.mapNotNull { byId[it.id]?.scores }
         val withHr = session.workouts.filter { it.summary.averageHr != null }
         val hrMillis = withHr.sumOf { it.summary.durationMillis }
+        val sessionAnchors = anchors.at(TrainingLoads.dateOf(session.workouts.first(), clock.zone))
         return LastWorkout(
             sessionId = session.id,
             titles = session.workouts.mapNotNull { it.title?.takeIf(String::isNotBlank) }.distinct(),
@@ -341,8 +349,9 @@ class TodayViewModel @Inject constructor(
             load = scored.takeIf { it.isNotEmpty() }?.sumOf { it.stressScore },
             routes = streams.map { it.route }.filterNot { it.isEmpty() },
             heartRate = HeartRateSeries.joined(streams.map { it.heartRate }),
-            zones = anchors.at(TrainingLoads.dateOf(session.workouts.first(), clock.zone))?.let { Zones.of(ZoneModel.LTHR_FIVE, it) },
+            zones = sessionAnchors?.let { Zones.of(ZoneModel.LTHR_FIVE, it) },
             kind = if (session.sport == Sport.RUN) kinds.kindOf(session, anchors) else null,
+            polarizedZones = sessionAnchors?.let { Zones.of(ZoneModel.POLARIZED_THREE, it) },
         )
     }
 

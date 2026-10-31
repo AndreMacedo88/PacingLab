@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import app.pacinglab.core.analytics.load.BanisterWeighting
 import app.pacinglab.core.analytics.workout.TrainingSessions
+import app.pacinglab.core.model.RouteColoring
 import app.pacinglab.core.model.ZoneBoundaries
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -68,6 +69,7 @@ enum class WidgetChart {
  *   tolerance.
  * @property heatAdjustment per-run VO2max and aerobic efficiency are corrected for heat.
  * @property widgetChart what the home-screen widget charts over the last seven days.
+ * @property routeColoring what routes on maps are coloured by, until changed on the full-screen map.
  */
 data class UserPreferences(
     val sessionMergeGap: Duration = TrainingSessions.DEFAULT_MAX_GAP,
@@ -86,6 +88,7 @@ data class UserPreferences(
     val runningIncreasePercent: Int = UserPreferencesRepository.DEFAULT_RUNNING_INCREASE,
     val heatAdjustment: Boolean = true,
     val widgetChart: WidgetChart = WidgetChart.READINESS,
+    val routeColoring: RouteColoring = RouteColoring.ZONES_FIVE,
 ) {
     /** Age in whole years on [date], or null without a birth date. */
     fun ageOn(date: LocalDate): Int? = birthDate?.let { Period.between(it, date).years }
@@ -118,6 +121,9 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
             widgetChart = values[WIDGET_CHART]?.let { name ->
                 WidgetChart.entries.firstOrNull { it.name == name }
             } ?: WidgetChart.READINESS,
+            routeColoring = values[ROUTE_COLORING]?.let { name ->
+                RouteColoring.entries.firstOrNull { it.name == name }
+            } ?: RouteColoring.ZONES_FIVE,
         )
     }
 
@@ -198,6 +204,10 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         dataStore.edit { it[WIDGET_CHART] = chart.name }
     }
 
+    suspend fun setRouteColoring(coloring: RouteColoring) {
+        dataStore.edit { it[ROUTE_COLORING] = coloring.name }
+    }
+
     companion object {
         val MAX_MERGE_GAP: Duration = Duration.ofMinutes(60)
 
@@ -226,5 +236,6 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         private val RUNNING_INCREASE = intPreferencesKey("running_increase_percent")
         private val HEAT_ADJUSTMENT = booleanPreferencesKey("heat_adjustment")
         private val WIDGET_CHART = stringPreferencesKey("widget_chart")
+        private val ROUTE_COLORING = stringPreferencesKey("route_coloring")
     }
 }

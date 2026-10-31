@@ -13,10 +13,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -34,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -44,6 +48,20 @@ import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import kotlin.math.roundToInt
 
+/**
+ * A setting's tile: the colour and shape of the cards on the other screens, so that settings read as
+ * separate blocks. Rows inside keep their own side padding; the tile adds a little above and below.
+ */
+@Composable
+internal fun SettingsTile(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+        Column(Modifier.padding(vertical = 8.dp)) { content() }
+    }
+}
+
 @Composable
 internal fun SwitchItem(title: String, summary: String, checked: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     ListItem(
@@ -51,6 +69,7 @@ internal fun SwitchItem(title: String, summary: String, checked: Boolean, onChan
         supportingContent = { Text(summary) },
         trailingContent = { Switch(checked = checked, onCheckedChange = null) },
         modifier = modifier.selectable(selected = checked, role = Role.Switch, onClick = { onChange(!checked) }),
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
     )
 }
 
@@ -84,6 +103,7 @@ internal fun SettingsItem(title: String, summary: String, @DrawableRes icon: Int
         leadingContent = { Icon(painterResource(icon), contentDescription = null) },
         trailingContent = { Icon(painterResource(PacingLabIcons.ChevronRight), contentDescription = null) },
         modifier = modifier.clickable(onClick = onClick),
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
     )
 }
 

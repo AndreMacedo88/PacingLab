@@ -3,6 +3,7 @@ package app.pacinglab.core.maps
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -14,10 +15,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import app.pacinglab.core.designsystem.theme.zoneColors
-import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Route
-import app.pacinglab.core.model.ZoneSet
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
@@ -36,25 +34,27 @@ import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
 import java.util.Locale
-import kotlin.math.abs
 
 /**
- * The route on a map that pans and zooms, on the same OpenFreeMap styles as the small maps. Where heart
- * rate was recorded and [zones] are known, each stretch of the route takes the colour of the heart rate
- * zone it was run in, as on the heart rate chart; otherwise the route is drawn in the theme's primary
- * colour. Start and finish are marked with dots, the start hollow.
+ * The route on a map that pans and zooms, on the same OpenFreeMap styles as the small maps. Each stretch
+ * takes the colour of its level in [shade] (heart rate zone or pace), stretches without one are grey, and
+ * a plain [shade] draws the route in the theme's primary colour. A new [shade] recolours the route in
+ * place, keeping the camera where it is. The start is marked with a filled dot and the finish with a ring.
  *
  * Runs on the native MapLibre library, so it draws nothing in JVM tests.
  */
 @Composable
-fun InteractiveRouteMap(routes: List<Route>, heartRate: HeartRateSeries, zones: ZoneSet?, modifier: Modifier = Modifier) {
+fun InteractiveRouteMap(routes: List<Route>, shade: RouteShade, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    val fills = zones?.let { zoneColors(it.size) }
     val plain = MaterialTheme.colorScheme.primary
+    val unknown = MaterialTheme.colorScheme.outline
     val casing = MaterialTheme.colorScheme.surface
     val padding = PADDING_DP * LocalDensity.current.density
+    val colors = levelColors(shade)
+    val features = remember(routes, shade, colors, plain, unknown) { lines(routes, levelsOf(shade), colors, plain, unknown) }
+    val route = remember { RouteSource() }
     val mapView = remember {
         MapLibre.getInstance(context)
         MapView(context).apply { onCreate(null) }
@@ -77,25 +77,35 @@ fun InteractiveRouteMap(routes: List<Route>, heartRate: HeartRateSeries, zones: 
             mapView.onDestroy()
         }
     }
+    LaunchedEffect(features) { route.show(features) }
     AndroidView(
         factory = {
             mapView.also { view ->
-                view.getMapAsync { map ->
-                    show(map, view, routes, heartRate, zones, fills, plain, casing, dark, padding.toInt())
-                }
+                view.getMapAsync { map -> show(map, view, routes, route, plain, casing, dark, padding.toInt()) }
             }
         },
         modifier = modifier,
     )
 }
 
+/** The route's GeoJSON source once the style has loaded, and the lines it should hold. */
+private class RouteSource {
+    private var lines: List<Feature> = emptyList()
+    private var source: GeoJsonSource? = null
+
+    fun show(lines: List<Feature>) {
+        this.lines = lines
+        source?.setGeoJson(FeatureCollection.fromFeatures(lines))
+    }
+
+    fun attach(): GeoJsonSource = GeoJsonSource(ROUTE_SOURCE, FeatureCollection.fromFeatures(lines)).also { source = it }
+}
+
 private fun show(
     map: MapLibreMap,
     view: MapView,
     routes: List<Route>,
-    heartRate: HeartRateSeries,
-    zones: ZoneSet?,
-    fills: List<Color>?,
+    route: RouteSource,
     plain: Color,
     casing: Color,
     dark: Boolean,
@@ -105,7 +115,7 @@ private fun show(
     map.uiSettings.setRotateGesturesEnabled(false)
     map.uiSettings.setTiltGesturesEnabled(false)
     map.setStyle(Style.Builder().fromUri(if (dark) DARK_STYLE else LIGHT_STYLE)) { style ->
-        style.addSource(GeoJsonSource(ROUTE_SOURCE, FeatureCollection.fromFeatures(stretches(routes, heartRate, zones, fills, plain))))
+        style.addSource(route.attach())
         style.addLayer(
             LineLayer(CASING_LAYER, ROUTE_SOURCE).withProperties(
                 PropertyFactory.lineColor(hex(casing)),
@@ -126,12 +136,13 @@ private fun show(
         if (points.isNotEmpty()) {
             val first = points.first()
             val last = points.last()
+            // As on the small maps: the start a filled dot, the finish a ring.
             val start = Feature.fromGeometry(Point.fromLngLat(first.longitudes[0], first.latitudes[0])).apply {
-                addStringProperty(COLOR, hex(casing))
+                addStringProperty(COLOR, hex(plain))
             }
             val finish = Feature.fromGeometry(Point.fromLngLat(last.longitudes[last.size - 1], last.latitudes[last.size - 1]))
-                .apply { addStringProperty(COLOR, hex(plain)) }
-            style.addSource(GeoJsonSource(ENDS_SOURCE, FeatureCollection.fromFeatures(listOf(start, finish))))
+                .apply { addStringProperty(COLOR, hex(casing)) }
+            style.addSource(GeoJsonSource(ENDS_SOURCE, FeatureCollection.fromFeatures(listOf(finish, start))))
             style.addLayer(
                 CircleLayer(ENDS_LAYER, ENDS_SOURCE).withProperties(
                     PropertyFactory.circleColor(Expression.get(COLOR)),
@@ -142,51 +153,25 @@ private fun show(
             )
         }
         val bounds = LatLngBounds.Builder().apply {
-            for (route in routes) for (i in 0 until route.size) include(LatLng(route.latitudes[i], route.longitudes[i]))
+            for (r in routes) for (i in 0 until r.size) include(LatLng(r.latitudes[i], r.longitudes[i]))
         }
         if (routes.sumOf { it.size } >= 2) view.post { map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(), padding)) }
     }
 }
 
 /**
- * The routes as lines, split wherever the heart rate zone changes; each stretch carries its colour.
- * Consecutive stretches share their joining point so that the line has no gaps.
+ * The routes as lines, one per run of points at the same level, each carrying its colour: the level's
+ * colour, [unknown] for points without a level, and [plain] for every line when there are no [levels].
  */
-private fun stretches(routes: List<Route>, heartRate: HeartRateSeries, zones: ZoneSet?, fills: List<Color>?, plain: Color): List<Feature> {
-    val features = mutableListOf<Feature>()
-    for (route in routes) {
-        if (route.size < 2) continue
-        var start = 0
-        var current = colorAt(route.times[0], heartRate, zones, fills, plain)
-        for (i in 1..route.size) {
-            val color = if (i < route.size) colorAt(route.times[i], heartRate, zones, fills, plain) else null
-            if (i == route.size || color != current) {
-                val end = minOf(i, route.size - 1)
-                val coordinates = (start..end).map { Point.fromLngLat(route.longitudes[it], route.latitudes[it]) }
-                if (coordinates.size >= 2) {
-                    features += Feature.fromGeometry(LineString.fromLngLats(coordinates)).apply { addStringProperty(COLOR, hex(current)) }
-                }
-                start = end
-                if (color != null) current = color
-            }
+private fun lines(routes: List<Route>, levels: List<IntArray>?, colors: List<Color>, plain: Color, unknown: Color): List<Feature> =
+    routes.withIndex().filter { it.value.size >= 2 }.flatMap { (index, route) ->
+        val runs = levels?.let { stretches(it[index]) } ?: listOf(Triple(0, route.size - 1, -1))
+        runs.map { (from, to, level) ->
+            val color = if (levels == null) plain else colors.getOrNull(level) ?: unknown
+            val coordinates = (from..to).map { Point.fromLngLat(route.longitudes[it], route.latitudes[it]) }
+            Feature.fromGeometry(LineString.fromLngLats(coordinates)).apply { addStringProperty(COLOR, hex(color)) }
         }
     }
-    return features
-}
-
-/** The zone colour of the heart rate nearest to [time], within [MAX_HR_GAP_MILLIS]; [plain] without one. */
-private fun colorAt(time: Long, heartRate: HeartRateSeries, zones: ZoneSet?, fills: List<Color>?, plain: Color): Color {
-    if (zones == null || fills == null || heartRate.isEmpty()) return plain
-    val found = heartRate.times.binarySearch(time)
-    val index = if (found >= 0) {
-        found
-    } else {
-        val after = -found - 1
-        listOf(after - 1, after).filter { it in 0 until heartRate.size }.minByOrNull { abs(heartRate.times[it] - time) } ?: return plain
-    }
-    if (abs(heartRate.times[index] - time) > MAX_HR_GAP_MILLIS) return plain
-    return fills[zones.indexOf(heartRate.bpm[index])]
-}
 
 private fun hex(color: Color): String = String.format(Locale.ROOT, "#%06X", 0xFFFFFF and color.toArgb())
 
@@ -203,4 +188,3 @@ private const val CASING_WIDTH = 8f
 private const val END_RADIUS = 6f
 private const val END_STROKE = 2.5f
 private const val PADDING_DP = 48f
-private const val MAX_HR_GAP_MILLIS = 15_000L

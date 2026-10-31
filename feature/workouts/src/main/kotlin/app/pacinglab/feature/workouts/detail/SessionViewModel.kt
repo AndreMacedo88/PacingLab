@@ -34,6 +34,7 @@ import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.Route
+import app.pacinglab.core.model.RouteColoring
 import app.pacinglab.core.model.SessionKind
 import app.pacinglab.core.model.Sport
 import app.pacinglab.core.model.ZoneModel
@@ -134,6 +135,7 @@ sealed interface SessionUiState {
      * @property focus the scope to show first: a part when the screen was opened for one of its workouts.
      * @property weather the weather during the session; null while it is looked up.
      * @property heatAdjustment the athlete has estimates corrected for heat, so the conditions say by how much.
+     * @property routeColoring what the map colours the route by at first.
      */
     data class Loaded(
         val session: SessionItem,
@@ -144,6 +146,7 @@ sealed interface SessionUiState {
         val focus: Int = 0,
         val weather: SessionWeatherState? = null,
         val heatAdjustment: Boolean = true,
+        val routeColoring: RouteColoring = RouteColoring.ZONES_FIVE,
     ) : SessionUiState {
         /** The rating of the workouts in [scope] when they share one; null when unrated. */
         fun effortOf(scope: DetailScope): Int? = scope.workoutIds.map { efforts[it] }.distinct().singleOrNull()
@@ -204,12 +207,18 @@ class SessionViewModel @AssistedInject constructor(
     val state: StateFlow<SessionUiState> = combine(
         analysed,
         ratings.observe(),
-        preferences.preferences.map { it.speedByDefault to it.heatAdjustment }.distinctUntilChanged(),
+        preferences.preferences.map { Triple(it.speedByDefault, it.heatAdjustment, it.routeColoring) }.distinctUntilChanged(),
         weather,
-    ) { state, rated, (speed, heat), conditions ->
+    ) { state, rated, (speed, heat, coloring), conditions ->
         if (state is SessionUiState.Loaded) {
             val ids = state.scopes.first().workoutIds.toSet()
-            state.copy(efforts = rated.filterKeys { it in ids }, speedByDefault = speed, weather = conditions, heatAdjustment = heat)
+            state.copy(
+                efforts = rated.filterKeys { it in ids },
+                speedByDefault = speed,
+                weather = conditions,
+                heatAdjustment = heat,
+                routeColoring = coloring,
+            )
         } else {
             state
         }

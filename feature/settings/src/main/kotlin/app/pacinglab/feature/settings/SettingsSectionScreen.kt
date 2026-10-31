@@ -12,12 +12,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.DatePicker
@@ -28,6 +30,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -48,6 +51,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -69,10 +73,12 @@ import app.pacinglab.core.data.repository.UserPreferencesRepository
 import app.pacinglab.core.data.repository.WidgetChart
 import app.pacinglab.core.designsystem.component.DashboardEditor
 import app.pacinglab.core.designsystem.component.DashboardEntry
+import app.pacinglab.core.designsystem.component.label
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.ThemePalette
 import app.pacinglab.core.designsystem.theme.swatch
+import app.pacinglab.core.model.RouteColoring
 import app.pacinglab.core.ui.WidgetMeasure
 import java.time.DayOfWeek
 import java.time.Duration
@@ -116,6 +122,7 @@ fun SettingsSectionRoute(
             onStrengthInLoad = viewModel::setStrengthInLoad,
             onMergeGap = viewModel::setMergeGap,
             onSpeedByDefault = viewModel::setSpeedByDefault,
+            onRouteColoring = viewModel::setRouteColoring,
             onSleepNeed = viewModel::setSleepNeed,
             onSex = viewModel::setSex,
             onBirthDate = viewModel::setBirthDate,
@@ -148,6 +155,7 @@ class SettingsActions(
     val onStrengthInLoad: (Boolean) -> Unit = {},
     val onMergeGap: (Duration) -> Unit = {},
     val onSpeedByDefault: (Boolean) -> Unit = {},
+    val onRouteColoring: (RouteColoring) -> Unit = {},
     val onSleepNeed: (Duration?) -> Unit = {},
     val onSex: (Sex) -> Unit = {},
     val onBirthDate: (LocalDate?) -> Unit = {},
@@ -203,10 +211,15 @@ fun SettingsSectionScreen(
             WidgetMeasures(widget, preferences.widgetChart, actions, Modifier.fillMaxSize().padding(padding))
             return@Scaffold
         }
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+        // Each setting on a tile of its own, as the cards elsewhere, so that one ends visibly where the next begins.
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             when (section) {
                 SettingsSection.PROFILE -> {
-                    item {
+                    tile {
                         ChoiceItem(
                             title = stringResource(R.string.settings_sex),
                             summary = stringResource(R.string.settings_sex_summary),
@@ -215,8 +228,8 @@ fun SettingsSectionScreen(
                             onSelect = actions.onSex,
                         )
                     }
-                    item { BirthDateItem(preferences.birthDate, actions.onBirthDate) }
-                    item {
+                    tile { BirthDateItem(preferences.birthDate, actions.onBirthDate) }
+                    tile {
                         SettingsItem(
                             title = stringResource(R.string.physiology_title),
                             summary = stringResource(R.string.settings_physiology_summary),
@@ -227,7 +240,7 @@ fun SettingsSectionScreen(
                 }
 
                 SettingsSection.TRAINING -> {
-                    item {
+                    tile {
                         RangeItem(
                             title = stringResource(R.string.settings_merge_gap),
                             summary = stringResource(R.string.settings_merge_gap_summary),
@@ -244,7 +257,7 @@ fun SettingsSectionScreen(
                             default = TrainingSessions.DEFAULT_MAX_GAP.toMinutes().toInt(),
                         )
                     }
-                    item {
+                    tile {
                         SwitchItem(
                             title = stringResource(R.string.settings_strength_in_load),
                             summary = stringResource(R.string.settings_strength_in_load_summary),
@@ -252,7 +265,7 @@ fun SettingsSectionScreen(
                             onChange = actions.onStrengthInLoad,
                         )
                     }
-                    item {
+                    tile {
                         RangeItem(
                             title = stringResource(R.string.settings_running_increase),
                             summary = stringResource(R.string.settings_running_increase_summary),
@@ -264,7 +277,7 @@ fun SettingsSectionScreen(
                             default = UserPreferencesRepository.DEFAULT_RUNNING_INCREASE,
                         )
                     }
-                    item {
+                    tile {
                         SwitchItem(
                             title = stringResource(R.string.settings_heat),
                             summary = stringResource(R.string.settings_heat_summary),
@@ -275,9 +288,9 @@ fun SettingsSectionScreen(
                 }
 
                 SettingsSection.SLEEP -> {
-                    item { SleepNeedItem(preferences.sleepNeed, automaticSleepNeed, actions.onSleepNeed) }
-                    item { FreeDaysItem(preferences.freeDays, actions.onFreeDays) }
-                    item {
+                    tile { SleepNeedItem(preferences.sleepNeed, automaticSleepNeed, actions.onSleepNeed) }
+                    tile { FreeDaysItem(preferences.freeDays, actions.onFreeDays) }
+                    tile {
                         SwitchItem(
                             title = stringResource(R.string.settings_morning_reminder),
                             summary = stringResource(R.string.settings_morning_reminder_summary),
@@ -288,9 +301,9 @@ fun SettingsSectionScreen(
                 }
 
                 SettingsSection.APPEARANCE -> {
-                    item { ThemeRow(preferences.theme, actions.onTheme) }
-                    item { DarkModeRow(preferences.darkMode, actions.onDarkMode) }
-                    item {
+                    tile { ThemeRow(preferences.theme, actions.onTheme) }
+                    tile { DarkModeRow(preferences.darkMode, actions.onDarkMode) }
+                    tile {
                         SwitchItem(
                             title = stringResource(R.string.settings_speed_by_default),
                             summary = stringResource(R.string.settings_speed_by_default_summary),
@@ -298,10 +311,19 @@ fun SettingsSectionScreen(
                             onChange = actions.onSpeedByDefault,
                         )
                     }
+                    tile {
+                        ChoiceItem(
+                            title = stringResource(R.string.settings_route_coloring),
+                            summary = stringResource(R.string.settings_route_coloring_summary),
+                            options = RouteColoring.entries.map { stringResource(it.label()) to it },
+                            selected = preferences.routeColoring,
+                            onSelect = actions.onRouteColoring,
+                        )
+                    }
                 }
 
                 SettingsSection.DATA -> {
-                    item {
+                    tile {
                         SettingsItem(
                             title = stringResource(R.string.data_sources_title),
                             summary = stringResource(R.string.settings_data_sources_summary),
@@ -309,7 +331,7 @@ fun SettingsSectionScreen(
                             onClick = onOpenDataSources,
                         )
                     }
-                    item {
+                    tile {
                         SwitchItem(
                             title = stringResource(R.string.settings_session_weather),
                             summary = stringResource(R.string.settings_session_weather_summary),
@@ -317,7 +339,7 @@ fun SettingsSectionScreen(
                             onChange = actions.onSessionWeather,
                         )
                     }
-                    item {
+                    tile {
                         SettingsItem(
                             title = stringResource(R.string.settings_backup),
                             summary = stringResource(R.string.settings_backup_summary),
@@ -325,7 +347,7 @@ fun SettingsSectionScreen(
                             onClick = actions.onBackUp,
                         )
                     }
-                    item {
+                    tile {
                         SettingsItem(
                             title = stringResource(R.string.settings_restore),
                             summary = stringResource(R.string.settings_restore_summary),
@@ -340,6 +362,9 @@ fun SettingsSectionScreen(
         }
     }
 }
+
+/** One setting on a tile of its own. */
+private fun LazyListScope.tile(content: @Composable () -> Unit) = item { SettingsTile(content = content) }
 
 /** The widget's measures, ordered and shown or hidden like a dashboard's cards, with what its chart shows above them. */
 @Composable
@@ -512,6 +537,7 @@ private fun BirthDateItem(date: LocalDate?, onChange: (LocalDate?) -> Unit, modi
             )
         },
         modifier = modifier.clickable { picking = true },
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
     )
     if (picking) {
         val state = rememberDatePickerState(

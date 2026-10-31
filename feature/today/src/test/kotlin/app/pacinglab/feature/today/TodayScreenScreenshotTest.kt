@@ -118,7 +118,7 @@ class TodayScreenScreenshotTest {
     private val route: Route = run {
         val n = 90
         Route(
-            LongArray(n) { it * 4_000L },
+            LongArray(n) { Instant.parse("2026-11-17T17:31:00Z").toEpochMilli() + it * 4_000L },
             DoubleArray(n) { 55.6761 + 0.0060 * it / n },
             DoubleArray(n) { 12.5683 + 0.0050 * it / n + 0.0004 * sin(it / 9.0) },
             DoubleArray(n) { Double.NaN },

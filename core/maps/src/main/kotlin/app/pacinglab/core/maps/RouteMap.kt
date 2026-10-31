@@ -41,10 +41,18 @@ import app.pacinglab.core.model.Route
 
 /**
  * A small static map of [routes]: the basemap from [LocalMapSnapshots] when one is available, the
- * routes drawn on top, the start marked by a filled dot and the end by a ring.
+ * routes drawn on top, the start marked by a filled dot and the end by a ring. With a [shade] other
+ * than plain, each stretch takes the colour of its level, as on the full-screen map; stretches without
+ * a level (no heart rate nearby, a gap) are grey.
  */
 @Composable
-fun RouteMap(routes: List<Route>, contentDescription: String, modifier: Modifier = Modifier, height: Dp = 180.dp) {
+fun RouteMap(
+    routes: List<Route>,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    height: Dp = 180.dp,
+    shade: RouteShade = RouteShade.Plain,
+) {
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
@@ -67,16 +75,36 @@ fun RouteMap(routes: List<Route>, contentDescription: String, modifier: Modifier
         basemap?.let { Image(it, contentDescription = null, contentScale = ContentScale.FillBounds, modifier = Modifier.matchParentSize()) }
         val line = MaterialTheme.colorScheme.primary
         val casing = MaterialTheme.colorScheme.surface
+        val unknown = MaterialTheme.colorScheme.outline
+        val colors = levelColors(shade)
+        val levels = levelsOf(shade)
         Spacer(
             Modifier
                 .matchParentSize()
                 .drawWithCache {
-                    val paths = routes.filterNot { it.isEmpty() }.map { route ->
+                    fun point(route: Route, i: Int) = Offset(frame.x(route.longitudes[i]) * density, frame.y(route.latitudes[i]) * density)
+                    val drawn = routes.withIndex().filterNot { it.value.isEmpty() }
+                    val paths = drawn.map { (_, route) ->
                         Path().apply {
                             for (i in 0 until route.size) {
-                                val x = frame.x(route.longitudes[i]) * density
-                                val y = frame.y(route.latitudes[i]) * density
-                                if (i == 0) moveTo(x, y) else lineTo(x, y)
+                                val p = point(route, i)
+                                if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y)
+                            }
+                        }
+                    }
+                    // Coloured: one path per run of points at the same level, each drawn in its level's colour.
+                    val stretches = if (levels == null) {
+                        paths.map { it to line }
+                    } else {
+                        drawn.flatMap { (index, route) ->
+                            stretches(levels[index]).map { (from, to, level) ->
+                                val path = Path().apply {
+                                    for (i in from..to) {
+                                        val p = point(route, i)
+                                        if (i == from) moveTo(p.x, p.y) else lineTo(p.x, p.y)
+                                    }
+                                }
+                                path to (colors.getOrNull(level) ?: unknown)
                             }
                         }
                     }
@@ -88,7 +116,7 @@ fun RouteMap(routes: List<Route>, contentDescription: String, modifier: Modifier
                     val lineStroke = Stroke(LINE_WIDTH.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
                     onDrawBehind {
                         paths.forEach { drawPath(it, casing, style = casingStroke) }
-                        paths.forEach { drawPath(it, line, style = lineStroke) }
+                        stretches.forEach { (path, color) -> drawPath(path, color, style = lineStroke) }
                         marker(end, filled = false, line, casing)
                         marker(start, filled = true, line, casing)
                     }
@@ -114,6 +142,24 @@ private fun DrawScope.marker(center: Offset, filled: Boolean, line: Color, casin
     drawCircle(casing, radius + CASING_WIDTH.toPx(), center)
     drawCircle(line, radius, center)
     if (!filled) drawCircle(casing, radius * 0.5f, center)
+}
+
+/**
+ * Runs of equal level as (first point, last point, level); each run ends on the next run's first point
+ * so that the line has no gaps.
+ */
+internal fun stretches(levels: IntArray): List<Triple<Int, Int, Int>> {
+    if (levels.size < 2) return emptyList()
+    val runs = mutableListOf<Triple<Int, Int, Int>>()
+    var start = 0
+    for (i in 1 until levels.size - 1) {
+        if (levels[i] != levels[start]) {
+            runs += Triple(start, i, levels[start])
+            start = i
+        }
+    }
+    runs += Triple(start, levels.size - 1, levels[start])
+    return runs
 }
 
 private const val PADDING_DP = 20f

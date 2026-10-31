@@ -76,7 +76,11 @@ import app.pacinglab.core.designsystem.component.label
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.theme.chartColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
+import app.pacinglab.core.maps.RouteLegend
 import app.pacinglab.core.maps.RouteMap
+import app.pacinglab.core.maps.RouteShade
+import app.pacinglab.core.maps.rememberRouteShades
+import app.pacinglab.core.model.RouteColoring
 import app.pacinglab.core.model.SleepStageType
 import app.pacinglab.core.model.Sport
 import kotlinx.coroutines.delay
@@ -370,7 +374,14 @@ private fun WideCard(
         )
 
         TodayCard.LAST_WORKOUT -> state.lastWorkout?.let { workout ->
-            LastWorkoutCard(workout, state.today, locale, zoneId, onClick = { onOpen(TodayDestination.Session(workout.sessionId)) })
+            LastWorkoutCard(
+                workout,
+                state.today,
+                locale,
+                zoneId,
+                onClick = { onOpen(TodayDestination.Session(workout.sessionId)) },
+                routeColoring = state.routeColoring,
+            )
         }
 
         TodayCard.WEATHER -> WeatherCard(state.extras.weather, locale, weatherAccess)
@@ -447,6 +458,7 @@ private fun LastWorkoutCard(
     zoneId: ZoneId,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    routeColoring: RouteColoring = RouteColoring.ZONES_FIVE,
 ) {
     val zone = workout.zoneOffset ?: zoneId
     val start = workout.start.atZone(zone)
@@ -519,7 +531,12 @@ private fun LastWorkoutCard(
                 )
             }
             if (workout.routes.isNotEmpty()) {
-                RouteMap(routes = workout.routes, contentDescription = stringResource(R.string.workout_map), height = 120.dp)
+                val zoneSets = listOfNotNull(workout.zones, workout.polarizedZones)
+                val shade = rememberRouteShades(workout.routes, workout.heartRate, zoneSets, workout.sport).of(routeColoring)
+                RouteMap(routes = workout.routes, contentDescription = stringResource(R.string.workout_map), height = 120.dp, shade = shade)
+                // The heart rate chart above already names the five zones.
+                val chartLegend = zones != null && workout.heartRate.size > 1
+                if (!(chartLegend && shade is RouteShade.Zones && shade.zones == zones)) RouteLegend(shade)
             }
         }
     }

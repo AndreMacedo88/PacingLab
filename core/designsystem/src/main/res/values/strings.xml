@@ -64,4 +64,9 @@
     <string name="status_above">Above range</string>
     <string name="status_below">Below range</string>
     <string name="status_learning">Learning</string>
+    <string name="route_coloring_zones_five">5 zones</string>
+    <string name="route_coloring_zones_three">3 zones</string>
+    <string name="route_coloring_pace">Pace</string>
+    <string name="route_coloring_speed">Speed</string>
+    <string name="route_coloring_plain">Plain</string>
 </resources>
