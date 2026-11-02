@@ -176,7 +176,7 @@ fun SleepScreen(
                                     item(key = card.id) { HealthCard(health, need) }
                                 }
 
-                                SleepCardKind.QUALITY -> if (night.continuity != null) item(key = card.id) { QualityCard(night, score) }
+                                SleepCardKind.QUALITY -> if (night.continuity != null) item(key = card.id) { QualityCard(night) }
 
                                 SleepCardKind.HEART_RATE -> if (night.sleepingHeartRate != null) {
                                     item(key = card.id) {

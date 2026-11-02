@@ -59,12 +59,12 @@ internal fun NightCard(night: Night, score: SleepScore, locale: Locale, modifier
         Row(Modifier.fillMaxWidth()) {
             TimeLabel(
                 time.format(night.start.atZone(night.zone)),
-                stringResource(R.string.sleep_went_to_bed),
+                stringResource(R.string.sleep_fell_asleep),
                 TextAlign.Start,
                 Modifier.weight(1f),
             )
             TimeLabel(clock(night.midpointMinuteOfDay), stringResource(R.string.sleep_middle), TextAlign.Center, Modifier.weight(1f))
-            TimeLabel(time.format(night.end.atZone(night.zone)), stringResource(R.string.sleep_got_up), TextAlign.End, Modifier.weight(1f))
+            TimeLabel(time.format(night.end.atZone(night.zone)), stringResource(R.string.sleep_woke_up), TextAlign.End, Modifier.weight(1f))
         }
         if (rested != null) {
             Text(
@@ -156,9 +156,8 @@ internal fun HealthCard(health: SleepHealth, needMillis: Long, modifier: Modifie
                     (measure.value * 100).roundToInt(),
                 )
 
-                SleepHealthMeasureKind.EFFICIENCY ->
-                    R.string.sleep_part_efficiency to
-                        stringResource(R.string.sleep_detail_usual_efficiency, (measure.value * 100).roundToInt())
+                SleepHealthMeasureKind.CONTINUITY ->
+                    R.string.sleep_part_continuity to stringResource(R.string.sleep_detail_usual_continuity, measure.value.roundToInt())
 
                 SleepHealthMeasureKind.TIMING ->
                     R.string.sleep_part_timing to stringResource(R.string.sleep_detail_usual_timing, clock(health.usualMidpointMinute))
@@ -202,9 +201,7 @@ private fun SleepRating.headline(): Int = when (this) {
 
 private fun SleepMeasureKind.shortfall(): Int = when (this) {
     SleepMeasureKind.DURATION -> R.string.sleep_shortfall_duration
-    SleepMeasureKind.EFFICIENCY -> R.string.sleep_shortfall_efficiency
     SleepMeasureKind.AWAKE_AFTER_ONSET -> R.string.sleep_shortfall_awake
-    SleepMeasureKind.TIME_TO_SLEEP -> R.string.sleep_shortfall_time_to_sleep
     SleepMeasureKind.LONG_AWAKENINGS -> R.string.sleep_shortfall_awakenings
 }
 

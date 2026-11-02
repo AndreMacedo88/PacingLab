@@ -74,7 +74,7 @@ class TodayScreenScreenshotTest {
     private fun night(date: LocalDate, hrv: Double, restingHr: Double, hours: Double, breathing: Double): Night {
         val asleep = (hours * 3_600_000).toLong()
         val start = Instant.parse("${date.minusDays(1)}T21:30:00Z")
-        val end = start.plusMillis(asleep + 35 * 60_000L)
+        val end = start.plusMillis(asleep + 21 * 60_000L)
         return Night(
             date = date,
             start = start,
@@ -84,12 +84,12 @@ class TodayScreenScreenshotTest {
                 SleepStageType.DEEP to asleep / 6,
                 SleepStageType.REM to asleep / 5,
                 SleepStageType.LIGHT to asleep - asleep / 6 - asleep / 5,
-                SleepStageType.AWAKE to 35 * 60_000L,
+                SleepStageType.AWAKE to 21 * 60_000L,
             ),
             hrvMs = hrv,
             restingHr = restingHr,
             respiratoryRate = breathing,
-            continuity = SleepContinuity(start.plusSeconds(14 * 60L), end, 14 * 60_000L, 21 * 60_000L, 1),
+            continuity = SleepContinuity(21 * 60_000L, 1),
             zone = cest,
         )
     }

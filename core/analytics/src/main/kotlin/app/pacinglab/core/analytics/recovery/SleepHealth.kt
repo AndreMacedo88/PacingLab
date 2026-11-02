@@ -13,8 +13,8 @@ enum class SleepHealthMeasureKind {
     /** Average time asleep as a share of need. */
     DURATION,
 
-    /** Median sleep efficiency, a share of time in bed. */
-    EFFICIENCY,
+    /** Minutes awake after falling asleep on the median night. */
+    CONTINUITY,
 
     /** Minutes the usual middle of the night lies outside 02:00 to 04:00. */
     TIMING,
@@ -26,7 +26,7 @@ data class SleepHealthMeasure(val kind: SleepHealthMeasureKind, val value: Doubl
 
 /**
  * Sleep habits over the last two weeks, out of 100: the dimensions of sleep health that can be measured
- * from a watch (Buysse 2014: regularity, timing, efficiency, duration; satisfaction and alertness need
+ * from a watch (Buysse 2014: regularity, timing, continuity, duration; satisfaction and alertness need
  * the athlete's own report), counted equally as in the composite sleep health scores that predict
  * mortality and disease (Wallace 2018; Brindle 2019). Where the night's [SleepScore] says how rested
  * the athlete is today, this says whether the habits are healthy in the long run.
@@ -35,7 +35,10 @@ data class SleepHealthMeasure(val kind: SleepHealthMeasureKind, val value: Doubl
  *   predicted mortality more strongly than duration (Windred 2024).
  * - Duration (25): average time asleep against need; threshold 90 %, excellent at the need, nothing
  *   below 75 %. Habitually short sleep raises the risk of disease (Cappuccio 2010).
- * - Efficiency (25): the median night's; threshold 85 % (Ohayon 2017), excellent 95 %.
+ * - Continuity (25): Buysse's efficiency, the ease of falling asleep and of getting back to sleep. Only
+ *   the second can be measured (the watch cannot see when the athlete starts trying to sleep), so this is
+ *   the median night's time awake after falling asleep, graded as in the [SleepScore]: threshold 20
+ *   minutes (Ohayon 2017), excellent 5, nothing from 50.
  * - Timing (25): the usual middle of the night within 02:00 to 04:00 (Buysse 2014); threshold an hour
  *   outside it, nothing beyond two and a half hours.
  *
@@ -88,8 +91,14 @@ data class SleepHealth(val score: Int, val nights: Int, val usualMidpointMinute:
             }
             val shares = window.mapNotNull { night -> needs[night.date]?.let { night.asleepMillis.toDouble() / it } }
             if (shares.isNotEmpty()) measure(SleepHealthMeasureKind.DURATION, shares.average(), best = 1.0, threshold = 0.9, worst = 0.75)
-            Nights.median(window.filter { it.continuity != null }.map { it.asleepMillis.toDouble() / it.inBedMillis })?.let {
-                measure(SleepHealthMeasureKind.EFFICIENCY, it, best = 0.95, threshold = 0.85, worst = 0.75)
+            Nights.median(window.mapNotNull { it.continuity?.wakeAfterOnsetMillis?.div(SleepScore.MINUTE) })?.let {
+                measure(
+                    SleepHealthMeasureKind.CONTINUITY,
+                    it,
+                    best = SleepScore.AWAKE_BEST_MINUTES,
+                    threshold = SleepScore.AWAKE_THRESHOLD_MINUTES,
+                    worst = SleepScore.AWAKE_WORST_MINUTES,
+                )
             }
             val usual = circularMedianMinute(window.map { it.midpointMinuteOfDay })
             measure(SleepHealthMeasureKind.TIMING, minutesOutsideWindow(usual).toDouble(), best = 0.0, threshold = 60.0, worst = 150.0)

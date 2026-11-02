@@ -15,14 +15,8 @@ enum class SleepMeasureKind {
     /** Time asleep as a share of need. */
     DURATION,
 
-    /** Time asleep as a share of time in bed. */
-    EFFICIENCY,
-
     /** Minutes awake between falling asleep and the final awakening. */
     AWAKE_AFTER_ONSET,
-
-    /** Minutes from going to bed to falling asleep. */
-    TIME_TO_SLEEP,
 
     /** Awakenings of five minutes or more. */
     LONG_AWAKENINGS,
@@ -51,11 +45,13 @@ fun ratingOf(score: Int): SleepRating = when {
  * - [duration] (60 points): time asleep against the athlete's need: full at the need, 60 % at 85 % of
  *   it, nothing at 60 %. Restricted sleep impairs the next day's attention and performance in proportion
  *   to the shortfall (Van Dongen 2003; Belenky 2003).
- * - [continuity] (40 points): the National Sleep Foundation's quality criteria (Ohayon 2017) as
- *   thresholds: sleep efficiency 85 % (excellent 95 %), awake after falling asleep 20 minutes
- *   (excellent 5), time to fall asleep 30 minutes (excellent 10), one awakening of five minutes or
- *   more (excellent none). Fragmented sleep impairs the next day much like shortened sleep (Stepanski
- *   2002).
+ * - [continuity] (40 points): the National Sleep Foundation's quality criteria (Ohayon 2017) that lie
+ *   within the night as thresholds: awake after falling asleep 20 minutes (excellent 5, two thirds of
+ *   the points) and one awakening of five minutes or more (excellent none, a third). Fragmented sleep
+ *   impairs the next day much like shortened sleep (Stepanski 2002). The consensus also grades time to
+ *   fall asleep and the share of time in bed spent asleep, but both count from the moment the sleeper
+ *   tries to sleep, which a watch cannot see: it takes reading in bed for lying awake. Time awake before
+ *   falling asleep and after the final awakening is therefore not scored ([Night]).
  *
  * The habits that matter for long-term health (regularity, timing, the usual amount of sleep) are not a
  * property of one night; [SleepHealth] scores them over two weeks. Sleep stages are not scored: wrist
@@ -104,28 +100,28 @@ data class SleepScore(val score: Int, val duration: Double, val continuity: Doub
             val duration =
                 measure(SleepMeasureKind.DURATION, night.asleepMillis.toDouble() / needMillis, best = 1.0, threshold = 0.85, worst = 0.6)
             val continuity = night.continuity?.let { c ->
-                val efficiency = night.asleepMillis.toDouble() / night.inBedMillis
-                (
-                    9 * measure(SleepMeasureKind.EFFICIENCY, efficiency, best = 0.95, threshold = 0.85, worst = 0.75) +
-                        8 *
-                        measure(
-                            SleepMeasureKind.AWAKE_AFTER_ONSET,
-                            c.wakeAfterOnsetMillis / MINUTE,
-                            best = 5.0,
-                            threshold = 20.0,
-                            worst = 50.0,
-                        ) +
-                        4 * measure(SleepMeasureKind.TIME_TO_SLEEP, c.latencyMillis / MINUTE, best = 10.0, threshold = 30.0, worst = 60.0) +
-                        4 * measure(SleepMeasureKind.LONG_AWAKENINGS, c.longAwakenings.toDouble(), best = 0.0, threshold = 1.0, worst = 4.0)
-                    ) / CONTINUITY_WEIGHTS
+                val awake = measure(
+                    SleepMeasureKind.AWAKE_AFTER_ONSET,
+                    c.wakeAfterOnsetMillis / MINUTE,
+                    best = AWAKE_BEST_MINUTES,
+                    threshold = AWAKE_THRESHOLD_MINUTES,
+                    worst = AWAKE_WORST_MINUTES,
+                )
+                val awakenings =
+                    measure(SleepMeasureKind.LONG_AWAKENINGS, c.longAwakenings.toDouble(), best = 0.0, threshold = 1.0, worst = 4.0)
+                (2 * awake + awakenings) / 3
             }
             val parts = listOfNotNull(duration to DURATION_POINTS, continuity?.let { it to CONTINUITY_POINTS })
             val score = parts.sumOf { (f, points) -> f * points } / parts.sumOf { (_, points) -> points } * 100
             return SleepScore(score.roundToInt(), duration, continuity, measures)
         }
 
-        private val MINUTE = Duration.ofMinutes(1).toMillis().toDouble()
-        private const val CONTINUITY_WEIGHTS = 25.0
+        /** Grading of the minutes awake after falling asleep (Ohayon 2017), shared with [SleepHealth]. */
+        const val AWAKE_BEST_MINUTES = 5.0
+        const val AWAKE_THRESHOLD_MINUTES = 20.0
+        const val AWAKE_WORST_MINUTES = 50.0
+
+        internal val MINUTE = Duration.ofMinutes(1).toMillis().toDouble()
         private const val NEED_WINDOW_DAYS = 30L
     }
 }

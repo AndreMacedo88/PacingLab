@@ -1,5 +1,6 @@
 package app.pacinglab.core.analytics.recovery
 
+import app.pacinglab.core.analytics.session.SessionAnalyzer.within
 import app.pacinglab.core.model.BriefAwakening
 import app.pacinglab.core.model.DailyVitals
 import app.pacinglab.core.model.Measurement
@@ -15,6 +16,13 @@ import java.time.ZoneOffset
 /**
  * One night: the main sleep and what the watch measured during it, dated by the morning it ended.
  *
+ * The night runs from falling asleep (the first sleep stage) to the final awakening (the end of the last
+ * one). Time awake in bed before and after is left out of every measure and chart: the watch cannot tell
+ * reading in bed from trying to sleep, and lying in after waking says nothing about the sleep. A record
+ * without stages is taken whole.
+ *
+ * @property start falling asleep.
+ * @property end the final awakening.
  * @property asleepMillis time asleep (light, deep, REM or unspecified sleep); the whole session when
  *   it has no stages.
  * @property hrvMs heart rate variability (RMSSD) of the night: the watch app's own nightly value when the
@@ -26,8 +34,8 @@ import java.time.ZoneOffset
  * @property restingHr resting heart rate the watch derived from the sleep.
  * @property continuity how unbroken the sleep was; null when the watch recorded no stages.
  * @property zone where the night was spent, for clock times.
- * @property stages the stages as the watch recorded them, in time order.
- * @property sleepingHeartRate heart rate during the sleep; null when it was not recorded.
+ * @property stages the stages as the watch recorded them between [start] and [end], in time order.
+ * @property sleepingHeartRate heart rate between [start] and [end]; null when it was not recorded.
  * @property oxygenSaturation average SpO2 of the night in per cent, from the Google Health API.
  * @property skinTemperature skin temperature relative to the watch app's baseline in degrees Celsius,
  *   from the Google Health API.
@@ -52,12 +60,8 @@ data class Night(
     val skinTemperature: Double? = null,
     val briefAwakenings: List<BriefAwakening>? = null,
 ) {
-    /** Time in bed: from the start of the sleep record to its end. */
-    val inBedMillis: Long get() = Duration.between(start, end).toMillis()
-
     /** The middle of the time between falling asleep and the final awakening, for sleep regularity. */
-    val midpoint: Instant get() = continuity?.let { Instant.ofEpochMilli((it.onset.toEpochMilli() + it.finalAwakening.toEpochMilli()) / 2) }
-        ?: Instant.ofEpochMilli((start.toEpochMilli() + end.toEpochMilli()) / 2)
+    val midpoint: Instant get() = Instant.ofEpochMilli((start.toEpochMilli() + end.toEpochMilli()) / 2)
 
     /** [midpoint] as a clock time where the night was spent, in minutes after midnight. */
     val midpointMinuteOfDay: Int get() = midpoint.atZone(zone).toLocalTime().toSecondOfDay() / 60
@@ -71,19 +75,14 @@ data class Night(
 }
 
 /**
- * The continuity measures of the National Sleep Foundation's sleep quality consensus (Ohayon 2017).
+ * The continuity measures of the National Sleep Foundation's sleep quality consensus (Ohayon 2017) that
+ * lie between falling asleep and the final awakening. The other two, time to fall asleep and the share
+ * of time in bed spent asleep, count from the moment the sleeper tries to sleep, which a watch cannot see.
  *
- * @property latencyMillis from the start of the record to the first sleep stage.
  * @property wakeAfterOnsetMillis awake time between falling asleep and the final awakening.
  * @property longAwakenings awakenings of five minutes or more after falling asleep.
  */
-data class SleepContinuity(
-    val onset: Instant,
-    val finalAwakening: Instant,
-    val latencyMillis: Long,
-    val wakeAfterOnsetMillis: Long,
-    val longAwakenings: Int,
-)
+data class SleepContinuity(val wakeAfterOnsetMillis: Long, val longAwakenings: Int)
 
 object Nights {
     /** Sleeps shorter than this are naps. */
@@ -133,22 +132,27 @@ object Nights {
             .groupBy { (sleep, _) -> sleep.end.atZone(sleep.zoneOffset ?: zone).toLocalDate() }
             .map { (date, candidates) ->
                 val (sleep, asleep) = candidates.maxBy { it.second }
+                val (start, end) = sleepPeriod(sleep)
+                val stages = sleep.stages.sortedBy { it.start }
+                    .filter { it.end > start && it.start < end }
+                    .map { it.copy(start = maxOf(it.start, start), end = minOf(it.end, end)) }
+                // HRV and the nightly values belong to the whole record, as the watch app reports them.
                 val hrvValues = hrvByTime.filter { it.time >= sleep.start && it.time <= sleep.end }.map { it.value }
                 val covered = hrvValues.size * HRV_WINDOW_MILLIS >= MIN_HRV_COVERAGE * asleep
                 Night(
                     date = date,
-                    start = sleep.start,
-                    end = sleep.end,
+                    start = start,
+                    end = end,
                     asleepMillis = asleep,
-                    stageMillis = stageTotals(sleep),
+                    stageMillis = stageTotals(stages),
                     hrvMs = if (covered) median(hrvValues, MIN_HRV_SAMPLES) else null,
                     hrvPartial = hrvValues.isNotEmpty() && !covered,
                     restingHr = nearestToEnd(restingHr, sleep.end),
                     respiratoryRate = nearestToEnd(respiratoryRate, sleep.end),
-                    continuity = continuity(sleep),
+                    continuity = continuity(stages),
                     zone = sleep.zoneOffset ?: zone,
-                    stages = sleep.stages.sortedBy { it.start },
-                    sleepingHeartRate = SleepingHeartRate.of(sleep.heartRate),
+                    stages = stages,
+                    sleepingHeartRate = SleepingHeartRate.of(sleep.heartRate.within(start.toEpochMilli(), end.toEpochMilli())),
                 )
             }
             .sortedBy { it.date }
@@ -183,34 +187,36 @@ object Nights {
         sleep.stages.filter { it.type in ASLEEP }.sumOf { Duration.between(it.start, it.end).toMillis() }
     }
 
-    private fun continuity(sleep: SleepSession): SleepContinuity? {
+    /** From the first sleep stage to the end of the last one; the whole record without stages. */
+    private fun sleepPeriod(sleep: SleepSession): Pair<Instant, Instant> {
         val asleep = sleep.stages.filter { it.type in ASLEEP }
-        if (asleep.isEmpty()) return null
-        val onset = asleep.minOf { it.start }
-        val finalAwakening = asleep.maxOf { it.end }
+        if (asleep.isEmpty()) return sleep.start to sleep.end
+        return asleep.minOf { it.start } to asleep.maxOf { it.end }
+    }
+
+    /** Awakenings in [stages], which lie between falling asleep and the final awakening. */
+    private fun continuity(stages: List<SleepStage>): SleepContinuity? {
+        if (stages.none { it.type in ASLEEP }) return null
         // Consecutive awake stages form one awakening.
         val awakenings = mutableListOf<Long>()
         var current = 0L
-        for (stage in sleep.stages.sortedBy { it.start }.filter { it.end > onset && it.start < finalAwakening }) {
+        for (stage in stages) {
             if (stage.type in ASLEEP) {
                 if (current > 0) awakenings += current
                 current = 0
             } else if (stage.type == SleepStageType.AWAKE || stage.type == SleepStageType.OUT_OF_BED) {
-                current += Duration.between(maxOf(stage.start, onset), minOf(stage.end, finalAwakening)).toMillis()
+                current += Duration.between(stage.start, stage.end).toMillis()
             }
         }
         if (current > 0) awakenings += current
         return SleepContinuity(
-            onset = onset,
-            finalAwakening = finalAwakening,
-            latencyMillis = Duration.between(sleep.start, onset).toMillis().coerceAtLeast(0),
             wakeAfterOnsetMillis = awakenings.sum(),
             longAwakenings = awakenings.count { it >= LONG_AWAKENING.toMillis() },
         )
     }
 
-    private fun stageTotals(sleep: SleepSession): Map<SleepStageType, Long> =
-        sleep.stages.groupBy { it.type }.mapValues { (_, stages) -> stages.sumOf { Duration.between(it.start, it.end).toMillis() } }
+    private fun stageTotals(stages: List<SleepStage>): Map<SleepStageType, Long> =
+        stages.groupBy { it.type }.mapValues { (_, list) -> list.sumOf { Duration.between(it.start, it.end).toMillis() } }
 
     private fun nearestToEnd(values: List<Measurement>, end: Instant): Double? = values
         .filter { Duration.between(it.time, end).abs() <= NIGHT_VALUE_TOLERANCE }

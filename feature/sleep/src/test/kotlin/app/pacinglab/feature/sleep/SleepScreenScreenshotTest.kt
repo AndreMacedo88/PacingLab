@@ -45,7 +45,8 @@ class SleepScreenScreenshotTest {
 
     /**
      * A night of about five sleep cycles: deep sleep early, REM growing towards the morning, a couple of
-     * short awakenings; [shiftMinutes] moves bedtime, [shortenMinutes] cuts the morning.
+     * short awakenings; [shiftMinutes] moves bedtime, [shortenMinutes] cuts the morning. The record starts
+     * and ends awake in bed, which the night leaves out as Nights.of does.
      */
     private fun night(date: LocalDate, shiftMinutes: Long, shortenMinutes: Long = 0, index: Int = 0): Night {
         val bedtime = Instant.parse("${date.minusDays(1)}T21:05:00Z").plus(Duration.ofMinutes(shiftMinutes))
@@ -62,30 +63,28 @@ class SleepScreenScreenshotTest {
             add(SleepStageType.AWAKE to 12L)
         }
         var t = bedtime
-        val stages = plan.map { (type, minutes) -> SleepStage(t, t.plus(Duration.ofMinutes(minutes)), type).also { t = it.end } }
+        val record = plan.map { (type, minutes) -> SleepStage(t, t.plus(Duration.ofMinutes(minutes)), type).also { t = it.end } }
+        val onset = record.first { it.type != SleepStageType.AWAKE }.start
+        val final = record.last { it.type != SleepStageType.AWAKE }.end
+        val stages = record.filter { it.start >= onset && it.end <= final }
         val asleep = stages.filter { it.type != SleepStageType.AWAKE }.sumOf { Duration.between(it.start, it.end).toMillis() }
-        val onset = stages.first { it.type != SleepStageType.AWAKE }.start
-        val final = stages.last { it.type != SleepStageType.AWAKE }.end
-        val wake = stages.filter { it.type == SleepStageType.AWAKE && it.start >= onset && it.end <= final }
+        val wake = stages.filter { it.type == SleepStageType.AWAKE }
         return Night(
             date = date,
-            start = bedtime,
-            end = t,
+            start = onset,
+            end = final,
             asleepMillis = asleep,
             stageMillis = stages.groupBy { it.type }.mapValues { (_, s) -> s.sumOf { Duration.between(it.start, it.end).toMillis() } },
             hrvMs = 60.0 + 6 * sin(index * 1.3),
             restingHr = 56.0 + sin(index * 0.9),
             respiratoryRate = 12.3 + 0.4 * sin(index * 0.7),
             continuity = SleepContinuity(
-                onset = onset,
-                finalAwakening = final,
-                latencyMillis = Duration.between(bedtime, onset).toMillis(),
                 wakeAfterOnsetMillis = wake.sumOf { Duration.between(it.start, it.end).toMillis() },
                 longAwakenings = wake.count { Duration.between(it.start, it.end) >= Duration.ofMinutes(5) },
             ),
             zone = cest,
             stages = stages,
-            sleepingHeartRate = SleepingHeartRate.of(heartRate(bedtime, t, index)),
+            sleepingHeartRate = SleepingHeartRate.of(heartRate(onset, final, index)),
         )
     }
 

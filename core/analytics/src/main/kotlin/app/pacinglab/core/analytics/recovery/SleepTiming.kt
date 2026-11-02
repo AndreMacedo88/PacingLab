@@ -112,12 +112,8 @@ data class SleepWindow(val nights: Int, val onset: Int, val wake: Int) {
 
         fun of(nights: List<Night>): SleepWindow? {
             if (nights.isEmpty()) return null
-            val onsets = nights.map { fromNoon(it.continuity?.onset ?: it.start, it) }
-            val wakes = nights.map { night ->
-                val onset = fromNoon(night.continuity?.onset ?: night.start, night)
-                val asleep = Duration.between(night.continuity?.onset ?: night.start, night.continuity?.finalAwakening ?: night.end)
-                onset + asleep.toMinutes().toInt()
-            }
+            val onsets = nights.map { fromNoon(it.start, it) }
+            val wakes = nights.map { night -> fromNoon(night.start, night) + Duration.between(night.start, night.end).toMinutes().toInt() }
             return SleepWindow(nights.size, onsets.average().roundToInt(), wakes.average().roundToInt())
         }
 

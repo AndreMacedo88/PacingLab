@@ -14,8 +14,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import app.pacinglab.core.analytics.recovery.Night
-import app.pacinglab.core.analytics.recovery.SleepMeasureKind
-import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import app.pacinglab.core.model.SleepStageType
@@ -24,17 +22,9 @@ import kotlin.math.roundToInt
 
 /** Continuity and stage measures against their published ranges. */
 @Composable
-internal fun QualityCard(night: Night, score: SleepScore, modifier: Modifier = Modifier) {
+internal fun QualityCard(night: Night, modifier: Modifier = Modifier) {
     val c = night.continuity ?: return
     SleepCard(stringResource(R.string.sleep_quality_title), stringResource(R.string.sleep_quality_info), modifier) {
-        val latency = c.latencyMillis / MINUTE
-        QualityRow(
-            stringResource(R.string.sleep_quality_time_to_sleep),
-            stringResource(R.string.sleep_minutes, latency.roundToInt()),
-            latency,
-            0.0..30.0,
-            0.0..90.0,
-        )
         val awake = c.wakeAfterOnsetMillis / MINUTE
         QualityRow(
             stringResource(R.string.sleep_quality_awake),
@@ -50,16 +40,6 @@ internal fun QualityCard(night: Night, score: SleepScore, modifier: Modifier = M
             0.0..1.0,
             0.0..6.0,
         )
-        score.measure(SleepMeasureKind.EFFICIENCY)?.let {
-            val percent = it.value * 100
-            QualityRow(
-                stringResource(R.string.sleep_quality_efficiency),
-                stringResource(R.string.sleep_percent, percent.roundToInt()),
-                percent,
-                85.0..100.0,
-                60.0..100.0,
-            )
-        }
         for (type in listOf(SleepStageType.DEEP, SleepStageType.REM)) {
             val typical = type.typical() ?: continue
             val millis = night.stageMillis[type] ?: 0L

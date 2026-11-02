@@ -2,6 +2,7 @@ package app.pacinglab.core.analytics.recovery
 
 import app.pacinglab.core.model.BriefAwakening
 import app.pacinglab.core.model.DailyVitals
+import app.pacinglab.core.model.HeartRateSeries
 import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
 import app.pacinglab.core.model.SleepSession
@@ -23,13 +24,19 @@ import java.time.ZoneOffset
 class NightsTest {
     private val cest = ZoneOffset.ofHours(2)
 
-    private fun sleep(id: String, start: String, end: String, vararg stages: Pair<SleepStageType, Long>): SleepSession {
+    private fun sleep(
+        id: String,
+        start: String,
+        end: String,
+        vararg stages: Pair<SleepStageType, Long>,
+        heartRate: HeartRateSeries = HeartRateSeries.EMPTY,
+    ): SleepSession {
         val begin = Instant.parse(start)
         var t = begin
         val list = stages.map { (type, minutes) ->
             SleepStage(t, t.plus(Duration.ofMinutes(minutes)), type).also { t = it.end }
         }
-        return SleepSession(id, begin, Instant.parse(end), cest, "com.fitbit.FitbitMobile", list)
+        return SleepSession(id, begin, Instant.parse(end), cest, "com.fitbit.FitbitMobile", list, heartRate)
     }
 
     private fun value(kind: MeasurementKind, time: String, value: Double) =
@@ -93,11 +100,40 @@ class NightsTest {
 
         val continuity = Nights.of(listOf(night), emptyList(), emptyList(), emptyList(), cest).single().continuity!!
 
-        assertThat(continuity.latencyMillis).isEqualTo(25 * 60_000L)
         assertThat(continuity.wakeAfterOnsetMillis).isEqualTo(17 * 60_000L)
         assertThat(continuity.longAwakenings).isEqualTo(2)
-        assertThat(continuity.onset).isEqualTo(Instant.parse("2026-10-20T21:25:00Z"))
-        assertThat(continuity.finalAwakening).isEqualTo(Instant.parse("2026-10-21T05:22:00Z"))
+    }
+
+    @Test
+    fun `a night runs from falling asleep to the final awakening`() {
+        // Half an hour of reading in bed, then twenty minutes lying in after waking.
+        val minute = 60_000L
+        val heartRate = HeartRateSeries(
+            LongArray(8 * 60) { Instant.parse("2026-10-20T21:00:00Z").toEpochMilli() + it * minute },
+            IntArray(8 * 60) { if (it < 30 || it >= 8 * 60 - 20) 70 else 50 },
+        )
+        val record = sleep(
+            "n", "2026-10-20T21:00:00Z", "2026-10-21T05:00:00Z",
+            SleepStageType.AWAKE to 30,
+            SleepStageType.LIGHT to 200,
+            SleepStageType.AWAKE to 10,
+            SleepStageType.DEEP to 220,
+            SleepStageType.AWAKE to 20,
+            heartRate = heartRate,
+        )
+        val resting = listOf(value(MeasurementKind.RESTING_HEART_RATE, "2026-10-21T05:00:00Z", 48.0))
+
+        val night = Nights.of(listOf(record), emptyList(), resting, emptyList(), cest).single()
+
+        assertThat(night.start).isEqualTo(Instant.parse("2026-10-20T21:30:00Z"))
+        assertThat(night.end).isEqualTo(Instant.parse("2026-10-21T04:40:00Z"))
+        assertThat(night.stages.first().type).isEqualTo(SleepStageType.LIGHT)
+        assertThat(night.stages.last().type).isEqualTo(SleepStageType.DEEP)
+        assertThat(night.stageMillis[SleepStageType.AWAKE]).isEqualTo(10 * minute)
+        assertThat(night.continuity!!.wakeAfterOnsetMillis).isEqualTo(10 * minute)
+        assertThat(night.sleepingHeartRate!!.average).isEqualTo(50.0)
+        // Stamped at the end of the record, as the watch app does.
+        assertThat(night.restingHr).isEqualTo(48.0)
     }
 
     @Test
@@ -190,9 +226,10 @@ class NightsTest {
 
     @Test
     fun `brief awakenings join the night they fall in`() {
-        val night = sleep("n", "2026-10-23T20:30:00Z", "2026-10-24T04:30:00Z", SleepStageType.LIGHT to 480)
+        val night = sleep("n", "2026-10-23T20:30:00Z", "2026-10-24T05:30:00Z", SleepStageType.LIGHT to 480, SleepStageType.AWAKE to 60)
         val nights = Nights.of(listOf(night), emptyList(), emptyList(), emptyList(), cest)
         val inside = BriefAwakening(Instant.parse("2026-10-24T02:41:00Z"), Instant.parse("2026-10-24T02:43:00Z"))
+        // In the record, but after the final awakening.
         val after = BriefAwakening(Instant.parse("2026-10-24T05:10:00Z"), Instant.parse("2026-10-24T05:11:00Z"))
 
         val (merged) = Nights.withVitals(nights, listOf(DailyVitals(LocalDate.of(2026, 10, 24), briefAwakenings = listOf(inside, after))))

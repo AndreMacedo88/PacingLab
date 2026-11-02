@@ -19,25 +19,30 @@ class SleepHealthTest {
     private val day = LocalDate.of(2026, 11, 20)
     private val hour = 3_600_000L
 
-    /** A night of the morning [date], in bed from [bedtime] (hours after midnight UTC, evening as negative) for [hours]. */
+    /**
+     * A night of the morning [date], asleep from [bedtime] (hours after midnight UTC, evening as negative)
+     * for [hours] to the final awakening, with one awakening of [awake] minutes in its middle.
+     */
     private fun night(date: LocalDate, bedtime: Double = -1.0, hours: Double = 8.0, awake: Long = 0): Night {
         val start = Instant.parse("${date}T00:00:00Z").plusMillis((bedtime * hour).toLong())
         val end = start.plusMillis((hours * hour).toLong())
-        val asleepEnd = end.minus(Duration.ofMinutes(awake))
+        val wake = start.plusMillis((hours * hour / 2).toLong())
+        val back = wake.plus(Duration.ofMinutes(awake))
         return Night(
             date = date,
             start = start,
             end = end,
-            asleepMillis = Duration.between(start, asleepEnd).toMillis(),
+            asleepMillis = Duration.between(start, end).toMillis() - Duration.ofMinutes(awake).toMillis(),
             stageMillis = emptyMap(),
             hrvMs = null,
             restingHr = null,
             respiratoryRate = null,
-            continuity = SleepContinuity(start, asleepEnd, 0, 0, 0),
+            continuity = SleepContinuity(Duration.ofMinutes(awake).toMillis(), if (awake >= 5) 1 else 0),
             zone = ZoneOffset.UTC,
             stages = listOfNotNull(
-                SleepStage(start, asleepEnd, SleepStageType.LIGHT),
-                if (awake > 0) SleepStage(asleepEnd, end, SleepStageType.AWAKE) else null,
+                SleepStage(start, wake, SleepStageType.LIGHT),
+                if (awake > 0) SleepStage(wake, back, SleepStageType.AWAKE) else null,
+                SleepStage(back, end, SleepStageType.LIGHT),
             ),
         )
     }
@@ -73,7 +78,7 @@ class SleepHealthTest {
 
         val health = SleepHealth.of(nights, needs(nights), day)!!
 
-        // Midpoint at 03:00, regularity 100, duration at need, efficiency 100 %.
+        // Midpoint at 03:00, regularity 100, duration at need, no time awake after falling asleep.
         assertThat(health.score).isEqualTo(100)
         assertThat(health.usualMidpointMinute).isEqualTo(3 * 60)
     }
@@ -88,6 +93,16 @@ class SleepHealthTest {
 
         assertThat(health.score).isLessThan(SleepScore.FAIR_FROM)
         assertThat(health.measure(SleepHealthMeasureKind.TIMING)!!.withinThreshold).isEqualTo(false)
+    }
+
+    @Test
+    fun `continuity is the median night's time awake after falling asleep`() {
+        val nights = (13 downTo 0).map { night(day.minusDays(it.toLong()), awake = if (it % 3 == 0) 50L else 20L) }
+
+        val continuity = SleepHealth.of(nights, needs(nights), day)!!.measure(SleepHealthMeasureKind.CONTINUITY)!!
+
+        assertThat(continuity.value).isCloseTo(20.0, 1e-9)
+        assertThat(continuity.fraction).isCloseTo(Grading.AT_THRESHOLD, 1e-9)
     }
 
     @Test

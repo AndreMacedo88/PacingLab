@@ -72,14 +72,14 @@ internal fun KeyMetricsCard(
         }
         Text(stringResource(R.string.sleep_metrics_windows), style = MaterialTheme.typography.labelLarge)
         SleepWindows(days.mapNotNull { byDate[it] }, until, stringResource(R.string.sleep_schedule_description), locale)
-        val efficiency = series { 100.0 * it.asleepMillis / it.inBedMillis }
+        val awake = series { night -> night.continuity?.let { it.wakeAfterOnsetMillis / MINUTE } }
         MetricRow(
-            stringResource(R.string.sleep_quality_efficiency),
-            average(efficiency)?.let {
-                stringResource(R.string.sleep_percent, it.roundToInt())
+            stringResource(R.string.sleep_quality_awake),
+            average(awake)?.let {
+                stringResource(R.string.sleep_minutes, it.roundToInt())
             },
         ) {
-            Sparkline(values = efficiency, band = 85.0..100.0, labels = labels)
+            Sparkline(values = awake, band = 0.0..SleepScore.AWAKE_THRESHOLD_MINUTES, labels = labels)
         }
         for (type in listOf(SleepStageType.DEEP, SleepStageType.REM)) {
             val typical = type.typical() ?: continue
