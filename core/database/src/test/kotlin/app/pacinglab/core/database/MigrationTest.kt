@@ -10,6 +10,7 @@ import app.pacinglab.core.database.store.EffortStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
 import app.pacinglab.core.database.store.SessionWeatherStore
+import app.pacinglab.core.database.store.StillHeartRateStore
 import app.pacinglab.core.database.store.StoredSessionWeather
 import app.pacinglab.core.database.store.WellnessStore
 import app.pacinglab.core.database.store.WorkoutStore
@@ -18,6 +19,7 @@ import app.pacinglab.core.model.DailyVitals
 import app.pacinglab.core.model.PhysiologyEntry
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.SessionWeather
+import app.pacinglab.core.model.StillHeartRate
 import app.pacinglab.core.model.WeatherCondition
 import app.pacinglab.core.model.Workout
 import assertk.assertThat
@@ -34,6 +36,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 
@@ -235,6 +238,38 @@ class MigrationTest {
         assertThat(stored[0].briefAwakenings).isEqualTo(listOf(brief, brief.copy(end = brief.end.plusSeconds(60))))
         assertThat(stored[1].briefAwakenings).isEqualTo(emptyList<BriefAwakening>())
         assertThat(latest).isEqualTo(LocalDate.ofEpochDay(20751))
+    }
+
+    @Test
+    fun `version 11 morning ratings survive the upgrade and still heart rate can then be stored`() = runTest {
+        val file = databaseFile()
+        createFromSchema(file, version = 11)
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("INSERT INTO wellness (epoch_day, rested) VALUES (20750, 4)")
+        }
+
+        val database = Room.databaseBuilder(context, PacingLabDatabase::class.java, file.path).setDriver(AndroidSQLiteDriver()).build()
+        val day = StillHeartRate(
+            LocalDate.ofEpochDay(20751),
+            IntArray(24) {
+                if (it ==
+                    9
+                ) {
+                    42
+                } else {
+                    0
+                }
+            },
+            DoubleArray(24) { if (it == 9) 42 * 61.25 else 0.0 },
+        )
+        val still = StillHeartRateStore(database, Clock.systemUTC())
+        still.save(listOf(day))
+        val stored = still.observeAll().first()
+        val rested = WellnessStore(database).observeRested().first()
+        database.close()
+
+        assertThat(rested).isEqualTo(mapOf(LocalDate.ofEpochDay(20750) to 4))
+        assertThat(stored).isEqualTo(listOf(day))
     }
 
     private fun databaseFile(): File = context.getDatabasePath("migration-test.db").apply {

@@ -271,7 +271,13 @@ class MathParser private constructor(private val source: String) {
 
             "text", "textrm", "mbox" -> MathNode.Text(rawArgument())
 
-            "operatorname" -> MathNode.Symbol(rawArgument(), AtomKind.OP, MathFont.UPRIGHT)
+            "operatorname" -> {
+                // \operatorname* takes its scripts above and below in display, as \max does.
+                skipSpaces()
+                val limits = peek() == '*'
+                if (limits) pos++
+                MathNode.Symbol(rawArgument(), AtomKind.OP, MathFont.UPRIGHT, limits = limits)
+            }
 
             "mathrm" -> MathNode.Symbol(rawArgument(), AtomKind.ORD, MathFont.UPRIGHT)
 

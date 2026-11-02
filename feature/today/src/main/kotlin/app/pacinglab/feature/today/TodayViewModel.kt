@@ -37,6 +37,8 @@ import app.pacinglab.core.data.repository.UserPreferencesRepository
 import app.pacinglab.core.data.repository.Vo2MaxHistory
 import app.pacinglab.core.data.repository.WellnessRepository
 import app.pacinglab.core.data.repository.WorkoutRepository
+import app.pacinglab.core.data.strain.DaytimeStrainRepository
+import app.pacinglab.core.data.strain.StrainHistory
 import app.pacinglab.core.data.sync.SyncScheduler
 import app.pacinglab.core.data.weather.WeatherRepository
 import app.pacinglab.core.data.weather.WeatherState
@@ -110,6 +112,7 @@ data class TodayExtras(
     val efficiency: EfficiencyHistory? = null,
     val weather: WeatherState? = null,
     val trainingStatus: TrainingStatus? = null,
+    val strain: StrainHistory? = null,
 )
 
 sealed interface TodayUiState {
@@ -178,6 +181,7 @@ class TodayViewModel @Inject constructor(
     private val performance: PerformanceRepository,
     private val weather: WeatherRepository,
     private val trainingStatus: TrainingStatusRepository,
+    private val strain: DaytimeStrainRepository,
     preferences: UserPreferencesRepository,
 ) : ViewModel() {
     private val trainingAnchors = trainingLoad.anchors
@@ -192,7 +196,10 @@ class TodayViewModel @Inject constructor(
                 if (TodayCard.VO2MAX in visible) performance.observeVo2Max() else flowOf(null),
                 if (TodayCard.RACE_5K in visible) performance.observeRunning() else flowOf(null),
                 if (TodayCard.EFFICIENCY in visible) performance.observeEfficiency() else flowOf(null),
-            ) { vo2max, running, efficiency -> TodayExtras(vo2max = vo2max, running = running, efficiency = efficiency) }
+                if (TodayCard.STRAIN in visible) strain.observe() else flowOf(null),
+            ) { vo2max, running, efficiency, strainHistory ->
+                TodayExtras(vo2max = vo2max, running = running, efficiency = efficiency, strain = strainHistory)
+            }
             combine(
                 if (TodayCard.HEART_RATE in visible) dayHeartRate.observeToday() else flowOf(null),
                 trainingAnchors,

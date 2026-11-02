@@ -415,6 +415,8 @@ private fun TileCard(card: TodayCard, state: TodayUiState.Loaded, onOpen: (Today
             modifier,
         )
 
+        TodayCard.STRAIN -> StrainTile(state, onClick = { onOpen(TodayDestination.Trends) }, modifier)
+
         TodayCard.SLEEPING_HR -> NightlyTile(
             state,
             NightlyMetric.SLEEPING_HR,

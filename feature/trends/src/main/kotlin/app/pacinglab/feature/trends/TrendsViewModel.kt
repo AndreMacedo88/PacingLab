@@ -25,6 +25,8 @@ import app.pacinglab.core.data.repository.SessionKindRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.repository.TrainingStatusRepository
 import app.pacinglab.core.data.repository.UserPreferencesRepository
+import app.pacinglab.core.data.strain.DaytimeStrainRepository
+import app.pacinglab.core.data.strain.StrainHistory
 import app.pacinglab.core.data.sync.SyncScheduler
 import app.pacinglab.core.model.Sport
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,6 +37,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -57,6 +60,7 @@ sealed interface TrendsUiState {
      * @property running running distance of the latest weeks against the athlete's tolerance, newest first.
      * @property calendar every day with training, for the month grid.
      * @property fiveZones the weekly table splits time over the five zones rather than the three.
+     * @property strain daytime strain up to today; null until first read.
      */
     data class Loaded(
         val days: List<FormDay>,
@@ -71,6 +75,7 @@ sealed interface TrendsUiState {
         val running: List<RunningWeek> = emptyList(),
         val calendar: Map<LocalDate, CalendarDay> = emptyMap(),
         val fiveZones: Boolean = true,
+        val strain: StrainHistory? = null,
     ) : TrendsUiState
 }
 
@@ -84,6 +89,7 @@ class TrendsViewModel @Inject constructor(
     training: TrainingStatusRepository,
     kinds: SessionKindRepository,
     private val preferences: UserPreferencesRepository,
+    strain: DaytimeStrainRepository,
 ) : ViewModel() {
     private val recovery = nights.observeSleep().map { sleep ->
         val today = LocalDate.now(clock)
@@ -132,12 +138,13 @@ class TrendsViewModel @Inject constructor(
     }
         .flowOn(Dispatchers.Default)
 
-    // Kept apart, so that switching the weekly table's zones does not recompute everything.
-    val state: StateFlow<TrendsUiState> = combine(content, preferences.preferences.map { it.weeksInFiveZones }.distinctUntilChanged()) {
-            state,
-            five,
-        ->
-        if (state is TrendsUiState.Loaded) state.copy(fiveZones = five) else state
+    // Kept apart, so that switching the weekly table's zones or a new strain reading does not recompute everything.
+    val state: StateFlow<TrendsUiState> = combine(
+        content,
+        preferences.preferences.map { it.weeksInFiveZones }.distinctUntilChanged(),
+        strain.observe().map<StrainHistory, StrainHistory?> { it }.onStart { emit(null) },
+    ) { state, five, strainHistory ->
+        if (state is TrendsUiState.Loaded) state.copy(fiveZones = five, strain = strainHistory) else state
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TrendsUiState.Loading)
 
     val refreshing: StateFlow<Boolean> =

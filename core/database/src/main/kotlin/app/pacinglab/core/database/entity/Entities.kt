@@ -133,3 +133,15 @@ class SessionWeatherEntity(
     @ColumnInfo(name = "wind_gusts") val windGusts: Double?,
     @ColumnInfo(name = "precipitation") val precipitation: Double?,
 )
+
+/**
+ * One day's still heart rate by hour of the day ([app.pacinglab.core.model.StillHeartRate]): 24 minute
+ * counts and 24 sums of minute means, comma-separated; never the day's heart rate itself.
+ */
+@Entity(tableName = "still_heart_rate")
+class StillHeartRateEntity(
+    @PrimaryKey @ColumnInfo(name = "epoch_day") val epochDay: Long,
+    @ColumnInfo(name = "minutes") val minutes: String,
+    @ColumnInfo(name = "sums") val sums: String,
+    @ColumnInfo(name = "computed_ms") val computedMs: Long,
+)

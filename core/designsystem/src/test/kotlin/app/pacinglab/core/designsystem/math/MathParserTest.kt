@@ -19,6 +19,13 @@ class MathParserTest {
     }
 
     @Test
+    fun starredOperatorNamesTakeLimits() {
+        val node = MathParser.parse("\\operatorname*{median}_{d} x") as MathNode.Row
+        val median = (node.children[0] as MathNode.Scripts).base as MathNode.Symbol
+        assertThat(median).isEqualTo(MathNode.Symbol("median", AtomKind.OP, MathFont.UPRIGHT, limits = true))
+    }
+
+    @Test
     fun textKeepsItsSpaces() {
         assertThat(MathParser.parse("\\text{if }")).isEqualTo(MathNode.Text("if "))
     }

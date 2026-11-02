@@ -46,4 +46,20 @@
     <string name="ui_nightly_range_advanced" formatted="false" tools:ignore="Typos,TypographyDashes,TypographyFractions">For a measure with values from the nights before (HRV over 60 days, the others over 30; at least 14 nights), sorted as $v_{(1)} \\le \\dots \\le v_{(n)}$, a quantile interpolates between neighbouring ranks:\n\n$$Q(q) = v_{(k)} + (h - k)\\left(v_{(k+1)} - v_{(k)}\\right)$$\n\n$$h = 1 + q\\,(n - 1), \\quad k = \\lfloor h \\rfloor$$\n\nThe usual range is the 10th to the 90th percentile, at least a minimum half-width $m$ either side of the median $\\tilde{v} = Q(0.5)$:\n\n$$L = \\min\\left(Q(0.1),\\; \\tilde{v} - m\\right)$$\n\n$$U = \\max\\left(Q(0.9),\\; \\tilde{v} + m\\right)$$\n\nwith $m$ = 2 bpm for resting and sleeping heart rate, 0.5 for breathing rate and SpO2, 0.2 °C for skin temperature and none for HRV. The night\'s value and both limits are rounded to the shown resolution before they are compared, so a shown value never contradicts its pill. On Today, a night is flagged when two or more measures fall outside $[L, U]$.</string>
     <string name="ui_training_status_advanced" formatted="false" tools:ignore="Typos,TypographyDashes,TypographyFractions">With fitness $C$ (42-day load) and fatigue $A$ (7-day load) from the fitness and fatigue model, form $T$, and the smoothed VO2max trend $V$:\n\n$$\\rho = \\frac{A_d}{C_d}$$\n\n$$\\Delta V = V_d - V_{d-28}, \\quad \\Delta C = C_d - C_{d-14}$$\n\nThe first rule that holds decides:\n- Strained: the week\'s HRV below its range and $\\rho \\ge 0.5$.\n- Overreaching: $\\rho &gt; 1.5$.\n- Detraining: $\\rho &lt; 0.5$ and $\\Delta C &lt; 0$.\n- Peaking: $\\rho &lt; 0.8$, $T &gt; 0$, $C \\ge 0.9\\, \\max_{90} C$ and $\\Delta V &gt; -0.5$.\n- Recovery: $\\rho &lt; 0.8$.\n- Productive: $\\Delta V \\ge 0.5$; unproductive: $\\Delta V \\le -0.5$; maintaining otherwise or without a trend.\n\nNo status is given before 28 days of load or with $C &lt; 10$.</string>
     <string name="ui_effort_advanced" formatted="false" tools:ignore="Typos,TypographyDashes,TypographyFractions">For a rating $R$ from 1 to 10 and a session of $t$ minutes, Foster\'s session RPE (2001) is\n\n$$\\mathrm{sRPE} = R\\, t$$\n\nin arbitrary units. To sit beside heart rate load the rating also gives a stress score per hour,\n\n$$\\mathrm{SS} = (10\\,R + 10)\\, \\frac{t}{60}$$\n\nso that an hour at 9 scores 100, like an hour at threshold heart rate. This conversion is a coaching heuristic, not a validated one.</string>
+    <string name="strain_title">Daytime strain</string>
+    <string name="strain_level_calm">Calm</string>
+    <string name="strain_level_usual">Usual</string>
+    <string name="strain_level_raised">Raised</string>
+    <string name="strain_level_high">High</string>
+    <string name="strain_experimental">Experimental</string>
+    <string name="strain_cause_vitals">your vitals were off around it, which often means an illness starting</string>
+    <string name="strain_cause_training">hard training that day or the day before</string>
+    <string name="strain_cause_sleep">a poor night before it</string>
+    <string name="strain_causes">Besides stress, possibly %1$s.</string>
+    <string name="strain_no_cause">Nothing in your data explains it; stress, caffeine, heat, alcohol or a big meal are common causes.</string>
+    <string name="strain_excess">%1$s bpm against your usual still heart rate</string>
+    <plurals name="strain_learning">
+        <item quantity="one">Learning: %1$d of %2$d days</item>
+        <item quantity="other">Learning: %1$d of %2$d days</item>
+    </plurals>
 </resources>

@@ -31,6 +31,8 @@ import app.pacinglab.core.analytics.recovery.SleepDebtLevel
 import app.pacinglab.core.analytics.recovery.SleepRating
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.analytics.recovery.Standing
+import app.pacinglab.core.analytics.strain.DaytimeStrain
+import app.pacinglab.core.data.strain.StrainHistory
 import app.pacinglab.core.designsystem.chart.MiniBars
 import app.pacinglab.core.designsystem.chart.SegmentBar
 import app.pacinglab.core.designsystem.chart.Sparkline
@@ -43,11 +45,13 @@ import app.pacinglab.core.designsystem.theme.StatusColors
 import app.pacinglab.core.designsystem.theme.chartColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import app.pacinglab.core.model.SleepStageType
+import app.pacinglab.core.ui.StrainPill
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+import app.pacinglab.core.ui.R as UiR
 
 /** Two tiles side by side, equally tall; a lone tile keeps its half and leaves the other empty. */
 @Composable
@@ -436,3 +440,35 @@ private fun signedOne(value: Double, locale: Locale): String {
 internal const val DASH = "–"
 private const val VO2MAX_DAYS = 90
 private const val EFFICIENCY_DAYS = 90
+
+/** Daytime strain: the latest day's score (today so far once it has enough still time), its last week and level. */
+@Composable
+internal fun StrainTile(state: TodayUiState.Loaded, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val history = state.extras.strain
+    val latest = history?.latest
+    val locale = LocalConfiguration.current.locales[0]
+    val scores = history?.days.orEmpty().associate { it.date to it.score?.toDouble() }
+    Tile(
+        label = stringResource(UiR.string.strain_title),
+        value = latest?.score?.toString() ?: DASH,
+        detail = when {
+            history == null -> null
+
+            latest == null -> history.progress.coerceAtMost(StrainHistory.NEEDED_DAYS).let { shown ->
+                pluralStringResource(R.plurals.tile_strain_learning, StrainHistory.NEEDED_DAYS, shown, StrainHistory.NEEDED_DAYS)
+            }
+
+            else -> stringResource(R.string.tile_strain_detail, signedOne(latest.excessBpm, locale))
+        },
+        modifier = modifier,
+        onClick = onClick,
+        status = latest?.level?.let { level -> { StrainPill(level) } },
+    ) {
+        Sparkline(
+            values = (TodayViewModel.TILE_DAYS - 1 downTo 0).map { scores[state.today.minusDays(it.toLong())] },
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            band = DaytimeStrain.USUAL_FROM.toDouble()..DaytimeStrain.RAISED_FROM.toDouble(),
+            labels = state.days(locale),
+        )
+    }
+}

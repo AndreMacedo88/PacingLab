@@ -45,6 +45,7 @@ class AdvancedInfoTest {
         app.pacinglab.feature.trends.R.string.recovery_advanced,
         app.pacinglab.feature.trends.R.string.focus_advanced,
         app.pacinglab.feature.trends.R.string.running_advanced,
+        app.pacinglab.feature.trends.R.string.strain_advanced,
         app.pacinglab.feature.performance.R.string.vo2_advanced,
         app.pacinglab.feature.performance.R.string.efficiency_advanced,
         app.pacinglab.feature.performance.R.string.race_advanced,

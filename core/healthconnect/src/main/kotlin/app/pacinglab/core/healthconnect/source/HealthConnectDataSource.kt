@@ -23,6 +23,7 @@ import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.SampleSeries
 import app.pacinglab.core.model.SleepSession
 import app.pacinglab.core.model.SourceWorkout
+import app.pacinglab.core.model.StepCount
 import app.pacinglab.core.model.WorkoutStreams
 import app.pacinglab.core.model.source.ChangeBatch
 import app.pacinglab.core.model.source.ChangeChannel
@@ -115,6 +116,9 @@ class HealthConnectDataSource @Inject constructor(private val gateway: HealthCon
         val samples = byOrigin.values.maxByOrNull { it.size } ?: return HeartRateSeries.EMPTY
         return heartRateSeries(samples, from, to)
     }
+
+    override suspend fun readSteps(from: Instant, to: Instant): List<StepCount> =
+        readAll(StepsRecord::class, from, to).map { StepCount(it.startTime, it.endTime, it.count) }
 
     override suspend fun changesToken(channel: ChangeChannel): String = gateway.changesToken(recordType(channel))
 

@@ -29,6 +29,8 @@ Early development, used daily by its author. What works today:
 - Sleep factors: what goes with better and worse nights, measured and felt, from a robust Bayesian
   regression of your own nights that holds the other factors equal and only calls a factor clear when
   it is likely to matter
+- Daytime strain: heart rate during still, awake minutes against your own usual for each hour of the day,
+  an experimental marker of stress and other loads on the body
 - The mathematics behind each analysis, typeset in the cards' information under "Advanced info"
 
 Planned: VO2max trend, heart rate charts, threshold heart rate from your data.

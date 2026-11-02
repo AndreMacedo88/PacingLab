@@ -28,11 +28,14 @@ import app.pacinglab.core.analytics.recovery.Readiness
 import app.pacinglab.core.analytics.recovery.SleepContinuity
 import app.pacinglab.core.analytics.recovery.SleepHistory
 import app.pacinglab.core.analytics.recovery.SleepScore
+import app.pacinglab.core.analytics.strain.DaytimeStrain
+import app.pacinglab.core.analytics.strain.StrainDay
 import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.data.repository.DashboardLayout
 import app.pacinglab.core.data.repository.DayHeartRate
 import app.pacinglab.core.data.repository.PlacedCard
 import app.pacinglab.core.data.repository.Vo2MaxHistory
+import app.pacinglab.core.data.strain.StrainHistory
 import app.pacinglab.core.designsystem.component.InfoDialog
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.model.HeartRateAnchors
@@ -204,6 +207,13 @@ class TodayScreenScreenshotTest {
             heartRate = dayHeartRate,
             heartRateZones = Zones.of(ZoneModel.LTHR_FIVE, anchors),
             trainingStatus = TrainingStatus.of(form, vo2maxChange = 0.8, hrvBelowNormal = false),
+            strain = StrainHistory(
+                today = today,
+                days = listOf(48, 55, 62, 51, 44, 57, 53).mapIndexed { i, score ->
+                    StrainDay(today.minusDays(6L - i), (score - 50) / 5.0, 400, score, DaytimeStrain.levelOf(score))
+                },
+                progress = 21,
+            ),
         ),
         sleepHealth = SleepHistory.of(nights).health.filterKeys { it > today.minusDays(TodayViewModel.TILE_DAYS.toLong()) },
         sleepDebts = SleepHistory.of(nights).debts.filterKeys { it > today.minusDays(TodayViewModel.TILE_DAYS.toLong()) },

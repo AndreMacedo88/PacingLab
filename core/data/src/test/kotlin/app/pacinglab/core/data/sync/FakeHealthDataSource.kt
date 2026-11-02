@@ -5,6 +5,7 @@ import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
 import app.pacinglab.core.model.SleepSession
 import app.pacinglab.core.model.SourceWorkout
+import app.pacinglab.core.model.StepCount
 import app.pacinglab.core.model.WorkoutStreams
 import app.pacinglab.core.model.source.ChangeBatch
 import app.pacinglab.core.model.source.ChangeChannel
@@ -123,6 +124,11 @@ class FakeHealthDataSource : HealthDataSource {
 
     override suspend fun readHeartRate(from: Instant, to: Instant): HeartRateSeries =
         heartRate.keys.map { readHeartRate(from, to, it) }.maxByOrNull { it.size } ?: HeartRateSeries.EMPTY
+
+    /** Step counts by origin, as the watch and the phone write them. */
+    val steps = mutableListOf<StepCount>()
+
+    override suspend fun readSteps(from: Instant, to: Instant): List<StepCount> = steps.filter { it.end > from && it.start < to }
 
     override suspend fun changesToken(channel: ChangeChannel): String = log.size.toString()
 

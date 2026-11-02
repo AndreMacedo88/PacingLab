@@ -27,6 +27,7 @@ enum class TodayCard(
     HRV("hrv", false, R.string.tile_hrv, R.string.card_hrv),
     RESTING_HR("resting_hr", false, R.string.tile_resting_hr, R.string.card_resting_hr),
     BREATHING_RATE("breathing", false, R.string.tile_breathing, R.string.card_breathing),
+    STRAIN("strain", false, UiR.string.strain_title, R.string.card_strain_tile),
     FORM("form", false, R.string.tile_form, R.string.today_card_form),
     WEEK_LOAD("week", false, R.string.tile_week, R.string.card_week),
     TRAINING_STATUS("training_status", true, UiR.string.training_status_title, R.string.card_training_status),

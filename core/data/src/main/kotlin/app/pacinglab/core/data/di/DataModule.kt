@@ -8,6 +8,7 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import app.pacinglab.core.data.reminder.MorningReminder
 import app.pacinglab.core.data.reminder.PlatformReminderNotifier
 import app.pacinglab.core.data.reminder.ReminderNotifier
+import app.pacinglab.core.data.strain.StillHeartRateFiller
 import app.pacinglab.core.data.sync.AfterSync
 import app.pacinglab.core.data.sync.AppVisibility
 import app.pacinglab.core.data.sync.ProcessAppVisibility
@@ -61,6 +62,10 @@ interface DataBindings {
     @Binds
     @IntoSet
     fun runWeather(filler: RunWeatherFiller): AfterSync
+
+    @Binds
+    @IntoSet
+    fun stillHeartRate(filler: StillHeartRateFiller): AfterSync
 
     /** Other modules may add work after syncs; without any the set is empty. */
     @Multibinds

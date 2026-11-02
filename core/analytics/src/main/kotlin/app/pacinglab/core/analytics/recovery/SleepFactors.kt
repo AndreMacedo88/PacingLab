@@ -59,6 +59,9 @@ enum class SleepFactor(val group: FactorGroup, val unit: FactorUnit, val outcome
     /** The morning after the night is one of the athlete's free days. */
     FREE_DAY(FactorGroup.BEFORE, FactorUnit.NONE),
 
+    /** Daytime strain of the day before the night: still heart rate above its usual ([app.pacinglab.core.analytics.strain.DaytimeStrain]). */
+    DAYTIME_STRAIN(FactorGroup.BEFORE, FactorUnit.BPM),
+
     /** Time asleep against the sleep need. */
     TIME_ASLEEP(FactorGroup.NIGHT, FactorUnit.MINUTES, setOf(SleepOutcome.RESTED)),
 
@@ -202,6 +205,7 @@ data class SleepFactors(val score: OutcomeFactors, val rested: OutcomeFactors) {
          *
          * @param form form (fitness minus fatigue at the start of the day) by date.
          * @param freeDays the days of the week the athlete has free.
+         * @param strain daytime strain by date, as the excess of still heart rate in bpm.
          */
         fun of(
             history: SleepHistory,
@@ -209,6 +213,7 @@ data class SleepFactors(val score: OutcomeFactors, val rested: OutcomeFactors) {
             training: List<TrainingBout>,
             form: Map<LocalDate, Double>,
             freeDays: Set<DayOfWeek>,
+            strain: Map<LocalDate, Double> = emptyMap(),
         ): SleepFactors {
             val all = history.nights
             val latest = all.lastOrNull()?.date
@@ -216,7 +221,7 @@ data class SleepFactors(val score: OutcomeFactors, val rested: OutcomeFactors) {
             val alerts = recent.filter { Vitals.of(all, it.date)?.alert == true }.map { it.date }.toSet()
             val bouts = training.sortedBy { it.end }
             val rows = recent.filter { it.date !in alerts }.map { night ->
-                Row(night, values(night, all, history.needs, bouts, form, freeDays))
+                Row(night, values(night, all, history.needs, bouts, form, freeDays, strain))
             }
             fun analysed(outcome: SleepOutcome, value: (Night) -> Double?): OutcomeFactors {
                 val usable = rows.mapNotNull { row -> value(row.night)?.let { row to it } }
@@ -341,6 +346,7 @@ data class SleepFactors(val score: OutcomeFactors, val rested: OutcomeFactors) {
             bouts: List<TrainingBout>,
             form: Map<LocalDate, Double>,
             freeDays: Set<DayOfWeek>,
+            strain: Map<LocalDate, Double>,
         ): Map<SleepFactor, Double?> {
             val start = night.start
             val day = bouts.filter { it.end < start && it.end >= start.minus(DAY) }
@@ -352,6 +358,7 @@ data class SleepFactors(val score: OutcomeFactors, val rested: OutcomeFactors) {
                 SleepFactor.BEDTIME to minutesAfterEvening(start, night.zone),
                 SleepFactor.PREVIOUS_NIGHT to previous?.let { p -> needs[p.date]?.let { (p.asleepMillis - it) / MINUTE } },
                 SleepFactor.FREE_DAY to if (night.date.dayOfWeek in freeDays) 1.0 else 0.0,
+                SleepFactor.DAYTIME_STRAIN to strain[night.date.minusDays(1)],
                 SleepFactor.TIME_ASLEEP to needs[night.date]?.let { (night.asleepMillis - it) / MINUTE },
                 SleepFactor.AWAKE to night.continuity?.let { it.wakeAfterOnsetMillis / MINUTE },
                 SleepFactor.DEEP_BEFORE_WAKING to deepBeforeWaking(night),

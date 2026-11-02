@@ -185,6 +185,8 @@ fun TrendsScreen(
                                     }
                                 }
 
+                                TrendsCardKind.STRAIN -> item(key = card.id) { StrainCard(state.strain, locale) }
+
                                 TrendsCardKind.WEEKS -> item(key = card.id) {
                                     WeeksCard(
                                         state.weeks,

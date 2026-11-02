@@ -9,6 +9,7 @@ enum class TrendsCardKind(val id: String, @param:StringRes val title: Int, @para
     STATUS("status", UiR.string.training_status_title, R.string.card_status),
     FORM("form", R.string.form_title, R.string.card_form),
     RECOVERY("recovery", R.string.recovery_title, R.string.card_recovery),
+    STRAIN("strain", UiR.string.strain_title, R.string.card_strain),
     WEEKS("weeks", R.string.weeks_title, R.string.card_weeks),
     RUNNING("running", R.string.running_title, R.string.card_running),
     FOCUS("focus", R.string.focus_title, R.string.card_focus),

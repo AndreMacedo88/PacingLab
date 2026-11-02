@@ -5,6 +5,7 @@ import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
 import app.pacinglab.core.model.SleepSession
 import app.pacinglab.core.model.SourceWorkout
+import app.pacinglab.core.model.StepCount
 import app.pacinglab.core.model.WorkoutStreams
 import java.time.Instant
 
@@ -85,6 +86,9 @@ interface HealthDataSource {
      * all-day heart rate of a day, read on demand rather than stored.
      */
     suspend fun readHeartRate(from: Instant, to: Instant): HeartRateSeries
+
+    /** Step counts within [from, to] from every app that records them, such as the watch and the phone. */
+    suspend fun readSteps(from: Instant, to: Instant): List<StepCount>
 
     /** A token marking "now" for [channel], to be passed to [readChanges] later. */
     suspend fun changesToken(channel: ChangeChannel): String

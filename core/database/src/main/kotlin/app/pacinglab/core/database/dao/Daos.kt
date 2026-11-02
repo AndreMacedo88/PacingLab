@@ -10,6 +10,7 @@ import app.pacinglab.core.database.entity.MeasurementEntity
 import app.pacinglab.core.database.entity.PhysiologyEntity
 import app.pacinglab.core.database.entity.SessionWeatherEntity
 import app.pacinglab.core.database.entity.SleepSessionEntity
+import app.pacinglab.core.database.entity.StillHeartRateEntity
 import app.pacinglab.core.database.entity.SyncStateEntity
 import app.pacinglab.core.database.entity.WellnessEntity
 import app.pacinglab.core.database.entity.WorkoutEntity
@@ -210,4 +211,16 @@ abstract class DailyVitalsDao {
         val stored = get(entries.map { it.epochDay }).associateBy { it.epochDay }
         upsert(entries.map { entry -> stored[entry.epochDay]?.let { combine(entry, it) } ?: entry })
     }
+}
+
+@Dao
+interface StillHeartRateDao {
+    @Query("SELECT * FROM still_heart_rate ORDER BY epoch_day")
+    fun observeAll(): Flow<List<StillHeartRateEntity>>
+
+    @Query("SELECT epoch_day FROM still_heart_rate")
+    suspend fun days(): List<Long>
+
+    @Upsert
+    suspend fun upsert(entries: List<StillHeartRateEntity>)
 }
