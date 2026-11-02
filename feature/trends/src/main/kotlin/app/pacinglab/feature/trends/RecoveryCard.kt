@@ -74,7 +74,11 @@ internal fun RecoveryCard(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CardHeader(title = stringResource(R.string.recovery_title), info = stringResource(R.string.recovery_info))
+            CardHeader(
+                title = stringResource(R.string.recovery_title),
+                info = stringResource(R.string.recovery_info),
+                advanced = stringResource(R.string.recovery_advanced),
+            )
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 TrendRange.entries.forEachIndexed { i, option ->
                     SegmentedButton(

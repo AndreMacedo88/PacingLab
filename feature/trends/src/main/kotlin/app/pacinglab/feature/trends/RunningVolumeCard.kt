@@ -40,7 +40,12 @@ import kotlin.math.roundToInt
 @Composable
 internal fun RunningVolumeCard(weeks: List<RunningWeek>, today: LocalDate, locale: Locale, modifier: Modifier = Modifier) {
     val now = weeks.first()
-    TrendCard(title = stringResource(R.string.running_title), info = stringResource(R.string.running_info), modifier = modifier) {
+    TrendCard(
+        title = stringResource(R.string.running_title),
+        info = stringResource(R.string.running_info),
+        modifier = modifier,
+        advanced = stringResource(R.string.running_advanced),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.running_this_week), style = MaterialTheme.typography.labelLarge)

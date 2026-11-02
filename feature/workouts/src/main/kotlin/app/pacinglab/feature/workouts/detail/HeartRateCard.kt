@@ -70,7 +70,11 @@ internal fun HeartRateCard(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CardHeader(title = stringResource(R.string.zones_title), info = stringResource(R.string.zones_info))
+            CardHeader(
+                title = stringResource(R.string.zones_title),
+                info = stringResource(R.string.zones_info),
+                advanced = stringResource(R.string.zones_advanced),
+            )
             when {
                 distributions.isEmpty() -> {
                     Text(stringResource(R.string.zones_missing), style = MaterialTheme.typography.bodyMedium)

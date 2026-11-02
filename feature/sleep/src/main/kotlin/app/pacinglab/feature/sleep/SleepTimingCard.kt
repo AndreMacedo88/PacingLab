@@ -44,7 +44,12 @@ import java.util.Locale
 internal fun SleepTimingCard(nights: List<Night>, night: Night, freeDays: Set<DayOfWeek>, modifier: Modifier = Modifier) {
     val locale = LocalConfiguration.current.locales[0]
     val timing = remember(nights, night.date, freeDays) { SleepTiming.of(nights, night.date, freeDays) }
-    SleepCard(stringResource(R.string.timing_title), stringResource(R.string.timing_info), modifier) {
+    SleepCard(
+        stringResource(R.string.timing_title),
+        stringResource(R.string.timing_info),
+        modifier,
+        advanced = stringResource(R.string.timing_advanced),
+    ) {
         if (timing == null || !timing.ready) {
             Text(
                 stringResource(

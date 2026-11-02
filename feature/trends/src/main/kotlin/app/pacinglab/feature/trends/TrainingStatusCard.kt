@@ -39,6 +39,7 @@ internal fun TrainingStatusCard(status: TrainingStatus?, locale: Locale, modifie
         title = stringResource(UiR.string.training_status_title),
         info = stringResource(R.string.status_info),
         modifier = modifier,
+        advanced = stringResource(UiR.string.ui_training_status_advanced),
     ) {
         if (status == null) {
             Text(

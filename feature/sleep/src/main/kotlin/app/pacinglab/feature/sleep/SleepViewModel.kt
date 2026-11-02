@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.pacinglab.core.analytics.recovery.FeelingAgreement
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.SleepDebt
+import app.pacinglab.core.analytics.recovery.SleepFactors
 import app.pacinglab.core.analytics.recovery.SleepHealth
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.data.repository.Dashboard
@@ -12,6 +13,7 @@ import app.pacinglab.core.data.repository.DashboardLayout
 import app.pacinglab.core.data.repository.DashboardRepository
 import app.pacinglab.core.data.repository.NightRepository
 import app.pacinglab.core.data.repository.PlacedCard
+import app.pacinglab.core.data.repository.SleepFactorRepository
 import app.pacinglab.core.data.repository.UserPreferencesRepository
 import app.pacinglab.core.data.repository.WellnessRepository
 import app.pacinglab.core.data.sync.SyncScheduler
@@ -64,6 +66,7 @@ class SleepViewModel @Inject constructor(
     private val dashboards: DashboardRepository,
     private val clock: Clock,
     preferences: UserPreferencesRepository,
+    sleepFactors: SleepFactorRepository,
 ) : ViewModel() {
     val state: StateFlow<SleepUiState> = combine(
         nights.observeSleep(),
@@ -84,6 +87,10 @@ class SleepViewModel @Inject constructor(
         )
     }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), SleepUiState.Loading)
+
+    /** What goes with better and worse nights; null until first worked out, which takes longer than the rest. */
+    val factors: StateFlow<SleepFactors?> =
+        sleepFactors.observe().stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), null)
 
     val refreshing: StateFlow<Boolean> =
         scheduler.refreshing.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)

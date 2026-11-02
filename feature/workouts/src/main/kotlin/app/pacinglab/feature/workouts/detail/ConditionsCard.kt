@@ -49,7 +49,11 @@ internal fun ConditionsCard(state: SessionWeatherState, locale: Locale, modifier
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            CardHeader(title = stringResource(R.string.conditions_title), info = stringResource(R.string.conditions_info))
+            CardHeader(
+                title = stringResource(R.string.conditions_title),
+                info = stringResource(R.string.conditions_info),
+                advanced = stringResource(R.string.conditions_advanced),
+            )
             when (state) {
                 is SessionWeatherState.Found -> Weather(state.weather, locale, heatAdjustment)
                 SessionWeatherState.Unreachable -> Note(stringResource(R.string.conditions_unreachable))

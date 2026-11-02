@@ -39,6 +39,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.NightlyMetric
+import app.pacinglab.core.analytics.recovery.SleepFactors
 import app.pacinglab.core.analytics.recovery.SleepRating
 import app.pacinglab.core.data.repository.PlacedCard
 import app.pacinglab.core.designsystem.component.CardHeader
@@ -60,6 +61,7 @@ fun SleepRoute(
     viewModel: SleepViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val factors by viewModel.factors.collectAsStateWithLifecycle()
     val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
     SleepScreen(
         state = state,
@@ -72,14 +74,15 @@ fun SleepRoute(
         onArrange = viewModel::arrange,
         onResetArrangement = viewModel::resetArrangement,
         onRate = viewModel::rate,
+        factors = factors,
     )
 }
 
 /**
  * One night in depth, laid out like the sleep screen of Google Health: the night's score and the two
  * weeks' sleep health at the top with time asleep and sleep debt, the night's stages, both scores'
- * parts, sleep quality against published ranges, heart rate through the night, the night's vitals and
- * key metrics over recent nights. Arrows step from night to night. A top-level screen: settings sit at
+ * parts, sleep quality against published ranges, heart rate through the night, the night's vitals,
+ * key metrics over recent nights, and what goes with better and worse nights. Arrows step from night to night. A top-level screen: settings sit at
  * the right of the app bar, beside the pencil that switches to arranging the cards.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,6 +99,7 @@ fun SleepScreen(
     onResetArrangement: () -> Unit = {},
     initiallyEditing: Boolean = false,
     onRate: (LocalDate, Int) -> Unit = { _, _ -> },
+    factors: SleepFactors? = null,
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var editing by rememberSaveable { mutableStateOf(initiallyEditing) }
@@ -194,6 +198,8 @@ fun SleepScreen(
                                     SleepTimingCard(nights, night, loaded.freeDays)
                                 }
 
+                                SleepCardKind.FACTORS -> item(key = card.id) { SleepFactorsCard(factors) }
+
                                 SleepCardKind.FEELING -> item(key = card.id) {
                                     FeelingCard(
                                         agreement = loaded.feeling,
@@ -236,6 +242,7 @@ internal fun SleepCard(
     title: String,
     info: String,
     modifier: Modifier = Modifier,
+    advanced: String? = null,
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
@@ -245,7 +252,7 @@ internal fun SleepCard(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CardHeader(title = title, info = info)
+            CardHeader(title = title, info = info, advanced = advanced)
             content()
         }
     }

@@ -16,6 +16,13 @@
     <string name="kind_long_run">Long run</string>
     <string name="info_about">About %1$s</string>
     <string name="info_close">Close</string>
+    <string name="info_advanced">Advanced info</string>
+    <string name="info_advanced_show">Show the mathematics</string>
+    <string name="info_advanced_hide">Hide the mathematics</string>
+    <string name="math_over">over</string>
+    <string name="math_sub">sub</string>
+    <string name="math_power">to the power</string>
+    <string name="math_root">square root of</string>
     <string name="zone_number">Z%1$d</string>
     <string name="zone_lthr_recovery">Recovery</string>
     <string name="zone_lthr_aerobic">Aerobic</string>

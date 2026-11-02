@@ -44,7 +44,12 @@ internal fun CriticalSpeedCard(
     modifier: Modifier = Modifier,
 ) {
     val fit = result.fit
-    PerformanceCard(stringResource(R.string.cs_title), stringResource(R.string.cs_info), modifier) {
+    PerformanceCard(
+        stringResource(R.string.cs_title),
+        stringResource(R.string.cs_info),
+        modifier,
+        advanced = stringResource(R.string.cs_advanced),
+    ) {
         if (fit != null) {
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(

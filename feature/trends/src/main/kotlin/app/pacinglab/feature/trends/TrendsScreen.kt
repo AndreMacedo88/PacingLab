@@ -223,7 +223,12 @@ private fun FormCard(days: List<FormDay>, today: LocalDate, initialRange: TrendR
     val index = selected?.takeIf { it in shown.indices } ?: shown.lastIndex
     val day = shown[index]
     val ramp = FitnessModel.rampRate(days, days.size - shown.size + index)
-    TrendCard(title = stringResource(R.string.form_title), info = stringResource(R.string.form_info), modifier = modifier) {
+    TrendCard(
+        title = stringResource(R.string.form_title),
+        info = stringResource(R.string.form_info),
+        modifier = modifier,
+        advanced = stringResource(R.string.form_advanced),
+    ) {
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             TrendRange.entries.forEachIndexed { i, option ->
                 SegmentedButton(
@@ -307,7 +312,12 @@ internal fun WeeksCard(
     val zones = zoneColors(if (fiveZones) 5 else 3)
     val bar = chartColors().muted
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    TrendCard(title = stringResource(R.string.weeks_title), info = stringResource(R.string.weeks_info), modifier = modifier) {
+    TrendCard(
+        title = stringResource(R.string.weeks_title),
+        info = stringResource(R.string.weeks_info),
+        modifier = modifier,
+        advanced = stringResource(R.string.weeks_advanced),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Header(stringResource(R.string.weeks_week), Modifier.width(WEEK_WIDTH), TextAlign.Start)
             Header(stringResource(R.string.weeks_load), Modifier.weight(1f), TextAlign.Start)
@@ -426,7 +436,13 @@ private fun Header(text: String, modifier: Modifier = Modifier, align: TextAlign
 }
 
 @Composable
-internal fun TrendCard(title: String, info: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+internal fun TrendCard(
+    title: String,
+    info: String,
+    modifier: Modifier = Modifier,
+    advanced: String? = null,
+    content: @Composable () -> Unit,
+) {
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -435,7 +451,7 @@ internal fun TrendCard(title: String, info: String, modifier: Modifier = Modifie
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CardHeader(title = title, info = info)
+            CardHeader(title = title, info = info, advanced = advanced)
             content()
         }
     }

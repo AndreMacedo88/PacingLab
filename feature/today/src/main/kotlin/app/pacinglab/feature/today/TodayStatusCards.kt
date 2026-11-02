@@ -49,7 +49,13 @@ internal fun TodayUiState.Loaded.vitals(): Vitals? {
 @Composable
 internal fun VitalsTodayCard(vitals: Vitals?, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val locale = LocalConfiguration.current.locales[0]
-    TodayWideCard(stringResource(R.string.vitals_title), stringResource(R.string.vitals_info), onClick, modifier) {
+    TodayWideCard(
+        stringResource(R.string.vitals_title),
+        stringResource(R.string.vitals_info),
+        onClick,
+        modifier,
+        advanced = stringResource(UiR.string.ui_nightly_range_advanced),
+    ) {
         val shown = vitals?.signs?.filter { it.value != null }.orEmpty()
         if (vitals == null || shown.isEmpty()) {
             Text(
@@ -82,7 +88,13 @@ internal fun VitalsTodayCard(vitals: Vitals?, onClick: () -> Unit, modifier: Mod
 /** The training status in a word, what it means, and the load ratio behind it. Opens Trends. */
 @Composable
 internal fun TrainingStatusTodayCard(status: TrainingStatus?, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    TodayWideCard(stringResource(UiR.string.training_status_title), stringResource(R.string.training_status_info), onClick, modifier) {
+    TodayWideCard(
+        stringResource(UiR.string.training_status_title),
+        stringResource(R.string.training_status_info),
+        onClick,
+        modifier,
+        advanced = stringResource(UiR.string.ui_training_status_advanced),
+    ) {
         if (status == null) {
             Text(
                 stringResource(R.string.training_status_none),
@@ -110,6 +122,7 @@ private fun TodayWideCard(
     info: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    advanced: String? = null,
     content: @Composable () -> Unit,
 ) {
     Card(
@@ -121,7 +134,7 @@ private fun TodayWideCard(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            CardHeader(title = title, info = info)
+            CardHeader(title = title, info = info, advanced = advanced)
             content()
         }
     }

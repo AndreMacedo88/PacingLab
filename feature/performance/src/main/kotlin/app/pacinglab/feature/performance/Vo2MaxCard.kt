@@ -90,7 +90,12 @@ internal fun Vo2MaxCard(
     var range by rememberSaveable { mutableStateOf(Vo2MaxRange.THREE_MONTHS) }
     var adding by rememberSaveable { mutableStateOf(false) }
     val trend = history.trend
-    PerformanceCard(title = stringResource(R.string.vo2_title), info = stringResource(R.string.vo2_info), modifier = modifier) {
+    PerformanceCard(
+        title = stringResource(R.string.vo2_title),
+        info = stringResource(R.string.vo2_info),
+        modifier = modifier,
+        advanced = stringResource(R.string.vo2_advanced),
+    ) {
         if (trend == null) {
             Text(stringResource(R.string.vo2_empty), style = MaterialTheme.typography.bodyMedium)
         } else {

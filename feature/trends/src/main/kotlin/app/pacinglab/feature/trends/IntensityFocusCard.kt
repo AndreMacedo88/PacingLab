@@ -39,7 +39,12 @@ import kotlin.math.roundToInt
  */
 @Composable
 internal fun IntensityFocusCard(focus: IntensityFocus?, modifier: Modifier = Modifier) {
-    TrendCard(title = stringResource(R.string.focus_title), info = stringResource(R.string.focus_info), modifier = modifier) {
+    TrendCard(
+        title = stringResource(R.string.focus_title),
+        info = stringResource(R.string.focus_info),
+        modifier = modifier,
+        advanced = stringResource(R.string.focus_advanced),
+    ) {
         if (focus == null) {
             Text(
                 stringResource(R.string.focus_none),

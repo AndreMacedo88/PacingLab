@@ -191,6 +191,7 @@ class TrainingLoadRepository @Inject constructor(
                 sport = workout.sport,
                 distanceMeters = workout.summary.distanceMeters,
                 zones = cached.zones,
+                end = workout.end,
             )
         }
     }

@@ -36,7 +36,11 @@ internal fun EffortCard(rating: Int?, durationMillis: Long, onRate: (Int) -> Uni
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CardHeader(title = stringResource(R.string.effort_title), info = stringResource(R.string.effort_info))
+            CardHeader(
+                title = stringResource(R.string.effort_title),
+                info = stringResource(R.string.effort_info),
+                advanced = stringResource(R.string.effort_advanced),
+            )
             EffortPicker(rating, onRate)
             if (rating != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.Bottom) {

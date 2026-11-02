@@ -13,6 +13,7 @@ import app.pacinglab.core.model.Workout
 import app.pacinglab.core.model.ZoneBoundaries
 import java.time.DayOfWeek
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
@@ -25,6 +26,7 @@ import kotlin.math.abs
  * @property scores null when the workout has no heart rate or no resting heart rate is known for its date.
  * @property intensity time in the three polarized zones; null without heart rate anchors for the date.
  * @property zones time in the five threshold-based zones, likewise.
+ * @property end when the workout ended; null where it was not needed.
  */
 data class WorkoutLoad(
     val workoutId: String,
@@ -36,6 +38,7 @@ data class WorkoutLoad(
     val sport: Sport? = null,
     val distanceMeters: Double? = null,
     val zones: ZoneDistribution? = null,
+    val end: Instant? = null,
 )
 
 /**

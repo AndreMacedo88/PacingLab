@@ -178,7 +178,13 @@ fun PerformanceScreen(
 }
 
 @Composable
-internal fun PerformanceCard(title: String, info: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+internal fun PerformanceCard(
+    title: String,
+    info: String,
+    modifier: Modifier = Modifier,
+    advanced: String? = null,
+    content: @Composable () -> Unit,
+) {
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -187,7 +193,7 @@ internal fun PerformanceCard(title: String, info: String, modifier: Modifier = M
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CardHeader(title = title, info = info)
+            CardHeader(title = title, info = info, advanced = advanced)
             content()
         }
     }

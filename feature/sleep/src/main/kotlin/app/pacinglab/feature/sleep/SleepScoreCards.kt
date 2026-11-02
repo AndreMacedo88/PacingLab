@@ -109,7 +109,12 @@ private fun summary(score: SleepScore): String {
 @Composable
 internal fun ScoreCard(night: Night, score: SleepScore, needMillis: Long, modifier: Modifier = Modifier) {
     val parts = if (score.continuity == null) 1 else 2
-    SleepCard(stringResource(R.string.sleep_score_parts), stringResource(R.string.sleep_score_info), modifier) {
+    SleepCard(
+        stringResource(R.string.sleep_score_parts),
+        stringResource(R.string.sleep_score_info),
+        modifier,
+        advanced = stringResource(R.string.sleep_score_advanced),
+    ) {
         Part(
             name = stringResource(R.string.sleep_part_duration),
             fraction = score.duration,
@@ -139,6 +144,7 @@ internal fun HealthCard(health: SleepHealth, needMillis: Long, modifier: Modifie
         stringResource(R.string.sleep_health_card_title, health.score, stringResource(health.rating.label())),
         stringResource(R.string.sleep_health_info),
         modifier,
+        advanced = stringResource(R.string.sleep_health_advanced),
     ) {
         Text(
             text = pluralStringResource(R.plurals.sleep_health_over, health.nights, health.nights),

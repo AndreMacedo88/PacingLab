@@ -53,7 +53,12 @@ internal fun FeelingCard(
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val count = agreement.mornings.size
-    SleepCard(stringResource(R.string.feeling_title), stringResource(R.string.feeling_info), modifier) {
+    SleepCard(
+        stringResource(R.string.feeling_title),
+        stringResource(R.string.feeling_info),
+        modifier,
+        advanced = stringResource(R.string.feeling_advanced),
+    ) {
         val question = if (morning == today) {
             stringResource(R.string.feeling_ask_today)
         } else {

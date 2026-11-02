@@ -44,7 +44,12 @@ internal fun RepRecoveryCard(points: List<SessionRecoveryPoint>, today: LocalDat
     val latest = trend.last()
     val earlier = trend.lastOrNull { it.first <= latest.first.minusDays(CHANGE_DAYS) }
     val dayMonth = remember(locale) { DateTimeFormatter.ofPattern("d MMM", locale) }
-    PerformanceCard(stringResource(R.string.hrr_title), stringResource(R.string.hrr_info), modifier) {
+    PerformanceCard(
+        stringResource(R.string.hrr_title),
+        stringResource(R.string.hrr_info),
+        modifier,
+        advanced = stringResource(R.string.hrr_advanced),
+    ) {
         Column {
             Text(stringResource(R.string.hrr_headline), style = MaterialTheme.typography.labelLarge)
             Text(

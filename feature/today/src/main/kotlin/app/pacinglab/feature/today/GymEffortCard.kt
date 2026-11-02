@@ -39,7 +39,11 @@ internal fun GymEffortCard(gym: GymToRate, today: LocalDate, zoneId: ZoneId, onR
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            CardHeader(title = stringResource(R.string.gym_effort_title), info = stringResource(R.string.gym_effort_info))
+            CardHeader(
+                title = stringResource(R.string.gym_effort_title),
+                info = stringResource(R.string.gym_effort_info),
+                advanced = stringResource(app.pacinglab.core.ui.R.string.ui_effort_advanced),
+            )
             Text(
                 text = stringResource(R.string.gym_effort_when, day, time.format(start), Formats.duration(gym.durationMillis)),
                 style = MaterialTheme.typography.bodyMedium,

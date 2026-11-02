@@ -63,7 +63,11 @@ internal fun ReadinessCard(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CardHeader(title = stringResource(R.string.readiness_title), info = stringResource(R.string.readiness_info))
+            CardHeader(
+                title = stringResource(R.string.readiness_title),
+                info = stringResource(R.string.readiness_info),
+                advanced = stringResource(R.string.readiness_advanced),
+            )
             val score = readiness.score
             val level = readiness.level
             if (score != null && level != null) {

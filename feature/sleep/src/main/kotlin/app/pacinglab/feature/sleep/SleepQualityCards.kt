@@ -90,7 +90,12 @@ private fun QualityRow(
 @Composable
 internal fun HeartRateCard(night: Night, locale: Locale, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
     val sleeping = night.sleepingHeartRate ?: return
-    SleepCard(stringResource(R.string.sleep_heart_rate_title), stringResource(R.string.sleep_heart_rate_info), modifier, onClick) {
+    SleepCard(
+        stringResource(R.string.sleep_heart_rate_title),
+        stringResource(R.string.sleep_heart_rate_info),
+        modifier,
+        onClick = onClick,
+    ) {
         Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
             Value(stringResource(R.string.sleep_heart_rate_average), stringResource(R.string.unit_bpm, sleeping.average.roundToInt()))
             Value(stringResource(R.string.sleep_heart_rate_lowest), stringResource(R.string.unit_bpm, sleeping.lowest.roundToInt()))

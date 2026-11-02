@@ -50,7 +50,12 @@ internal fun VitalsCard(nights: List<Night>, night: Night, onOpenMetric: (Nightl
     val labels = weekdayInitials(days, locale)
     val byDate = nights.associateBy { it.date }
     val vitals = remember(nights, night) { Vitals.of(nights, night.date) }
-    SleepCard(stringResource(R.string.sleep_body_title), stringResource(R.string.sleep_body_info), modifier) {
+    SleepCard(
+        stringResource(R.string.sleep_body_title),
+        stringResource(R.string.sleep_body_info),
+        modifier,
+        advanced = stringResource(app.pacinglab.core.ui.R.string.ui_nightly_range_advanced),
+    ) {
         vitals?.takeIf { it.judged > 0 }?.let { VitalsVerdict(it, name = { metric -> stringResource(metric.label()) }) }
         val rows = listOf(
             NightlyMetric.HRV to colors.series[0],

@@ -33,7 +33,12 @@ internal fun RaceCard(
     modifier: Modifier = Modifier,
     shape: MarathonShape? = null,
 ) {
-    PerformanceCard(stringResource(R.string.race_title), stringResource(R.string.race_info), modifier) {
+    PerformanceCard(
+        stringResource(R.string.race_title),
+        stringResource(R.string.race_info),
+        modifier,
+        advanced = stringResource(R.string.race_advanced),
+    ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             predictions.forEachIndexed { i, prediction ->
                 if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

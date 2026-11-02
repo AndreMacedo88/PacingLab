@@ -19,7 +19,12 @@ import java.util.Locale
 /** Daniels' five training paces from today's VO2max, each with what it is for. */
 @Composable
 internal fun TrainingPacesCard(paces: TrainingPaces, locale: Locale, modifier: Modifier = Modifier) {
-    PerformanceCard(stringResource(R.string.paces_title), stringResource(R.string.paces_info), modifier) {
+    PerformanceCard(
+        stringResource(R.string.paces_title),
+        stringResource(R.string.paces_info),
+        modifier,
+        advanced = stringResource(R.string.paces_advanced),
+    ) {
         val rows = listOf(
             Triple(R.string.paces_easy, R.string.paces_easy_use, paceRange(paces.easy.start, paces.easy.endInclusive)),
             Triple(R.string.paces_marathon, R.string.paces_marathon_use, paceText(paces.marathon)),

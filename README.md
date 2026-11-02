@@ -26,6 +26,10 @@ Early development, used daily by its author. What works today:
   them with your own baselines
 - A sleep score built on the dimensions of sleep health (duration, continuity, regularity, timing)
   and a sleep screen with stages, overnight values, schedule and trends
+- Sleep factors: what goes with better and worse nights, measured and felt, from a robust Bayesian
+  regression of your own nights that holds the other factors equal and only calls a factor clear when
+  it is likely to matter
+- The mathematics behind each analysis, typeset in the cards' information under "Advanced info"
 
 Planned: VO2max trend, heart rate charts, threshold heart rate from your data.
 

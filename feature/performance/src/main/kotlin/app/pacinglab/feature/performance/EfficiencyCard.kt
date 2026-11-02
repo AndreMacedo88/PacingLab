@@ -60,7 +60,11 @@ internal fun EfficiencyCard(history: EfficiencyHistory, today: LocalDate, locale
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CardHeader(title = stringResource(R.string.efficiency_title), info = stringResource(R.string.efficiency_info, reference))
+            CardHeader(
+                title = stringResource(R.string.efficiency_title),
+                info = stringResource(R.string.efficiency_info, reference),
+                advanced = stringResource(R.string.efficiency_advanced),
+            )
             Column {
                 Text(stringResource(R.string.efficiency_headline, reference), style = MaterialTheme.typography.labelLarge)
                 Text(

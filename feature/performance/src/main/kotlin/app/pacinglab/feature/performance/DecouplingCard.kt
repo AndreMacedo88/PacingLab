@@ -47,7 +47,12 @@ internal fun DecouplingCard(points: List<DecouplingPoint>, onOpenWorkout: (Strin
     val latest = points.last()
     val good = latest.percent < AerobicDecoupling.WELL_COUPLED
     val date = remember(locale) { DateTimeFormatter.ofPattern("d MMM yyyy", locale) }
-    PerformanceCard(stringResource(R.string.decoupling_title), stringResource(R.string.decoupling_info), modifier) {
+    PerformanceCard(
+        stringResource(R.string.decoupling_title),
+        stringResource(R.string.decoupling_info),
+        modifier,
+        advanced = stringResource(R.string.decoupling_advanced),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth().clickable { onOpenWorkout(latest.workoutId) },
             verticalAlignment = Alignment.CenterVertically,

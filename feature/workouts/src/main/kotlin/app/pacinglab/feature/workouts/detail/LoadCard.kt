@@ -32,7 +32,11 @@ internal fun LoadCard(load: LoadScores, modifier: Modifier = Modifier) {
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CardHeader(title = stringResource(R.string.load_title), info = stringResource(R.string.load_info))
+            CardHeader(
+                title = stringResource(R.string.load_title),
+                info = stringResource(R.string.load_info),
+                advanced = stringResource(R.string.load_advanced),
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.Bottom) {
                 Score(stringResource(R.string.load_stress), load.stressScore, MaterialTheme.typography.headlineMedium)
                 Score(stringResource(R.string.load_trimp), load.trimp, MaterialTheme.typography.titleLarge)

@@ -15,6 +15,7 @@ enum class SleepCardKind(val id: String, @param:StringRes val title: Int, @param
     KEY_METRICS("metrics", R.string.sleep_metrics_title, R.string.card_key_metrics),
     TIMING("timing", R.string.timing_title, R.string.card_timing),
     FEELING("feeling", R.string.feeling_title, R.string.card_feeling),
+    FACTORS("factors", R.string.factors_title, R.string.card_factors),
     ;
 
     companion object {
