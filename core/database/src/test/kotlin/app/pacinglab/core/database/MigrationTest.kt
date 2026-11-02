@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.pacinglab.core.database.store.DailyVitalsStore
 import app.pacinglab.core.database.store.EffortStore
 import app.pacinglab.core.database.store.MeasurementStore
+import app.pacinglab.core.database.store.NightClimateStore
 import app.pacinglab.core.database.store.PhysiologyStore
 import app.pacinglab.core.database.store.SessionWeatherStore
 import app.pacinglab.core.database.store.StillHeartRateStore
@@ -22,6 +23,7 @@ import app.pacinglab.core.model.SessionWeather
 import app.pacinglab.core.model.StillHeartRate
 import app.pacinglab.core.model.WeatherCondition
 import app.pacinglab.core.model.Workout
+import app.pacinglab.core.model.home.NightClimate
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -270,6 +272,32 @@ class MigrationTest {
 
         assertThat(rested).isEqualTo(mapOf(LocalDate.ofEpochDay(20750) to 4))
         assertThat(stored).isEqualTo(listOf(day))
+    }
+
+    @Test
+    fun `version 12 still heart rate survives the upgrade and night climate can then be stored`() = runTest {
+        val file = databaseFile()
+        createFromSchema(file, version = 12)
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL(
+                "INSERT INTO still_heart_rate (epoch_day, minutes, sums, computed_ms) VALUES (20750, '${"0,".repeat(
+                    23,
+                )}0', '${"0.0,".repeat(23)}0.0', 1)",
+            )
+        }
+
+        val database = Room.databaseBuilder(context, PacingLabDatabase::class.java, file.path).setDriver(AndroidSQLiteDriver()).build()
+        val climate = NightClimateStore(database)
+        val night = NightClimate(LocalDate.ofEpochDay(20751), temperature = 19.4, humidity = 48.0)
+        climate.save(listOf(night, NightClimate(LocalDate.ofEpochDay(20752))), Instant.EPOCH)
+        val stored = climate.observe().first()
+        val fetched = climate.fetched()
+        val still = StillHeartRateStore(database, Clock.systemUTC()).days()
+        database.close()
+
+        assertThat(still).isEqualTo(setOf(LocalDate.ofEpochDay(20750)))
+        assertThat(stored).isEqualTo(mapOf(night.date to night))
+        assertThat(fetched.keys).isEqualTo(setOf(LocalDate.ofEpochDay(20751), LocalDate.ofEpochDay(20752)))
     }
 
     private fun databaseFile(): File = context.getDatabasePath("migration-test.db").apply {

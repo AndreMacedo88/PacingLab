@@ -7,6 +7,7 @@ import androidx.room3.Upsert
 import app.pacinglab.core.database.entity.DailyVitalsEntity
 import app.pacinglab.core.database.entity.EffortEntity
 import app.pacinglab.core.database.entity.MeasurementEntity
+import app.pacinglab.core.database.entity.NightClimateEntity
 import app.pacinglab.core.database.entity.PhysiologyEntity
 import app.pacinglab.core.database.entity.SessionWeatherEntity
 import app.pacinglab.core.database.entity.SleepSessionEntity
@@ -223,4 +224,19 @@ interface StillHeartRateDao {
 
     @Upsert
     suspend fun upsert(entries: List<StillHeartRateEntity>)
+}
+
+@Dao
+interface NightClimateDao {
+    @Query("SELECT * FROM night_climate ORDER BY epoch_day")
+    fun observeAll(): Flow<List<NightClimateEntity>>
+
+    @Query("SELECT * FROM night_climate")
+    suspend fun all(): List<NightClimateEntity>
+
+    @Upsert
+    suspend fun upsert(entries: List<NightClimateEntity>)
+
+    @Query("DELETE FROM night_climate")
+    suspend fun clear()
 }

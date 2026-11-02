@@ -1,6 +1,6 @@
 # PacingLab privacy policy
 
-Last updated: 30 October 2026
+Last updated: 2 November 2026
 
 PacingLab is a training analysis app for Android. This policy explains what data it uses and where that
 data goes.
@@ -15,6 +15,9 @@ With your permission, PacingLab reads health and fitness data:
   Google account: the nightly HRV, oxygen saturation, skin temperature, breathing rate and resting
   heart rate that the Fitbit app derives from your device, and its daily VO2max (cardio fitness
   score), read only.
+- From your own Home Assistant server, only if you connect it in Settings > Data sources: the
+  statistics (hourly or five-minute averages) of the bedroom sensors you choose, such as temperature,
+  humidity and CO2, for the nights PacingLab analyses.
 
 PacingLab uses this data only to show you analyses of your own training, recovery and sleep.
 
@@ -24,6 +27,9 @@ PacingLab uses this data only to show you analyses of your own training, recover
 - PacingLab has no server and no account, and it does not collect analytics or crash reports.
 - Your health data is never sold, shared with third parties or used for advertising.
 - Data from the Google Health API travels directly from Google to your phone.
+- If you connect Home Assistant, PacingLab talks only to the server address you enter, which must use
+  https. The access token you enter is stored on your phone, encrypted with a key that never leaves
+  the phone's keystore, and is never included in a backup file.
 
 PacingLab's use and transfer of information received from Google APIs adheres to the
 [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy),
@@ -31,8 +37,8 @@ including the Limited Use requirements.
 
 ## Network requests
 
-Besides the Google Health API when you use it, PacingLab makes three kinds of requests, none of which
-contains health data:
+Besides the Google Health API and your own Home Assistant server when you use them, PacingLab makes
+three kinds of requests, none of which contains health data:
 
 - Map tiles from [OpenFreeMap](https://openfreemap.org) to draw route maps. These requests reveal the
   map area being shown, as any map does.
@@ -44,6 +50,11 @@ contains health data:
   switch it off in Settings > Data. The request contains the start of the route rounded to two decimal
   places (about 1 km) and the session's date, once per session; the result is kept on the phone.
 
+If you connect Home Assistant and switch on "Send PacingLab's values" in its settings, PacingLab sends
+a summary of the day (readiness, sleep score and duration, sleep health and debt, HRV, resting heart
+rate, daytime strain, form, fitness, fatigue, VO2max and training status) to your own server after each
+sync, where it appears as sensors. It goes nowhere else.
+
 ## Your control
 
 - You can review or revoke PacingLab's access at any time in Health Connect's settings, and for the
@@ -53,6 +64,8 @@ contains health data:
   your phone and sends nothing anywhere.
 - Settings > Back up your entries saves what you entered by hand (heart rate values, tests, ratings
   and settings) to a file you choose; PacingLab never sends it anywhere.
+- Settings > Data sources > Home Assistant > Disconnect forgets the server, the token and the bedroom
+  values read from it; deleting the token in Home Assistant stops all access at once.
 - Uninstalling PacingLab deletes everything it stored on your phone.
 
 ## Contact

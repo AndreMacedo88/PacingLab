@@ -31,6 +31,8 @@ Early development, used daily by its author. What works today:
   it is likely to matter
 - Daytime strain: heart rate during still, awake minutes against your own usual for each hour of the day,
   an experimental marker of stress and other loads on the body
+- Optional link to your own Home Assistant: bedroom temperature, humidity and CO2 as sleep factors, and
+  PacingLab's daily values sent back as sensors for dashboards and automations
 - The mathematics behind each analysis, typeset in the cards' information under "Advanced info"
 
 Planned: VO2max trend, heart rate charts, threshold heart rate from your data.

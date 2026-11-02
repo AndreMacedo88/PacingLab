@@ -2,6 +2,7 @@ package app.pacinglab.core.analytics.recovery
 
 import app.pacinglab.core.model.SleepStage
 import app.pacinglab.core.model.SleepStageType
+import app.pacinglab.core.model.home.NightClimate
 import assertk.assertThat
 import assertk.assertions.contains
 import assertk.assertions.isEmpty
@@ -161,6 +162,26 @@ class SleepFactorsTest {
         assertThat(asleepEffect.clear).isTrue()
         assertThat(asleepEffect.mean).isGreaterThan(0.2)
         assertThat(factors.rested.effects.any { it.factor == SleepFactor.DEEP_BEFORE_WAKING }).isTrue()
+    }
+
+    @Test
+    fun `a warm bedroom shows among the factors, and unmeasured factors are not listed as waiting`() {
+        val random = Random(6)
+        val dates = List(120) { first.plusDays(it.toLong()) }
+        val nights = dates.map { night(it, random.nextInt(90), 470) }
+        val temperature = dates.associateWith { 17.0 + random.nextDouble() * 6 }
+        // Three points worse per degree above 17.
+        val scores = dates.map { (85 - 3 * (temperature.getValue(it) - 17) + 4 * random.nextGaussian()).roundToInt() }
+        val climate = dates.associateWith { NightClimate(it, temperature = temperature.getValue(it)) }
+
+        val score = SleepFactors.of(history(nights, scores), emptyMap(), emptyList(), emptyMap(), weekend, climate = climate).score
+        val withoutHome = SleepFactors.of(history(nights, scores), emptyMap(), emptyList(), emptyMap(), weekend).score
+
+        val bedroom = score.effects.single { it.factor == SleepFactor.BEDROOM_TEMPERATURE }
+        assertThat(bedroom.clear).isTrue()
+        assertThat(bedroom.mean).isLessThan(-3.0)
+        assertThat(withoutHome.waiting.none { it.group == FactorGroup.BEDROOM }).isTrue()
+        assertThat(withoutHome.effects.none { it.factor.group == FactorGroup.BEDROOM }).isTrue()
     }
 
     @Test

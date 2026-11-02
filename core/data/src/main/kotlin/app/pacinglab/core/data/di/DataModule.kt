@@ -5,6 +5,12 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
+import app.pacinglab.core.data.home.HomeAssistantPayload
+import app.pacinglab.core.data.home.HomeAssistantPreferences
+import app.pacinglab.core.data.home.HomeAssistantSync
+import app.pacinglab.core.data.home.HomeAssistantValues
+import app.pacinglab.core.data.home.KeystoreSecretBox
+import app.pacinglab.core.data.home.SecretBox
 import app.pacinglab.core.data.reminder.MorningReminder
 import app.pacinglab.core.data.reminder.PlatformReminderNotifier
 import app.pacinglab.core.data.reminder.ReminderNotifier
@@ -67,6 +73,16 @@ interface DataBindings {
     @IntoSet
     fun stillHeartRate(filler: StillHeartRateFiller): AfterSync
 
+    @Binds
+    @IntoSet
+    fun homeAssistant(sync: HomeAssistantSync): AfterSync
+
+    @Binds
+    fun secretBox(box: KeystoreSecretBox): SecretBox
+
+    @Binds
+    fun homeAssistantValues(payload: HomeAssistantPayload): HomeAssistantValues
+
     /** Other modules may add work after syncs; without any the set is empty. */
     @Multibinds
     fun afterSync(): Set<AfterSync>
@@ -84,4 +100,11 @@ object DataModule {
     @Singleton
     fun preferences(@ApplicationContext context: Context, @ApplicationScope scope: CoroutineScope): DataStore<Preferences> =
         PreferenceDataStoreFactory.create(scope = scope) { context.preferencesDataStoreFile("user_preferences") }
+
+    /** The Home Assistant link's settings, apart from [preferences] so that backups never copy its token. */
+    @Provides
+    @Singleton
+    @HomeAssistantPreferences
+    fun homeAssistantPreferences(@ApplicationContext context: Context, @ApplicationScope scope: CoroutineScope): DataStore<Preferences> =
+        PreferenceDataStoreFactory.create(scope = scope) { context.preferencesDataStoreFile("home_assistant") }
 }

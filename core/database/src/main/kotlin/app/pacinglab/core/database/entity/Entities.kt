@@ -145,3 +145,14 @@ class StillHeartRateEntity(
     @ColumnInfo(name = "sums") val sums: String,
     @ColumnInfo(name = "computed_ms") val computedMs: Long,
 )
+
+/** The bedroom during one night's sleep, from Home Assistant ([app.pacinglab.core.model.home.NightClimate]). */
+@Entity(tableName = "night_climate")
+class NightClimateEntity(
+    @PrimaryKey @ColumnInfo(name = "epoch_day") val epochDay: Long,
+    @ColumnInfo(name = "temperature") val temperature: Double?,
+    @ColumnInfo(name = "humidity") val humidity: Double?,
+    @ColumnInfo(name = "co2") val co2: Double?,
+    @ColumnInfo(name = "co2_max") val co2Max: Double?,
+    @ColumnInfo(name = "fetched_ms") val fetchedMs: Long,
+)

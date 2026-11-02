@@ -50,6 +50,8 @@ import androidx.core.content.FileProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.pacinglab.core.data.home.HomeAssistantProblem
+import app.pacinglab.core.data.home.HomeAssistantStatus
 import app.pacinglab.core.data.repository.GoogleHealthProblem
 import app.pacinglab.core.data.sync.SyncStatus
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
@@ -65,7 +67,12 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 @Composable
-fun DataSourcesRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: DataSourcesViewModel = hiltViewModel()) {
+fun DataSourcesRoute(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    onOpenHomeAssistant: () -> Unit = {},
+    viewModel: DataSourcesViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val contract = remember(viewModel) { viewModel.permissionContract }
@@ -106,6 +113,7 @@ fun DataSourcesRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewMode
         modifier = modifier,
         onConnectGoogleHealth = viewModel::connectGoogleHealth,
         onDisconnectGoogleHealth = viewModel::disconnectGoogleHealth,
+        onOpenHomeAssistant = onOpenHomeAssistant,
     )
 }
 
@@ -125,6 +133,7 @@ fun DataSourcesScreen(
     zoneId: ZoneId = ZoneId.systemDefault(),
     onConnectGoogleHealth: () -> Unit = {},
     onDisconnectGoogleHealth: () -> Unit = {},
+    onOpenHomeAssistant: () -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier,
@@ -150,6 +159,7 @@ fun DataSourcesScreen(
             if (state.availability == HealthConnectAvailability.AVAILABLE) {
                 item { SyncCard(state.sync, onSyncNow, zoneId) }
                 item { GoogleHealthCard(state.googleHealth, onConnectGoogleHealth, onDisconnectGoogleHealth, zoneId) }
+                item { HomeAssistantCard(state.homeAssistant, onOpenHomeAssistant) }
                 item { ProbeCard(state.probe, onRunProbe, onShareFile) }
                 val probe = state.probe
                 if (probe is ProbeState.Finished) {
@@ -349,6 +359,42 @@ private fun GoogleHealthCard(card: GoogleHealthCardState, onConnect: () -> Unit,
     }
 }
 
+/** The link to the athlete's Home Assistant: whether it is connected and how the last sync went; its page opens one tap down. */
+@Composable
+private fun HomeAssistantCard(status: HomeAssistantStatus, onOpen: () -> Unit) {
+    SectionCard(title = stringResource(R.string.home_assistant_title)) {
+        Text(
+            stringResource(R.string.home_assistant_description),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (status.connected) {
+            when (status.problem) {
+                HomeAssistantProblem.TOKEN_REJECTED, HomeAssistantProblem.TOKEN_LOST -> StatusLine(
+                    PacingLabIcons.Warning,
+                    MaterialTheme.colorScheme.tertiary,
+                    stringResource(R.string.home_assistant_rejected),
+                )
+
+                HomeAssistantProblem.UNREACHABLE -> StatusLine(
+                    PacingLabIcons.Schedule,
+                    MaterialTheme.colorScheme.onSurfaceVariant,
+                    stringResource(R.string.home_assistant_unreachable),
+                )
+
+                null -> StatusLine(
+                    PacingLabIcons.CheckCircle,
+                    MaterialTheme.colorScheme.primary,
+                    stringResource(R.string.home_assistant_connected, status.serverName ?: status.url?.removePrefix("https://").orEmpty()),
+                )
+            }
+        }
+        Button(onClick = onOpen) {
+            Text(stringResource(if (status.connected) R.string.home_assistant_open else R.string.home_assistant_set_up))
+        }
+    }
+}
+
 @Composable
 private fun ProbeCard(probe: ProbeState, onRunProbe: () -> Unit, onShareFile: (File) -> Unit) {
     SectionCard(title = stringResource(R.string.probe_title)) {
@@ -492,7 +538,7 @@ private fun ExportCard(export: ExportState, sessionCount: Int, onExport: () -> U
 }
 
 @Composable
-private fun SectionCard(title: String, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+internal fun SectionCard(title: String, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -505,7 +551,7 @@ private fun SectionCard(title: String, modifier: Modifier = Modifier, content: @
 }
 
 @Composable
-private fun StatusLine(@DrawableRes icon: Int, tint: Color, text: String, modifier: Modifier = Modifier) {
+internal fun StatusLine(@DrawableRes icon: Int, tint: Color, text: String, modifier: Modifier = Modifier) {
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Icon(painterResource(icon), contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
         Text(text, style = MaterialTheme.typography.bodyMedium)

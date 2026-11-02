@@ -432,6 +432,9 @@ private fun factorRow(effect: FactorEffect, locale: Locale): String {
         SleepFactor.PREVIOUS_NIGHT -> stringResource(R.string.factors_row_previous_night, step)
         SleepFactor.FREE_DAY -> stringResource(R.string.factors_row_free_day)
         SleepFactor.DAYTIME_STRAIN -> stringResource(R.string.factors_row_strain, step)
+        SleepFactor.BEDROOM_TEMPERATURE -> stringResource(R.string.factors_row_bedroom_temperature, step)
+        SleepFactor.BEDROOM_HUMIDITY -> stringResource(R.string.factors_row_bedroom_humidity, step)
+        SleepFactor.BEDROOM_CO2 -> stringResource(R.string.factors_row_bedroom_co2, step)
         SleepFactor.TIME_ASLEEP -> stringResource(R.string.factors_row_time_asleep, step)
         SleepFactor.AWAKE -> stringResource(R.string.factors_row_awake, step)
         SleepFactor.DEEP_BEFORE_WAKING -> stringResource(R.string.factors_row_deep)
@@ -477,6 +480,8 @@ private fun factorValue(factor: SleepFactor, value: Double, locale: Locale, step
 
         FactorUnit.CELSIUS -> stringResource(R.string.factors_celsius, number(1))
 
+        FactorUnit.PPM -> stringResource(R.string.factors_ppm, number(0))
+
         FactorUnit.NONE -> stringResource(if (value >= 0.5) R.string.factors_detail_yes else R.string.factors_detail_no)
     }
 }
@@ -488,6 +493,7 @@ private fun SleepOutcome.label(): Int = when (this) {
 
 private fun FactorGroup.label(): Int = when (this) {
     FactorGroup.BEFORE -> R.string.factors_group_before
+    FactorGroup.BEDROOM -> R.string.factors_group_bedroom
     FactorGroup.NIGHT -> R.string.factors_group_night
     FactorGroup.BODY -> R.string.factors_group_body
 }
@@ -500,6 +506,9 @@ private fun SleepFactor.name(): Int = when (this) {
     SleepFactor.PREVIOUS_NIGHT -> R.string.factors_name_previous_night
     SleepFactor.FREE_DAY -> R.string.factors_name_free_day
     SleepFactor.DAYTIME_STRAIN -> R.string.factors_name_strain
+    SleepFactor.BEDROOM_TEMPERATURE -> R.string.factors_name_bedroom_temperature
+    SleepFactor.BEDROOM_HUMIDITY -> R.string.factors_name_bedroom_humidity
+    SleepFactor.BEDROOM_CO2 -> R.string.factors_name_bedroom_co2
     SleepFactor.TIME_ASLEEP -> R.string.factors_name_time_asleep
     SleepFactor.AWAKE -> R.string.factors_name_awake
     SleepFactor.DEEP_BEFORE_WAKING -> R.string.factors_name_deep

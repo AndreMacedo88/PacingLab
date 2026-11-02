@@ -7,6 +7,7 @@ import app.pacinglab.feature.settings.SettingsScreen
 import app.pacinglab.feature.settings.SettingsSection
 import app.pacinglab.feature.settings.SettingsSectionRoute
 import app.pacinglab.feature.settings.datasources.DataSourcesRoute
+import app.pacinglab.feature.settings.homeassistant.HomeAssistantRoute
 import app.pacinglab.feature.settings.physiology.PhysiologyRoute
 import kotlinx.serialization.Serializable
 
@@ -22,6 +23,9 @@ data object DataSourcesKey : NavKey
 
 @Serializable
 data object PhysiologyKey : NavKey
+
+@Serializable
+data object HomeAssistantKey : NavKey
 
 @Serializable
 data object AboutKey : NavKey
@@ -47,7 +51,10 @@ fun EntryProviderScope<NavKey>.settingsEntries(navigateTo: (NavKey) -> Unit, nav
         PhysiologyRoute(onBack = navigateBack)
     }
     entry<DataSourcesKey> {
-        DataSourcesRoute(onBack = navigateBack)
+        DataSourcesRoute(onBack = navigateBack, onOpenHomeAssistant = { navigateTo(HomeAssistantKey) })
+    }
+    entry<HomeAssistantKey> {
+        HomeAssistantRoute(onBack = navigateBack)
     }
     entry<AboutKey> {
         AboutScreen(onBack = navigateBack)

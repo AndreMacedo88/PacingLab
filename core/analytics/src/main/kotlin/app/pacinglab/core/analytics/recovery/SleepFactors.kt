@@ -2,6 +2,7 @@ package app.pacinglab.core.analytics.recovery
 
 import app.pacinglab.core.analytics.stats.ShrinkageRegression
 import app.pacinglab.core.model.SleepStageType
+import app.pacinglab.core.model.home.NightClimate
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
@@ -26,14 +27,24 @@ enum class SleepOutcome(val minimum: Double) {
 
 /**
  * Where a factor sits relative to the night. Factors before the night are things the day brings; their
- * effects are total effects, whatever path they take. During the night are the sleep's own measures
- * (for how rested the athlete feels only). Body measures are taken during the same night and partly
- * shaped by the sleep itself, so they mark nights rather than cause them.
+ * effects are total effects, whatever path they take. The bedroom's climate surrounds the night from
+ * outside, so it is fitted together with them. During the night are the sleep's own measures (for how
+ * rested the athlete feels only). Body measures are taken during the same night and partly shaped by the
+ * sleep itself, so they mark nights rather than cause them.
  */
-enum class FactorGroup { BEFORE, NIGHT, BODY }
+enum class FactorGroup {
+    BEFORE,
+    BEDROOM,
+    NIGHT,
+    BODY,
+    ;
+
+    /** Fitted in the first model, without the night's own measures, so that its effects are total effects. */
+    val outside: Boolean get() = this == BEFORE || this == BEDROOM
+}
 
 /** The unit a factor's typical change is given in. [NONE] marks a yes-or-no factor. */
-enum class FactorUnit { STRESS, MINUTES, FORM, PERCENT, BPM, CELSIUS, NONE }
+enum class FactorUnit { STRESS, MINUTES, FORM, PERCENT, BPM, CELSIUS, PPM, NONE }
 
 /**
  * A candidate influence on a night. Every value grows in the direction its name reads: more load, later
@@ -61,6 +72,15 @@ enum class SleepFactor(val group: FactorGroup, val unit: FactorUnit, val outcome
 
     /** Daytime strain of the day before the night: still heart rate above its usual ([app.pacinglab.core.analytics.strain.DaytimeStrain]). */
     DAYTIME_STRAIN(FactorGroup.BEFORE, FactorUnit.BPM),
+
+    /** Mean bedroom temperature from falling asleep to the final awakening, from Home Assistant. */
+    BEDROOM_TEMPERATURE(FactorGroup.BEDROOM, FactorUnit.CELSIUS),
+
+    /** Mean relative humidity of the bedroom over the night. */
+    BEDROOM_HUMIDITY(FactorGroup.BEDROOM, FactorUnit.PERCENT),
+
+    /** Mean CO2 in the bedroom over the night, in ppm: how well the room was aired (Strøm-Tejsen 2016). */
+    BEDROOM_CO2(FactorGroup.BEDROOM, FactorUnit.PPM),
 
     /** Time asleep against the sleep need. */
     TIME_ASLEEP(FactorGroup.NIGHT, FactorUnit.MINUTES, setOf(SleepOutcome.RESTED)),
@@ -206,6 +226,7 @@ data class SleepFactors(val score: OutcomeFactors, val rested: OutcomeFactors) {
          * @param form form (fitness minus fatigue at the start of the day) by date.
          * @param freeDays the days of the week the athlete has free.
          * @param strain daytime strain by date, as the excess of still heart rate in bpm.
+         * @param climate the bedroom over each night, by morning.
          */
         fun of(
             history: SleepHistory,
@@ -214,6 +235,7 @@ data class SleepFactors(val score: OutcomeFactors, val rested: OutcomeFactors) {
             form: Map<LocalDate, Double>,
             freeDays: Set<DayOfWeek>,
             strain: Map<LocalDate, Double> = emptyMap(),
+            climate: Map<LocalDate, NightClimate> = emptyMap(),
         ): SleepFactors {
             val all = history.nights
             val latest = all.lastOrNull()?.date
@@ -221,7 +243,7 @@ data class SleepFactors(val score: OutcomeFactors, val rested: OutcomeFactors) {
             val alerts = recent.filter { Vitals.of(all, it.date)?.alert == true }.map { it.date }.toSet()
             val bouts = training.sortedBy { it.end }
             val rows = recent.filter { it.date !in alerts }.map { night ->
-                Row(night, values(night, all, history.needs, bouts, form, freeDays, strain))
+                Row(night, values(night, all, history.needs, bouts, form, freeDays, strain) + climateValues(climate[night.date]))
             }
             fun analysed(outcome: SleepOutcome, value: (Night) -> Double?): OutcomeFactors {
                 val usable = rows.mapNotNull { row -> value(row.night)?.let { row to it } }
@@ -246,23 +268,25 @@ data class SleepFactors(val score: OutcomeFactors, val rested: OutcomeFactors) {
             val columns = mutableListOf<Column>()
             val waiting = mutableListOf<SleepFactor>()
             for (factor in candidates) {
+                // A factor nothing measures, such as the bedroom without Home Assistant, is not waiting for anything.
+                if (rows.none { it.values[factor] != null }) continue
                 val column = column(factor, rows)
                 if (column == null) waiting += factor else columns += column
             }
             val follows = BooleanArray(rows.size) { i ->
                 i > 0 && ChronoUnit.DAYS.between(rows[i - 1].night.date, rows[i].night.date) == 1L
             }
-            val before = columns.filter { it.factor.group == FactorGroup.BEFORE }
+            val before = columns.filter { it.factor.group.outside }
             val beforeFit = fit(before, rows.size, y, follows) ?: return OutcomeFactors(outcome, rows.size, excluded, waiting = waiting)
             val beforePredictive = beforeFit.skill > 0
             val effects = effects(outcome, before, beforeFit, rows, y, beforePredictive).toMutableList()
-            val extra = columns.filter { it.factor.group != FactorGroup.BEFORE }
+            val extra = columns.filter { !it.factor.group.outside }
             if (extra.isNotEmpty()) {
                 val all = before + extra
                 fit(all, rows.size, y, follows)?.let { full ->
                     // The night's measures must add to what the day already explains, not just beat the average.
                     val adds = full.skill > maxOf(beforeFit.skill, 0.0)
-                    effects += effects(outcome, all, full, rows, y, adds).filter { it.factor.group != FactorGroup.BEFORE }
+                    effects += effects(outcome, all, full, rows, y, adds).filter { !it.factor.group.outside }
                 }
             }
             val spread = sqrt(
@@ -371,6 +395,12 @@ data class SleepFactors(val score: OutcomeFactors, val rested: OutcomeFactors) {
                 SleepFactor.SKIN_TEMPERATURE to night.skinTemperature,
             )
         }
+
+        private fun climateValues(climate: NightClimate?): Map<SleepFactor, Double?> = mapOf(
+            SleepFactor.BEDROOM_TEMPERATURE to climate?.temperature,
+            SleepFactor.BEDROOM_HUMIDITY to climate?.humidity,
+            SleepFactor.BEDROOM_CO2 to climate?.co2,
+        )
 
         private fun deepBeforeWaking(night: Night): Double? {
             if (night.stages.isEmpty()) return null

@@ -6,6 +6,7 @@ import android.content.Intent
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.pacinglab.core.data.home.HomeAssistantRepository
 import app.pacinglab.core.data.repository.GoogleHealthRepository
 import app.pacinglab.core.data.repository.WorkoutRepository
 import app.pacinglab.core.data.sync.HealthSync
@@ -39,6 +40,7 @@ class DataSourcesViewModel @Inject constructor(
     private val scheduler: SyncScheduler,
     private val googleHealth: GoogleHealthRepository,
     private val googleHealthAuthorization: GoogleHealthAuthorization,
+    private val homeAssistant: HomeAssistantRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(DataSourcesUiState())
     val state: StateFlow<DataSourcesUiState> = _state.asStateFlow()
@@ -67,6 +69,9 @@ class DataSourcesViewModel @Inject constructor(
         }
         viewModelScope.launch {
             googleHealth.status.collect { status -> _state.update { it.copy(googleHealth = it.googleHealth.copy(status = status)) } }
+        }
+        viewModelScope.launch {
+            homeAssistant.status.collect { status -> _state.update { it.copy(homeAssistant = status) } }
         }
     }
 

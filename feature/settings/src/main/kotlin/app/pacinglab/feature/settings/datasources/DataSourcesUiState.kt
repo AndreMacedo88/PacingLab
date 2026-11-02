@@ -1,5 +1,6 @@
 package app.pacinglab.feature.settings.datasources
 
+import app.pacinglab.core.data.home.HomeAssistantStatus
 import app.pacinglab.core.data.repository.GoogleHealthStatus
 import app.pacinglab.core.data.sync.SyncInfo
 import app.pacinglab.core.data.sync.SyncOutcome
@@ -25,6 +26,7 @@ data class DataSourcesUiState(
     val probe: ProbeState = ProbeState.Idle,
     val export: ExportState = ExportState.Idle,
     val googleHealth: GoogleHealthCardState = GoogleHealthCardState(),
+    val homeAssistant: HomeAssistantStatus = HomeAssistantStatus(),
 ) {
     val allGranted: Boolean get() = requestedCount > 0 && grantedCount == requestedCount
 
