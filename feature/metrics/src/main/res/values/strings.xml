@@ -63,4 +63,49 @@ Awake at sea level, healthy values are 95 % or above, and they run a little lowe
     <string name="about_skin_temperature" formatted="false">Skin temperature at the wrist during sleep, as the difference from Fitbit\'s own baseline for you. Fitbit computes it and shares it through the Google Health API; Health Connect does not carry it.
 
 Skin temperature follows the room and the bedding as well as the body, so single nights move by a few tenths of a degree. A rise that lasts several nights often comes with illness, and in women it follows the menstrual cycle. Your range is where 80 % of the 30 nights before fell, at least 0.2 °C either side of the usual value.</string>
+    <string name="alertness_page_today">Today</string>
+    <string name="alertness_page_yesterday">Yesterday</string>
+    <string name="alertness_page_history">Last 30 days</string>
+    <string name="alertness_page_history_chart">The alertness score of each of the last 30 days, on the bands of alert, reduced and low</string>
+    <string name="alertness_page_tests">Your reaction tests</string>
+    <string name="alertness_page_no_tests">No tests yet. Until there are some, the score assumes the average effect of sleep loss on people.</string>
+    <string name="alertness_page_sensitivity_learning">How much sleep loss slows you is still mostly the average for people.</string>
+    <string name="alertness_page_sensitivity_more">Sleep loss slows you more than it slows most people.</string>
+    <string name="alertness_page_sensitivity_average">Sleep loss slows you about as much as it slows most people.</string>
+    <string name="alertness_page_sensitivity_less">Sleep loss slows you less than it slows most people.</string>
+    <string name="alertness_page_follows">The model follows your tests: typically %1$s off them, against %2$s for your average.</string>
+    <string name="alertness_page_not_following">The model does not follow your tests clearly yet: typically %1$s off them, against %2$s for your average.</string>
+    <string name="alertness_page_test_measured">%1$s of your rested speed, the model expected %2$s</string>
+    <string name="alertness_page_delete">Delete test</string>
+    <string name="alertness_page_delete_title">Delete this test?</string>
+    <string name="alertness_page_delete_text">It will no longer count towards your alertness.</string>
+    <string name="alertness_page_delete_confirm">Delete</string>
+    <string name="alertness_page_cancel">Cancel</string>
+    <string name="reaction_title">Reaction test</string>
+    <string name="reaction_intro">For three minutes a counter starts in the box at random moments. Tap anywhere on the screen as soon as it starts; the time you took shows for a second. A tap before the counter starts is a false start.\n\nTake it the same way each time: seated, the phone in the same hand, notifications out of the way. Tests at different times of day teach the model the most. Leaving the screen stops the test, since only the full three minutes count.</string>
+    <string name="reaction_start">Start</string>
+    <string name="reaction_tap_hint">Tap anywhere as soon as the counter starts</string>
+    <string name="reaction_box">Counter</string>
+    <string name="reaction_too_soon">Too soon</string>
+    <string name="reaction_missed">Missed</string>
+    <string name="reaction_stopped">The test stopped because the app left the screen. Only a full three minutes count.</string>
+    <string name="reaction_start_again">Start again</string>
+    <string name="reaction_too_few">Too few answers to score this test, so it was not kept.</string>
+    <string name="reaction_result_title">Reaction time</string>
+    <string name="reaction_ms">%1$d ms</string>
+    <string name="reaction_expected_same">About what the model expected for now: %1$d ms.</string>
+    <string name="reaction_expected_faster">Faster than the model expected for now: %1$d ms.</string>
+    <string name="reaction_expected_slower">Slower than the model expected for now: %1$d ms.</string>
+    <string name="reaction_first">Your first tests set your own speed; comparisons with the model start from the third.</string>
+    <string name="reaction_lapse_note">Lapses are answers of half a second or slower. The reaction time is 1000 divided by your mean response speed, so a few slow answers do not dominate it.</string>
+    <string name="reaction_done">Done</string>
+    <string name="reaction_discard">Discard this test</string>
+    <plurals name="reaction_lapses">
+        <item quantity="one">%1$d lapse</item>
+        <item quantity="other">%1$d lapses</item>
+    </plurals>
+    <plurals name="reaction_false_starts">
+        <item quantity="one">%1$d false start</item>
+        <item quantity="other">%1$d false starts</item>
+    </plurals>
 </resources>

@@ -177,21 +177,17 @@ data class OutcomeFactors(
 /** Where a night's expected restedness lies against the athlete's usual answer. */
 enum class RestednessStanding { BELOW, USUAL, ABOVE }
 
-/** How close the estimate comes to the answers against the sleep score. */
-enum class ScoreComparison { CLOSER, ABOUT_THE_SAME, FURTHER }
-
 /**
  * How rested the athlete can expect to feel after each night, on the 1 to 5 scale of the morning
  * question: the feeling-rested model of [SleepFactors] with every factor at once (the day before, the
  * bedroom, the night's own measures and the body's), applied to the night.
  *
  * It is judged only on mornings it has not seen: each rated morning is predicted from all the others
- * (leave one out). The plain average of the answers is the bar to clear, and the sleep score, fitted to
- * the answers the same way, is the bar that says whether the estimate follows the athlete's feeling
- * better than the score does. Errors are root mean squared, in steps of the rating, and one model beats
- * another only with at least a tenth less squared error ([CLEARLY]): shrunk towards the average, a model
- * of pure noise edges past the average by a hair in about two runs of three, but past this margin in
- * under one in ten (simulations of 30 to 120 mornings).
+ * (leave one out), and the plain average of the answers is the bar to clear. Errors are root mean squared,
+ * in steps of the rating, and the model beats the average only with at least a tenth less squared error
+ * ([CLEARLY]): shrunk towards the average, a model of pure noise edges past it by a hair in about two
+ * runs of three, but past this margin in under one in ten (simulations of 30 to 120 mornings). Sleep
+ * factors shows the expected answer for the morning shown once it does.
  *
  * @property mornings the rated mornings the model learnt from.
  * @property expected the expected answer after each night, by morning, within 1 to 5. A rated morning
@@ -200,7 +196,6 @@ enum class ScoreComparison { CLOSER, ABOUT_THE_SAME, FURTHER }
  *   model predicts no better than the average.
  * @property error the typical distance of a left-out prediction from the answer.
  * @property averageError the same for the average of the other answers.
- * @property scoreError the same for the sleep score alone; null when the scores never vary.
  * @property usual the athlete's usual answer, the model's centre.
  */
 data class RestednessEstimate(
@@ -208,25 +203,12 @@ data class RestednessEstimate(
     val expected: Map<LocalDate, Double> = emptyMap(),
     val error: Double? = null,
     val averageError: Double? = null,
-    val scoreError: Double? = null,
     val usual: Double? = null,
 ) {
     val learning: Boolean get() = mornings < SleepFactors.MIN_NIGHTS
 
     /** The model predicts mornings it has not seen clearly better than the average of the answers does. */
     val predictive: Boolean get() = error != null && averageError != null && error <= CLEARLY * averageError
-
-    /** How the estimate compares with the sleep score; null unless [predictive] and the scores vary. */
-    val comparison: ScoreComparison?
-        get() {
-            val own = error?.takeIf { predictive } ?: return null
-            val score = scoreError ?: return null
-            return when {
-                own <= CLEARLY * score -> ScoreComparison.CLOSER
-                score <= CLEARLY * own -> ScoreComparison.FURTHER
-                else -> ScoreComparison.ABOUT_THE_SAME
-            }
-        }
 
     /** Where the morning of [date] is expected to lie against [usual]; null without an estimate for it. */
     fun standing(date: LocalDate): RestednessStanding? {
@@ -343,15 +325,15 @@ data class SleepFactors(val score: OutcomeFactors, val rested: OutcomeFactors, v
             return SleepFactors(
                 score = analysed(SleepOutcome.SCORE) { night -> history.scores[night.date]?.score?.toDouble() }.factors,
                 rested = feeling.factors,
-                restedness = restedness(feeling, every, history.scores),
+                restedness = restedness(feeling, every),
             )
         }
 
         /**
          * The expected answer after each of [every] night from the feeling-rested model with all its
-         * factors, judged against the average and the sleep score on left-out mornings.
+         * factors, judged against the average on left-out mornings.
          */
-        private fun restedness(feeling: Analysis, every: List<Row>, scores: Map<LocalDate, SleepScore>): RestednessEstimate {
+        private fun restedness(feeling: Analysis, every: List<Row>): RestednessEstimate {
             val rows = feeling.rows
             val y = feeling.y
             val fit = feeling.full
@@ -361,11 +343,7 @@ data class SleepFactors(val score: OutcomeFactors, val rested: OutcomeFactors, v
             val error = rootMeanSquare(y.indices.map { y[it] - fit.looFitted[it] })
             // Left out, the mean of the others misses by (y - mean) n / (n - 1).
             val averageError = rootMeanSquare(y.map { (it - mean) * n / (n - 1) })
-            val scoreError = scoreFit(rows, y, feeling.follows, scores)?.let { score ->
-                rootMeanSquare(y.indices.map { y[it] - score.looFitted[it] })
-            }
-            val estimate =
-                RestednessEstimate(rows.size, error = error, averageError = averageError, scoreError = scoreError, usual = fit.intercept)
+            val estimate = RestednessEstimate(rows.size, error = error, averageError = averageError, usual = fit.intercept)
             if (!estimate.predictive) return estimate
             val leftOut = rows.indices.associate { rows[it].night.date to fit.looFitted[it] }
             val columns = feeling.columns
@@ -375,22 +353,6 @@ data class SleepFactors(val score: OutcomeFactors, val rested: OutcomeFactors, v
                 row.night.date to value.coerceIn(RestednessEstimate.LOWEST, RestednessEstimate.HIGHEST)
             }
             return estimate.copy(expected = expected)
-        }
-
-        /** The answers fitted on the sleep score alone, with the same method; null when the scores never vary. */
-        private fun scoreFit(
-            rows: List<Row>,
-            y: DoubleArray,
-            follows: BooleanArray,
-            scores: Map<LocalDate, SleepScore>,
-        ): ShrinkageRegression? {
-            val values = rows.map { scores[it.night.date]?.score?.toDouble() }
-            val known = values.filterNotNull().sorted()
-            if (known.size < values.size) return null
-            val step = niceStep(NightlyRange.quantile(known, 0.75) - NightlyRange.quantile(known, 0.25))
-            if (step <= 0) return null
-            val centre = NightlyRange.quantile(known, 0.5)
-            return ShrinkageRegression.fit(values.map { doubleArrayOf((it!! - centre) / step) }, y, follows)
         }
 
         private fun rootMeanSquare(values: List<Double>): Double = sqrt(values.sumOf { it * it } / values.size)

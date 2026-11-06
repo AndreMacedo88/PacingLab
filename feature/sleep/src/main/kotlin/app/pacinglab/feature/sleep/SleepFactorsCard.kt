@@ -46,11 +46,17 @@ import app.pacinglab.core.analytics.recovery.FactorEffect
 import app.pacinglab.core.analytics.recovery.FactorGroup
 import app.pacinglab.core.analytics.recovery.FactorUnit
 import app.pacinglab.core.analytics.recovery.OutcomeFactors
+import app.pacinglab.core.analytics.recovery.RestednessEstimate
+import app.pacinglab.core.analytics.recovery.RestednessStanding
 import app.pacinglab.core.analytics.recovery.SleepFactor
 import app.pacinglab.core.analytics.recovery.SleepFactors
 import app.pacinglab.core.analytics.recovery.SleepOutcome
+import app.pacinglab.core.designsystem.component.StatusPill
+import app.pacinglab.core.designsystem.icon.PacingLabIcons
+import app.pacinglab.core.designsystem.theme.StatusColors
 import app.pacinglab.core.designsystem.theme.chartColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
+import java.time.LocalDate
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -62,11 +68,19 @@ import kotlin.math.roundToInt
  * the athlete felt, then one row per factor with its likely effect as a dot and the middle 80 % as a bar,
  * on a shared scale from worse to better around a grey band of effects too small to matter. Clear factors
  * are coloured by direction; the rest stay grey. Tapping a row opens its nights in a sheet. Until there
- * are [SleepFactors.MIN_NIGHTS] nights the card counts towards them.
+ * are [SleepFactors.MIN_NIGHTS] nights the card counts towards them. Once the feeling-rested side
+ * predicts the answers, it also gives the answer to expect on [morning] ([RestednessEstimate]), beside
+ * the athlete's own answer [rested] when there is one.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun SleepFactorsCard(factors: SleepFactors?, modifier: Modifier = Modifier, initialOutcome: SleepOutcome = SleepOutcome.SCORE) {
+internal fun SleepFactorsCard(
+    factors: SleepFactors?,
+    modifier: Modifier = Modifier,
+    initialOutcome: SleepOutcome = SleepOutcome.SCORE,
+    morning: LocalDate? = null,
+    rested: Int? = null,
+) {
     var outcome by rememberSaveable { mutableStateOf(initialOutcome) }
     var opened by rememberSaveable { mutableStateOf<SleepFactor?>(null) }
     SleepCard(
@@ -92,6 +106,8 @@ internal fun SleepFactorsCard(factors: SleepFactors?, modifier: Modifier = Modif
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
+            val expected = factors.restedness.takeIf { outcome == SleepOutcome.RESTED && it.predictive }
+            expected?.let { estimate -> morning?.let { ExpectedAnswer(estimate, it, rested) } }
             OutcomeContent(factors.of(outcome), onOpen = { opened = it.factor })
         }
     }
@@ -107,6 +123,40 @@ internal fun SleepFactorsCard(factors: SleepFactors?, modifier: Modifier = Modif
             )
         }
     }
+}
+
+/** The answer to expect on [morning], where it lies against the usual one, and the athlete's own answer. */
+@Composable
+private fun ExpectedAnswer(estimate: RestednessEstimate, morning: LocalDate, rested: Int?) {
+    val value = estimate.expected[morning] ?: return
+    val locale = LocalConfiguration.current.locales[0]
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.factors_expected), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = if (rested != null) {
+                    stringResource(R.string.factors_expected_answer, rested)
+                } else {
+                    stringResource(R.string.factors_expected_usual, String.format(locale, "%.1f", estimate.usual ?: value))
+                },
+                style = MaterialTheme.typography.bodySmall.tabularNumbers(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(
+            String.format(locale, "%.1f", value),
+            style = MaterialTheme.typography.titleLarge.tabularNumbers(),
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
+        estimate.standing(morning)?.let { StandingPill(it) }
+    }
+}
+
+@Composable
+private fun StandingPill(standing: RestednessStanding) = when (standing) {
+    RestednessStanding.ABOVE -> StatusPill(stringResource(R.string.factors_expected_above), chartColors().positive, PacingLabIcons.ArrowUp)
+    RestednessStanding.USUAL -> StatusPill(stringResource(R.string.factors_expected_typical), StatusColors.Good, PacingLabIcons.CheckCircle)
+    RestednessStanding.BELOW -> StatusPill(stringResource(R.string.factors_expected_below), StatusColors.Warning, PacingLabIcons.ArrowDown)
 }
 
 @Composable

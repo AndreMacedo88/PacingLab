@@ -62,13 +62,27 @@
         <item quantity="one">Learning: %1$d of %2$d days</item>
         <item quantity="other">Learning: %1$d of %2$d days</item>
     </plurals>
-    <string name="restedness_title">Expected restedness</string>
-    <string name="restedness_above">Above usual</string>
-    <string name="restedness_usual">Usual</string>
-    <string name="restedness_below">Below usual</string>
-    <string name="restedness_chart">Expected restedness over the last week as a line, with your own answers as rings</string>
-    <plurals name="restedness_learning">
-        <item quantity="one">Learning: %1$d of %2$d rated mornings</item>
-        <item quantity="other">Learning: %1$d of %2$d rated mornings</item>
+    <string name="alertness_title">Alertness</string>
+    <string name="alertness_level_alert">Alert</string>
+    <string name="alertness_level_reduced">Reduced</string>
+    <string name="alertness_level_low">Low</string>
+    <string name="alertness_computing">Working out the day</string>
+    <string name="alertness_no_nights">Needs your recent nights: it works from the sleep your watch records.</string>
+    <string name="alertness_best">Sharpest %1$s–%2$s</string>
+    <string name="alertness_now">Now %1$s</string>
+    <string name="alertness_of_rested" formatted="false">100 % is a rested day</string>
+    <string name="alertness_assumed">Last night has not arrived yet, so your usual night stands in for it.</string>
+    <plurals name="alertness_learning">
+        <item quantity="one">Learning from your reaction tests: %1$d of %2$d</item>
+        <item quantity="other">Learning from your reaction tests: %1$d of %2$d</item>
     </plurals>
+    <plurals name="alertness_tuned">
+        <item quantity="one">Tuned to you by %1$d reaction test</item>
+        <item quantity="other">Tuned to you by %1$d reaction tests</item>
+    </plurals>
+    <string name="alertness_take_test">Take the 3-minute test</string>
+    <string name="alertness_chart">Predicted performance through the day as a line, highest from %1$s to %2$s, with your reaction tests as rings</string>
+    <string name="alertness_chart_plain">Predicted performance through the day as a line, with your reaction tests as rings</string>
+    <string name="alertness_info" formatted="false">How sharp you can expect to be through the day: vigilant attention and reaction speed, the base that thinking rests on, rather than reasoning or creativity themselves. It comes from your sleep alone, through the three-process model of alertness (Åkerstedt, Folkard and Portin 2004), which airlines use to plan crew schedules.\n\n- Sleep pressure builds while you are awake and clears while you sleep. A short night leaves some behind, and a run of short nights adds up.\n- Your body clock lifts alertness through the day to a peak in the late afternoon and lowers it at night. Your chronotype from Sleep timing moves it earlier or later, and your sleep need sets how long a full recovery takes.\n- Grogginess after waking fades over the first two to three hours, and a small dip follows lunch.\n\nThe score is the day\'s average from waking, where 100 % is a rested day: your full sleep need at your usual times after a week of such nights. Alert from 97 %, reduced from 92 %, low below. The shaded stretch of the curve is the best three hours. After several short nights performance keeps falling while feeling sleepy levels off, so people underrate the loss (Van Dongen 2003).\n\n# Reaction test\nThe 3-minute test is the brief psychomotor vigilance test (Basner 2011): tap as soon as a counter starts. Its response speed is the measure that reacts most to sleep loss. Without tests the score assumes the average effect of sleep loss on people; every test moves it towards the effect on you, and after about 12 it is mostly your own, as with the 2B-Alert app (Reifman 2019). Tests at different times of day teach it the most. Your tests show as rings on the curve, as a percentage of your own rested speed. The card asks for a test every other day while learning, then weekly, then monthly.\n\nCaffeine, illness, stress and light are not in the model, and it was built on group averages.</string>
+    <string name="alertness_advanced" formatted="false" tools:ignore="Typos,TypographyDashes,TypographyFractions"># Sleep pressure\nAwake for $t$ hours from $S_0$:\n\n$$S = 2.4 + (S_0 - 2.4)\\, e^{-0.0353\\, t}$$\n\nAsleep, with sleep need $N$ hours and $r = 0.381 \\cdot 8 / N$:\n\n$$S = 14.3 - (14.3 - S_0)\\, e^{-r t}$$\n\nBelow 12.5 recovery is linear at $1.8\\, r$ an hour, the rate the exponential has at 12.5. Awake stages inside a night count as awake. A night that was not recorded counts as $N$ hours ending at your usual waking time.\n\n# Rhythms and waking\nWith $h$ the clock time in hours and $p = 16.8 + \\Delta$, where $\\Delta$ is your chronotype (MSFsc) minus 04:00, at most 2 hours either way:\n\n$$C = 2.5 \\cos\\left(\\frac{\\pi (h - p)}{12}\\right)$$\n\n$$U = -0.5 \\cos\\left(\\frac{2 \\pi (h - p + 3)}{12}\\right)$$\n\n$$W = -5.7\\, e^{-0.657\\, t_w}$$\n\nwith $t_w$ the hours since waking. Alertness is $A = S + C + U + W$.\n\n# Score\nWith $R$ the mean of $A$ over a rested day (after seven nights of $N$ hours centred on your usual mid-sleep), predicted performance is\n\n$$P = 100\\, e^{b (A - R)}$$\n\nand the score is the mean of $P$ over the day, from waking for $24 - N$ hours.\n\n# Calibration\nTest $i$ gives response speed $v_i$, the mean of $1/\\mathrm{RT}$ with RT in seconds, and $x_i = A_i - R$ in the middle of the test. With $y_i = \\ln v_i$:\n\n$$y_i = a + b\\, x_i + \\varepsilon_i$$\n\n$$\\varepsilon_i \\sim N(0, \\sigma^2)$$\n\nThe prior of $b$ is $N(b_0, s_0^2)$ with $b_0 = 0.035$ and $s_0 = 0.015$: after a night awake, response speed fell by about a quarter (Basner 2011) while $A$ falls by about 8. The prior of $a$ is flat. With $S_{xx}$ and $S_{xy}$ the sums of squares and products about the means:\n\n$$\\hat{b} = \\frac{b_0 / s_0^2 + S_{xy} / \\sigma^2}{1 / s_0^2 + S_{xx} / \\sigma^2}$$\n\n$$\\hat{a} = \\bar{y} - \\hat{b}\\, \\bar{x}$$\n\n$$\\hat{\\sigma}^2 = \\frac{4 \\cdot 0.05^2 + \\sum_i r_i^2}{n + 3}$$\n\nwith residuals $r_i = y_i - \\hat{a} - \\hat{b}\\, x_i$, solved by iterating, and $\\hat{b} \\ge 0$. A ring on the curve is $100\\, v_i / e^{\\hat{a}}$.\n\n# Following the tests\nFrom 12 tests each one is predicted from the others. The model follows your tests when its root mean squared error is at most $\\sqrt{0.9}$ times that of the mean of the other tests.</string>
 </resources>

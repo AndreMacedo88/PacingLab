@@ -156,3 +156,15 @@ class NightClimateEntity(
     @ColumnInfo(name = "co2_max") val co2Max: Double?,
     @ColumnInfo(name = "fetched_ms") val fetchedMs: Long,
 )
+
+/**
+ * One reaction test the athlete took ([app.pacinglab.core.model.ReactionTest]), by its start; the response
+ * times are kept in order, as text, so that their scoring can change later.
+ */
+@Entity(tableName = "reaction_tests")
+class ReactionTestEntity(
+    @PrimaryKey @ColumnInfo(name = "start_ms") val startMs: Long,
+    @ColumnInfo(name = "zone_offset_s") val zoneOffsetSeconds: Int?,
+    @ColumnInfo(name = "reactions") val reactions: String,
+    @ColumnInfo(name = "false_starts") val falseStarts: Int,
+)

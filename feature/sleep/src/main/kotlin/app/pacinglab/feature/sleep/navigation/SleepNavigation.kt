@@ -10,6 +10,19 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SleepKey(val date: String? = null) : NavKey
 
-fun EntryProviderScope<NavKey>.sleepEntries(openSettings: () -> Unit, openMetric: (NightlyMetric) -> Unit) {
-    entry<SleepKey> { key -> SleepRoute(initialDate = key.date, onOpenSettings = openSettings, onOpenMetric = openMetric) }
+fun EntryProviderScope<NavKey>.sleepEntries(
+    openSettings: () -> Unit,
+    openMetric: (NightlyMetric) -> Unit,
+    openAlertness: () -> Unit,
+    openTest: () -> Unit,
+) {
+    entry<SleepKey> { key ->
+        SleepRoute(
+            initialDate = key.date,
+            onOpenSettings = openSettings,
+            onOpenMetric = openMetric,
+            onOpenAlertness = openAlertness,
+            onTest = openTest,
+        )
+    }
 }

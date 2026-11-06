@@ -10,6 +10,7 @@ import app.pacinglab.core.database.store.EffortStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.NightClimateStore
 import app.pacinglab.core.database.store.PhysiologyStore
+import app.pacinglab.core.database.store.ReactionTestStore
 import app.pacinglab.core.database.store.SessionWeatherStore
 import app.pacinglab.core.database.store.StillHeartRateStore
 import app.pacinglab.core.database.store.StoredSessionWeather
@@ -18,6 +19,7 @@ import app.pacinglab.core.database.store.WorkoutStore
 import app.pacinglab.core.model.BriefAwakening
 import app.pacinglab.core.model.DailyVitals
 import app.pacinglab.core.model.PhysiologyEntry
+import app.pacinglab.core.model.ReactionTest
 import app.pacinglab.core.model.RecordingMethod
 import app.pacinglab.core.model.SessionWeather
 import app.pacinglab.core.model.StillHeartRate
@@ -41,6 +43,7 @@ import java.io.File
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 
 /**
  * Builds a database exactly as an older app version created it, from the exported schema, and checks
@@ -298,6 +301,28 @@ class MigrationTest {
         assertThat(still).isEqualTo(setOf(LocalDate.ofEpochDay(20750)))
         assertThat(stored).isEqualTo(mapOf(night.date to night))
         assertThat(fetched.keys).isEqualTo(setOf(LocalDate.ofEpochDay(20751), LocalDate.ofEpochDay(20752)))
+    }
+
+    @Test
+    fun `version 13 night climate survives the upgrade and reaction tests can then be stored`() = runTest {
+        val file = databaseFile()
+        createFromSchema(file, version = 13)
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL(
+                "INSERT INTO night_climate (epoch_day, temperature, humidity, co2, co2_max, fetched_ms) VALUES (20751, 19.4, 48.0, NULL, NULL, 1)",
+            )
+        }
+
+        val database = Room.databaseBuilder(context, PacingLabDatabase::class.java, file.path).setDriver(AndroidSQLiteDriver()).build()
+        val tests = ReactionTestStore(database)
+        val test = ReactionTest(Instant.ofEpochSecond(1_790_000_000), ZoneOffset.ofHours(1), listOf(281, 305, 30_000), falseStarts = 1)
+        tests.save(listOf(test))
+        val stored = tests.observe().first()
+        val climate = NightClimateStore(database).observe().first()
+        database.close()
+
+        assertThat(stored).isEqualTo(listOf(test))
+        assertThat(climate.keys).isEqualTo(setOf(LocalDate.ofEpochDay(20751)))
     }
 
     private fun databaseFile(): File = context.getDatabasePath("migration-test.db").apply {

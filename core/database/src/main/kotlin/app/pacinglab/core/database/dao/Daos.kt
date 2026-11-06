@@ -9,6 +9,7 @@ import app.pacinglab.core.database.entity.EffortEntity
 import app.pacinglab.core.database.entity.MeasurementEntity
 import app.pacinglab.core.database.entity.NightClimateEntity
 import app.pacinglab.core.database.entity.PhysiologyEntity
+import app.pacinglab.core.database.entity.ReactionTestEntity
 import app.pacinglab.core.database.entity.SessionWeatherEntity
 import app.pacinglab.core.database.entity.SleepSessionEntity
 import app.pacinglab.core.database.entity.StillHeartRateEntity
@@ -239,4 +240,16 @@ interface NightClimateDao {
 
     @Query("DELETE FROM night_climate")
     suspend fun clear()
+}
+
+@Dao
+interface ReactionTestDao {
+    @Query("SELECT * FROM reaction_tests ORDER BY start_ms")
+    fun observeAll(): Flow<List<ReactionTestEntity>>
+
+    @Upsert
+    suspend fun upsert(entries: List<ReactionTestEntity>)
+
+    @Query("DELETE FROM reaction_tests WHERE start_ms = :startMs")
+    suspend fun delete(startMs: Long)
 }

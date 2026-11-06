@@ -2,6 +2,7 @@ package app.pacinglab.feature.today
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.pacinglab.core.analytics.alertness.AlertnessHistory
 import app.pacinglab.core.analytics.load.AnchorTimeline
 import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.FormDay
@@ -13,13 +14,13 @@ import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.NightlyMetric
 import app.pacinglab.core.analytics.recovery.NightlyRange
 import app.pacinglab.core.analytics.recovery.Readiness
-import app.pacinglab.core.analytics.recovery.RestednessEstimate
 import app.pacinglab.core.analytics.recovery.SleepDebt
 import app.pacinglab.core.analytics.recovery.SleepHealth
 import app.pacinglab.core.analytics.recovery.SleepHistory
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.analytics.workout.TrainingSession
 import app.pacinglab.core.analytics.zones.Zones
+import app.pacinglab.core.data.repository.AlertnessRepository
 import app.pacinglab.core.data.repository.Dashboard
 import app.pacinglab.core.data.repository.DashboardLayout
 import app.pacinglab.core.data.repository.DashboardRepository
@@ -32,7 +33,6 @@ import app.pacinglab.core.data.repository.PerformanceRepository
 import app.pacinglab.core.data.repository.PlacedCard
 import app.pacinglab.core.data.repository.RunningPerformance
 import app.pacinglab.core.data.repository.SessionKindRepository
-import app.pacinglab.core.data.repository.SleepFactorRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.repository.TrainingStatusRepository
 import app.pacinglab.core.data.repository.UserPreferencesRepository
@@ -115,7 +115,7 @@ data class TodayExtras(
     val weather: WeatherState? = null,
     val trainingStatus: TrainingStatus? = null,
     val strain: StrainHistory? = null,
-    val restedness: RestednessEstimate? = null,
+    val alertness: AlertnessHistory? = null,
 )
 
 sealed interface TodayUiState {
@@ -132,7 +132,6 @@ sealed interface TodayUiState {
      * @property weekSessions training sessions this week; a warm-up and an interval workout make one.
      * @property heartRateValuesSet false until the athlete has entered a maximal heart rate.
      * @property rested how rested the athlete said they feel today, 1 to 5; null before they answer.
-     * @property restedHistory the answers of the last [TodayViewModel.TILE_DAYS] mornings, by date.
      * @property gymToRate the newest gym session of today or yesterday when it has no effort rating yet.
      * @property ranges each nightly metric's usual range on each of the last [TodayViewModel.TILE_DAYS]
      *   days, oldest first; null before there are enough nights.
@@ -155,7 +154,6 @@ sealed interface TodayUiState {
         val heartRateValuesSet: Boolean,
         val readinessHistory: List<Readiness> = listOf(readiness),
         val rested: Int? = null,
-        val restedHistory: Map<LocalDate, Int> = emptyMap(),
         val gymToRate: GymToRate? = null,
         val ranges: Map<NightlyMetric, List<NightlyRange?>> = emptyMap(),
         val rangeNights: Map<NightlyMetric, Int> = emptyMap(),
@@ -187,7 +185,7 @@ class TodayViewModel @Inject constructor(
     private val weather: WeatherRepository,
     private val trainingStatus: TrainingStatusRepository,
     private val strain: DaytimeStrainRepository,
-    private val sleepFactors: SleepFactorRepository,
+    private val alertness: AlertnessRepository,
     preferences: UserPreferencesRepository,
 ) : ViewModel() {
     private val trainingAnchors = trainingLoad.anchors
@@ -203,9 +201,15 @@ class TodayViewModel @Inject constructor(
                 if (TodayCard.RACE_5K in visible) performance.observeRunning() else flowOf(null),
                 if (TodayCard.EFFICIENCY in visible) performance.observeEfficiency() else flowOf(null),
                 if (TodayCard.STRAIN in visible) strain.observe() else flowOf(null),
-                if (TodayCard.RESTEDNESS in visible) sleepFactors.observe().map { it.restedness } else flowOf(null),
-            ) { vo2max, running, efficiency, strainHistory, restedness ->
-                TodayExtras(vo2max = vo2max, running = running, efficiency = efficiency, strain = strainHistory, restedness = restedness)
+                if (TodayCard.ALERTNESS in visible) alertness.observe() else flowOf(null),
+            ) { vo2max, running, efficiency, strainHistory, alertnessHistory ->
+                TodayExtras(
+                    vo2max = vo2max,
+                    running = running,
+                    efficiency = efficiency,
+                    strain = strainHistory,
+                    alertness = alertnessHistory,
+                )
             }
             combine(
                 if (TodayCard.HEART_RATE in visible) dayHeartRate.observeToday() else flowOf(null),
@@ -329,7 +333,6 @@ class TodayViewModel @Inject constructor(
             lastWorkout = lastWorkout(inputs.sessions, inputs.loads, inputs.anchors),
             heartRateValuesSet = inputs.anchors.at(today) != null,
             rested = inputs.rested[today],
-            restedHistory = inputs.rested.filterKeys { it > today.minusDays(TILE_DAYS.toLong()) },
             ranges = NightlyMetric.entries.associateWith { metric ->
                 (TILE_DAYS - 1 downTo 0).map { back -> NightlyRange.of(inputs.nights, metric, today.minusDays(back.toLong())) }
             },

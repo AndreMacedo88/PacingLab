@@ -8,6 +8,7 @@ import app.pacinglab.core.database.dao.EffortDao
 import app.pacinglab.core.database.dao.MeasurementDao
 import app.pacinglab.core.database.dao.NightClimateDao
 import app.pacinglab.core.database.dao.PhysiologyDao
+import app.pacinglab.core.database.dao.ReactionTestDao
 import app.pacinglab.core.database.dao.SessionWeatherDao
 import app.pacinglab.core.database.dao.SleepDao
 import app.pacinglab.core.database.dao.StillHeartRateDao
@@ -19,6 +20,7 @@ import app.pacinglab.core.database.entity.EffortEntity
 import app.pacinglab.core.database.entity.MeasurementEntity
 import app.pacinglab.core.database.entity.NightClimateEntity
 import app.pacinglab.core.database.entity.PhysiologyEntity
+import app.pacinglab.core.database.entity.ReactionTestEntity
 import app.pacinglab.core.database.entity.SessionWeatherEntity
 import app.pacinglab.core.database.entity.SleepSessionEntity
 import app.pacinglab.core.database.entity.StillHeartRateEntity
@@ -41,8 +43,9 @@ import app.pacinglab.core.database.entity.WorkoutStreamEntity
         SessionWeatherEntity::class,
         StillHeartRateEntity::class,
         NightClimateEntity::class,
+        ReactionTestEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
     autoMigrations = [
         // 2: workouts.route_pending
@@ -69,6 +72,8 @@ import app.pacinglab.core.database.entity.WorkoutStreamEntity
         AutoMigration(from = 11, to = 12),
         // 13: night_climate (Home Assistant)
         AutoMigration(from = 12, to = 13),
+        // 14: reaction_tests (alertness)
+        AutoMigration(from = 13, to = 14),
     ],
 )
 abstract class PacingLabDatabase : RoomDatabase() {
@@ -93,6 +98,8 @@ abstract class PacingLabDatabase : RoomDatabase() {
     abstract fun stillHeartRateDao(): StillHeartRateDao
 
     abstract fun nightClimateDao(): NightClimateDao
+
+    abstract fun reactionTestDao(): ReactionTestDao
 
     companion object {
         const val FILE_NAME = "pacinglab.db"

@@ -25,7 +25,6 @@ import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.NightlyMetric
 import app.pacinglab.core.analytics.recovery.NightlyRange
 import app.pacinglab.core.analytics.recovery.Readiness
-import app.pacinglab.core.analytics.recovery.RestednessEstimate
 import app.pacinglab.core.analytics.recovery.SleepContinuity
 import app.pacinglab.core.analytics.recovery.SleepHistory
 import app.pacinglab.core.analytics.recovery.SleepScore
@@ -45,6 +44,7 @@ import app.pacinglab.core.model.Route
 import app.pacinglab.core.model.SleepStageType
 import app.pacinglab.core.model.Sport
 import app.pacinglab.core.model.ZoneModel
+import app.pacinglab.core.testing.SampleAlertness
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
@@ -215,6 +215,7 @@ class TodayScreenScreenshotTest {
                 },
                 progress = 21,
             ),
+            alertness = SampleAlertness.history(today, ZoneOffset.UTC, now = java.time.LocalTime.of(11, 40)),
         ),
         sleepHealth = SleepHistory.of(nights).health.filterKeys { it > today.minusDays(TodayViewModel.TILE_DAYS.toLong()) },
         sleepDebts = SleepHistory.of(nights).debts.filterKeys { it > today.minusDays(TodayViewModel.TILE_DAYS.toLong()) },
@@ -343,36 +344,21 @@ class TodayScreenScreenshotTest {
             loaded(nights(40)).let {
                 it.copy(
                     cards = all,
-                    extras = it.extras.copy(vo2max = Vo2MaxHistory(vo2, Vo2MaxTrend.of(vo2, today)), restedness = restedness),
-                    restedHistory = answers,
+                    extras = it.extras.copy(vo2max = Vo2MaxHistory(vo2, Vo2MaxTrend.of(vo2, today))),
                 )
             },
         )
     }
 
-    /** Made-up expected answers for the last week, closer to the answers than the sleep score. */
-    private val restedness = RestednessEstimate(
-        mornings = 48,
-        expected = listOf(2.6, 3.1, 3.4, 2.9, 2.4, 3.2, 3.6).mapIndexed { i, value -> today.minusDays(6L - i) to value }.toMap(),
-        error = 0.58,
-        averageError = 0.71,
-        scoreError = 0.68,
-        usual = 3.0,
-    )
-    private val answers = listOf(2, 3, 4, 3, 2, 3).mapIndexed { i, answer -> today.minusDays(6L - i) to answer }.toMap()
-
     @Test
-    fun expectedRestednessShowsOnlyOnceCloserThanTheSleepScore() {
-        val state =
-            mutableStateOf(loaded(nights(40)).let { it.copy(extras = it.extras.copy(restedness = restedness.copy(scoreError = 0.6))) })
-        compose.setContent { PacingLabTheme { TodayScreen(state.value, onOpen = {}, zoneId = ZoneOffset.UTC) } }
-        compose.onNodeWithText("Expected restedness").assertDoesNotExist()
+    fun alertnessOpensItsPageAndOffersTheTestWhenDue() {
+        val opened = mutableListOf<TodayDestination>()
+        compose.setContent { PacingLabTheme { TodayScreen(loaded(nights(40)), onOpen = { opened += it }, zoneId = ZoneOffset.UTC) } }
 
-        state.value = state.value.copy(extras = state.value.extras.copy(restedness = restedness))
+        compose.onNodeWithText("Take the 3-minute test").performScrollTo().performClick()
+        compose.onNodeWithText("Alertness").performClick()
 
-        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Expected restedness"))
-        compose.onNodeWithText("Expected restedness").assertExists()
-        compose.onNodeWithText("Above usual").assertExists()
+        assertThat(opened).isEqualTo(listOf(TodayDestination.ReactionTest, TodayDestination.Alertness))
     }
 
     @Test

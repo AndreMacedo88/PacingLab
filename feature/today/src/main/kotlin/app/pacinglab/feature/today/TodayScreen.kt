@@ -58,7 +58,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.NightlyMetric
 import app.pacinglab.core.analytics.recovery.Readiness
-import app.pacinglab.core.analytics.recovery.ScoreComparison
 import app.pacinglab.core.analytics.recovery.SleepRating
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.data.repository.PlacedCard
@@ -108,6 +107,10 @@ sealed interface TodayDestination {
     data object Performance : TodayDestination
 
     data object Physiology : TodayDestination
+
+    data object Alertness : TodayDestination
+
+    data object ReactionTest : TodayDestination
 }
 
 @Composable
@@ -310,9 +313,6 @@ private fun TodayUiState.Loaded.rows(answering: Boolean = false): List<List<Toda
 
             TodayCard.SLEEP_DEBT -> sleepDebts.isNotEmpty()
 
-            // Only once it follows the morning answers clearly more closely than the sleep score does.
-            TodayCard.RESTEDNESS -> extras.restedness?.comparison == ScoreComparison.CLOSER
-
             else -> true
         }
     }
@@ -360,6 +360,14 @@ private fun WideCard(
 
         TodayCard.RESTED -> RestedCard(state.rested, onRate)
 
+        TodayCard.ALERTNESS -> AlertnessTodayCard(
+            state.extras.alertness,
+            state.today,
+            zoneId,
+            onClick = { onOpen(TodayDestination.Alertness) },
+            onTest = { onOpen(TodayDestination.ReactionTest) },
+        )
+
         TodayCard.VITALS -> VitalsTodayCard(state.vitals(), onClick = { onOpen(TodayDestination.Sleep) })
 
         TodayCard.TRAINING_STATUS -> TrainingStatusTodayCard(state.extras.trainingStatus, onClick = { onOpen(TodayDestination.Trends) })
@@ -400,8 +408,6 @@ private fun TileCard(card: TodayCard, state: TodayUiState.Loaded, onOpen: (Today
         TodayCard.SLEEP_SCORE -> SleepTile(state, onClick = { onOpen(TodayDestination.Sleep) }, modifier)
 
         TodayCard.SLEEP_HEALTH -> SleepHealthTile(state, onClick = { onOpen(TodayDestination.Sleep) }, modifier)
-
-        TodayCard.RESTEDNESS -> RestednessTile(state, onClick = { onOpen(TodayDestination.Sleep) }, modifier)
 
         TodayCard.SLEEP_DEBT -> SleepDebtTile(state, onClick = { onOpen(TodayDestination.Sleep) }, modifier)
 

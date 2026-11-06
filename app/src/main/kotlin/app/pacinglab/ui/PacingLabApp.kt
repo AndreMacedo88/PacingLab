@@ -32,8 +32,10 @@ import androidx.navigation3.ui.NavDisplay
 import app.pacinglab.R
 import app.pacinglab.core.data.sync.SyncProblem
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
+import app.pacinglab.feature.metrics.navigation.AlertnessKey
 import app.pacinglab.feature.metrics.navigation.HeartRateDayKey
 import app.pacinglab.feature.metrics.navigation.NightlyMetricKey
+import app.pacinglab.feature.metrics.navigation.ReactionTestKey
 import app.pacinglab.feature.metrics.navigation.ReadinessKey
 import app.pacinglab.feature.metrics.navigation.metricsEntries
 import app.pacinglab.feature.performance.navigation.PerformanceKey
@@ -139,12 +141,19 @@ fun PacingLabApp(modifier: Modifier = Modifier, syncProblems: Flow<SyncProblem> 
                             TodayDestination.Trends -> backStack.replaceWith(TrendsKey)
                             TodayDestination.Performance -> backStack.replaceWith(PerformanceKey)
                             TodayDestination.Physiology -> backStack.add(PhysiologyKey)
+                            TodayDestination.Alertness -> backStack.add(AlertnessKey)
+                            TodayDestination.ReactionTest -> backStack.add(ReactionTestKey)
                         }
                     },
                     onOpenSettings = openSettings,
                 )
-                metricsEntries(navigateBack = { backStack.removeLastOrNull() })
-                sleepEntries(openSettings = openSettings, openMetric = { backStack.add(NightlyMetricKey(it.name)) })
+                metricsEntries(navigateBack = { backStack.removeLastOrNull() }, openTest = { backStack.add(ReactionTestKey) })
+                sleepEntries(
+                    openSettings = openSettings,
+                    openMetric = { backStack.add(NightlyMetricKey(it.name)) },
+                    openAlertness = { backStack.add(AlertnessKey) },
+                    openTest = { backStack.add(ReactionTestKey) },
+                )
                 workoutsEntries(
                     navigateTo = { backStack.add(it) },
                     navigateBack = { backStack.removeLastOrNull() },

@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.pacinglab.core.analytics.alertness.AlertnessHistory
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.NightlyMetric
 import app.pacinglab.core.analytics.recovery.SleepFactors
@@ -49,6 +50,7 @@ import app.pacinglab.core.designsystem.component.DashboardEntry
 import app.pacinglab.core.designsystem.component.SettingsAction
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -57,11 +59,14 @@ fun SleepRoute(
     initialDate: String?,
     onOpenSettings: () -> Unit,
     onOpenMetric: (NightlyMetric) -> Unit,
+    onOpenAlertness: () -> Unit,
+    onTest: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SleepViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val factors by viewModel.factors.collectAsStateWithLifecycle()
+    val alertness by viewModel.alertness.collectAsStateWithLifecycle()
     val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
     SleepScreen(
         state = state,
@@ -75,12 +80,15 @@ fun SleepRoute(
         onResetArrangement = viewModel::resetArrangement,
         onRate = viewModel::rate,
         factors = factors,
+        alertness = alertness,
+        onOpenAlertness = onOpenAlertness,
+        onTest = onTest,
     )
 }
 
 /**
- * One night in depth, laid out like the sleep screen of Google Health, after the restedness the athlete
- * can expect from it (learnt from their morning answers): the night's score and the two
+ * One night in depth, laid out like the sleep screen of Google Health, after the alertness the athlete
+ * can expect through the following day: the night's score and the two
  * weeks' sleep health at the top with time asleep and sleep debt, the night's stages, both scores'
  * parts, sleep quality against published ranges, heart rate through the night, the night's vitals,
  * key metrics over recent nights, and what goes with better and worse nights. Arrows step from night to night. A top-level screen: settings sit at
@@ -101,6 +109,10 @@ fun SleepScreen(
     initiallyEditing: Boolean = false,
     onRate: (LocalDate, Int) -> Unit = { _, _ -> },
     factors: SleepFactors? = null,
+    alertness: AlertnessHistory? = null,
+    onOpenAlertness: () -> Unit = {},
+    onTest: () -> Unit = {},
+    zoneId: ZoneId = ZoneId.systemDefault(),
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var editing by rememberSaveable { mutableStateOf(initiallyEditing) }
@@ -169,8 +181,8 @@ fun SleepScreen(
                         }
                         for (card in loaded.cards.filter { it.visible }.mapNotNull { SleepCardKind.of(it.id) }) {
                             when (card) {
-                                SleepCardKind.RESTEDNESS -> item(key = card.id) {
-                                    RestednessCard(factors?.restedness, night.date, loaded.rested)
+                                SleepCardKind.ALERTNESS -> item(key = card.id) {
+                                    AlertnessCard(alertness, night.date, zoneId, onOpen = onOpenAlertness, onTest = onTest)
                                 }
 
                                 SleepCardKind.TILES -> item(key = card.id) { TopTiles(loaded, night, locale) }
@@ -203,7 +215,9 @@ fun SleepScreen(
                                     SleepTimingCard(nights, night, loaded.freeDays)
                                 }
 
-                                SleepCardKind.FACTORS -> item(key = card.id) { SleepFactorsCard(factors) }
+                                SleepCardKind.FACTORS -> item(key = card.id) {
+                                    SleepFactorsCard(factors, morning = night.date, rested = loaded.rested[night.date])
+                                }
 
                                 SleepCardKind.FEELING -> item(key = card.id) {
                                     FeelingCard(

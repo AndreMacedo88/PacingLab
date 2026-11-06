@@ -2,12 +2,14 @@ package app.pacinglab.feature.sleep
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.pacinglab.core.analytics.alertness.AlertnessHistory
 import app.pacinglab.core.analytics.recovery.FeelingAgreement
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.SleepDebt
 import app.pacinglab.core.analytics.recovery.SleepFactors
 import app.pacinglab.core.analytics.recovery.SleepHealth
 import app.pacinglab.core.analytics.recovery.SleepScore
+import app.pacinglab.core.data.repository.AlertnessRepository
 import app.pacinglab.core.data.repository.Dashboard
 import app.pacinglab.core.data.repository.DashboardLayout
 import app.pacinglab.core.data.repository.DashboardRepository
@@ -67,6 +69,7 @@ class SleepViewModel @Inject constructor(
     private val clock: Clock,
     preferences: UserPreferencesRepository,
     sleepFactors: SleepFactorRepository,
+    alertnessRepository: AlertnessRepository,
 ) : ViewModel() {
     val state: StateFlow<SleepUiState> = combine(
         nights.observeSleep(),
@@ -91,6 +94,10 @@ class SleepViewModel @Inject constructor(
     /** What goes with better and worse nights; null until first worked out, which takes longer than the rest. */
     val factors: StateFlow<SleepFactors?> =
         sleepFactors.observe().stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), null)
+
+    /** Alertness through each day; null until first worked out. */
+    val alertness: StateFlow<AlertnessHistory?> =
+        alertnessRepository.observe().stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), null)
 
     val refreshing: StateFlow<Boolean> =
         scheduler.refreshing.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)

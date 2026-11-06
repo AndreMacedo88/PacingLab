@@ -19,6 +19,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.pacinglab.core.analytics.alertness.AlertnessHistory
 import app.pacinglab.core.analytics.load.TrainingStatus
 import app.pacinglab.core.analytics.load.TrainingStatusKind
 import app.pacinglab.core.analytics.recovery.VitalSign
@@ -28,11 +29,14 @@ import app.pacinglab.core.designsystem.component.RangePill
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.StatusColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
+import app.pacinglab.core.ui.AlertnessSummary
 import app.pacinglab.core.ui.VitalsVerdict
 import app.pacinglab.core.ui.detail
 import app.pacinglab.core.ui.icon
 import app.pacinglab.core.ui.label
 import app.pacinglab.core.ui.tint
+import java.time.LocalDate
+import java.time.ZoneId
 import app.pacinglab.core.ui.R as UiR
 
 /** Last night's vitals as the Sleep screen judges them, from the ranges Today already holds. */
@@ -82,6 +86,30 @@ internal fun VitalsTodayCard(vitals: Vitals?, onClick: () -> Unit, modifier: Mod
                 RangePill(sign.standing)
             }
         }
+    }
+}
+
+/**
+ * How alert the athlete can expect to be through today, from their sleep ([AlertnessSummary]), with the
+ * reaction test when one is due. Opens the alertness page.
+ */
+@Composable
+internal fun AlertnessTodayCard(
+    history: AlertnessHistory?,
+    today: LocalDate,
+    zone: ZoneId,
+    onClick: () -> Unit,
+    onTest: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TodayWideCard(
+        stringResource(UiR.string.alertness_title),
+        stringResource(UiR.string.alertness_info),
+        onClick,
+        modifier,
+        advanced = stringResource(UiR.string.alertness_advanced),
+    ) {
+        AlertnessSummary(history, today, zone, onTest = onTest)
     }
 }
 

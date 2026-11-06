@@ -14,10 +14,12 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import app.pacinglab.core.database.store.EffortStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
+import app.pacinglab.core.database.store.ReactionTestStore
 import app.pacinglab.core.database.store.WellnessStore
 import app.pacinglab.core.model.Measurement
 import app.pacinglab.core.model.MeasurementKind
 import app.pacinglab.core.model.PhysiologyEntry
+import app.pacinglab.core.model.ReactionTest
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONException
@@ -30,9 +32,16 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /** How many items of each kind a backup held or a restore brought back. */
-data class BackupSummary(val physiology: Int, val tests: Int, val mornings: Int, val efforts: Int, val settings: Int) {
+data class BackupSummary(
+    val physiology: Int,
+    val tests: Int,
+    val mornings: Int,
+    val efforts: Int,
+    val settings: Int,
+    val reactionTests: Int = 0,
+) {
     /** Entries, settings not counted. */
-    val entries: Int get() = physiology + tests + mornings + efforts
+    val entries: Int get() = physiology + tests + mornings + efforts + reactionTests
 }
 
 /** Why a file could not be restored. */
@@ -42,7 +51,7 @@ class BackupFormatException(val reason: Reason, cause: Throwable? = null) : Exce
 
 /**
  * Everything the athlete entered by hand, which Health Connect cannot give back: heart rate values with
- * their dates, VO2max tests, morning ratings, gym effort ratings and every setting, dashboards and zone
+ * their dates, VO2max tests, morning ratings, gym effort ratings, reaction tests and every setting, dashboards and zone
  * boundaries included. Workouts, nights and measurements are left out; a sync brings them back.
  *
  * The file is plain JSON, so it also moves data between the debug and release builds. Restoring
@@ -55,6 +64,7 @@ class BackupRepository @Inject constructor(
     private val measurements: MeasurementStore,
     private val wellness: WellnessStore,
     private val efforts: EffortStore,
+    private val reactions: ReactionTestStore,
     private val dataStore: DataStore<Preferences>,
     private val clock: Clock,
 ) {
@@ -65,6 +75,7 @@ class BackupRepository @Inject constructor(
             .filter { it.origin == PerformanceRepository.TEST_ORIGIN }
         val rested = wellness.observeRested().first()
         val rated = efforts.observe().first()
+        val reactionTests = reactions.observe().first()
         val settings = dataStore.data.first().asMap()
 
         val json = JSONObject()
@@ -75,8 +86,9 @@ class BackupRepository @Inject constructor(
             .put("vo2maxTests", JSONArray(tests.map { it.toJson() }))
             .put("mornings", JSONArray(rested.map { (date, rating) -> JSONObject().put("date", date.toString()).put("rested", rating) }))
             .put("efforts", JSONArray(rated.map { (workout, effort) -> JSONObject().put("workout", workout).put("effort", effort) }))
+            .put("reactionTests", JSONArray(reactionTests.map { it.toJson() }))
             .put("settings", JSONArray(settings.map { (key, value) -> setting(key.name, value) }))
-        return json.toString(2) to BackupSummary(entries.size, tests.size, rested.size, rated.size, settings.size)
+        return json.toString(2) to BackupSummary(entries.size, tests.size, rested.size, rated.size, settings.size, reactionTests.size)
     }
 
     /** Restores the backup in [text]; nothing is changed when it cannot be read. */
@@ -92,8 +104,16 @@ class BackupRepository @Inject constructor(
         measurements.saveMeasurements(backup.tests)
         backup.mornings.forEach { (date, rating) -> wellness.setRested(date, rating) }
         backup.efforts.forEach { (workout, effort) -> efforts.set(workout, effort) }
+        reactions.save(backup.reactionTests)
         dataStore.edit { prefs -> backup.settings.forEach { it(prefs) } }
-        return BackupSummary(backup.physiology.size, backup.tests.size, backup.mornings.size, backup.efforts.size, backup.settings.size)
+        return BackupSummary(
+            backup.physiology.size,
+            backup.tests.size,
+            backup.mornings.size,
+            backup.efforts.size,
+            backup.settings.size,
+            backup.reactionTests.size,
+        )
     }
 
     private class Backup(
@@ -101,6 +121,7 @@ class BackupRepository @Inject constructor(
         val tests: List<Measurement>,
         val mornings: Map<LocalDate, Int>,
         val efforts: Map<String, Int>,
+        val reactionTests: List<ReactionTest>,
         val settings: List<(MutablePreferences) -> Unit>,
     )
 
@@ -131,6 +152,15 @@ class BackupRepository @Inject constructor(
             },
             mornings = json.optJSONArray("mornings").objects().associate { LocalDate.parse(it.getString("date")) to it.getInt("rested") },
             efforts = json.optJSONArray("efforts").objects().associate { it.getString("workout") to it.getInt("effort") },
+            reactionTests = json.optJSONArray("reactionTests").objects().map {
+                val answers = it.getJSONArray("reactions")
+                ReactionTest(
+                    start = Instant.parse(it.getString("start")),
+                    zoneOffset = it.optString("offset").takeIf(String::isNotEmpty)?.let(ZoneOffset::of),
+                    reactionMillis = (0 until answers.length()).map(answers::getInt),
+                    falseStarts = it.getInt("falseStarts"),
+                )
+            },
             settings = json.optJSONArray("settings").objects().map(::settingWriter),
         )
     }
@@ -140,6 +170,12 @@ class BackupRepository @Inject constructor(
         .putOpt("maxHr", maxHr)
         .putOpt("thresholdHr", thresholdHr)
         .putOpt("restingHr", restingHr)
+
+    private fun ReactionTest.toJson() = JSONObject()
+        .put("start", start.toString())
+        .putOpt("offset", zoneOffset?.id)
+        .put("reactions", JSONArray(reactionMillis))
+        .put("falseStarts", falseStarts)
 
     private fun Measurement.toJson() = JSONObject()
         .put("id", sourceRecordId)

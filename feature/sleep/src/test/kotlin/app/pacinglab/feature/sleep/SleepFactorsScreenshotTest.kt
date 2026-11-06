@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import app.pacinglab.core.analytics.recovery.FactorEffect
 import app.pacinglab.core.analytics.recovery.FactorPoint
 import app.pacinglab.core.analytics.recovery.OutcomeFactors
+import app.pacinglab.core.analytics.recovery.RestednessEstimate
 import app.pacinglab.core.analytics.recovery.SleepFactor
 import app.pacinglab.core.analytics.recovery.SleepFactors
 import app.pacinglab.core.analytics.recovery.SleepOutcome
@@ -98,6 +99,26 @@ class SleepFactorsScreenshotTest {
 
     @Test
     fun learning() = capture { SleepFactorsCard(factors, Modifier.padding(16.dp), initialOutcome = SleepOutcome.RESTED) }
+
+    private val withExpected = SleepFactors(
+        score,
+        OutcomeFactors(
+            outcome = SleepOutcome.RESTED,
+            nights = 40,
+            effects = listOf(
+                effect(SleepFactor.DEEP_SLEEP, 20.0, 0.31, 0.18, 0.93, clear = true, from = 40.0, to = 110.0),
+                effect(SleepFactor.BEDTIME, 45.0, -0.08, 0.2, 0.3, clear = false, from = 300.0, to = 420.0),
+            ),
+            predictive = true,
+            spread = 0.6,
+        ),
+        restedness = RestednessEstimate(40, expected = mapOf(last to 3.64), error = 0.55, averageError = 0.7, usual = 3.1),
+    )
+
+    @Test
+    fun expectedAnswer() = capture {
+        SleepFactorsCard(withExpected, Modifier.padding(16.dp), initialOutcome = SleepOutcome.RESTED, morning = last, rested = 4)
+    }
 
     @Test
     fun factorDetails() = capture {

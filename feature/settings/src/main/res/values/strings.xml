@@ -210,7 +210,7 @@
     <string name="sex_male">Male</string>
     <string name="sex_female">Female</string>
     <string name="settings_backup">Back up your entries</string>
-    <string name="settings_backup_summary">Heart rate values, VO2max tests, ratings and settings, saved to a file you choose</string>
+    <string name="settings_backup_summary">Heart rate values, VO2max tests, ratings, reaction tests and settings, saved to a file you choose</string>
     <string name="settings_restore">Restore from a backup</string>
     <string name="settings_restore_summary">Brings back the entries and settings in a backup file</string>
     <plurals name="backup_saved">

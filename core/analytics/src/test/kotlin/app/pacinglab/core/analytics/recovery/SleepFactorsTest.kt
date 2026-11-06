@@ -224,8 +224,7 @@ class SleepFactorsTest {
 
         assertThat(factors.rested.effects.single { it.factor == SleepFactor.DEEP_SLEEP }.clear).isTrue()
         assertThat(restedness.predictive).isTrue()
-        assertThat(restedness.comparison).isEqualTo(ScoreComparison.CLOSER)
-        assertThat(restedness.error!!).isLessThan(restedness.scoreError!!)
+        assertThat(restedness.error!!).isLessThan(RestednessEstimate.CLEARLY * restedness.averageError!!)
         assertThat(restedness.expected.keys).isEqualTo(dates.toSet())
         // The rated mornings carry their left-out predictions, which still follow deep sleep.
         val deepNights = dates.indices.take(90).filter { deep[it] >= 85 }.map { restedness.expected.getValue(dates[it]) }
@@ -252,7 +251,6 @@ class SleepFactorsTest {
 
         assertThat(restedness.learning).isFalse()
         assertThat(restedness.predictive).isFalse()
-        assertThat(restedness.comparison).isEqualTo(null)
         assertThat(restedness.expected).isEmpty()
     }
 

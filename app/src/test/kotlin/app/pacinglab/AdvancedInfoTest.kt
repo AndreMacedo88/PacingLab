@@ -40,7 +40,7 @@ class AdvancedInfoTest {
         app.pacinglab.feature.sleep.R.string.feeling_advanced,
         app.pacinglab.feature.sleep.R.string.timing_advanced,
         app.pacinglab.feature.sleep.R.string.factors_advanced,
-        app.pacinglab.feature.sleep.R.string.sleep_restedness_advanced,
+        app.pacinglab.core.ui.R.string.alertness_advanced,
         app.pacinglab.feature.trends.R.string.form_advanced,
         app.pacinglab.feature.trends.R.string.weeks_advanced,
         app.pacinglab.feature.trends.R.string.recovery_advanced,
