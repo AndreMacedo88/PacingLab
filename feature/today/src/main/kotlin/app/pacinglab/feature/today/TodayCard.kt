@@ -7,7 +7,8 @@ import app.pacinglab.core.ui.R as UiR
 /**
  * Everything Today can show, in the default order. Wide cards take the whole width; tiles take one
  * column and pair up, two to a row. Cards hidden by default come from other screens and can be added
- * from the editor.
+ * from the editor. Some show only when they have something to say, such as [RESTEDNESS], which waits
+ * until it follows the athlete's morning answers more closely than the sleep score.
  */
 enum class TodayCard(
     val id: String,
@@ -22,6 +23,7 @@ enum class TodayCard(
     GYM_EFFORT("gym", true, R.string.card_gym_title, R.string.card_gym),
     HEART_RATE("heart_rate", true, R.string.heart_rate_title, R.string.today_card_heart_rate),
     SLEEP_SCORE("sleep", false, R.string.tile_sleep, R.string.card_sleep),
+    RESTEDNESS("restedness", false, UiR.string.restedness_title, R.string.today_card_restedness),
     SLEEP_HEALTH("sleep_health", false, R.string.tile_sleep_health, R.string.card_sleep_health),
     SLEEP_DEBT("sleep_debt", false, R.string.tile_sleep_debt, R.string.card_sleep_debt),
     HRV("hrv", false, R.string.tile_hrv, R.string.card_hrv),

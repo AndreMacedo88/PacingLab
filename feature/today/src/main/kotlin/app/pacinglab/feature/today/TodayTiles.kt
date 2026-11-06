@@ -39,13 +39,18 @@ import app.pacinglab.core.designsystem.chart.Sparkline
 import app.pacinglab.core.designsystem.chart.weekdayInitials
 import app.pacinglab.core.designsystem.component.RangePill
 import app.pacinglab.core.designsystem.component.StatusPill
+import app.pacinglab.core.designsystem.component.restedWord
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.StatusColors
 import app.pacinglab.core.designsystem.theme.chartColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import app.pacinglab.core.model.SleepStageType
+import app.pacinglab.core.ui.RestednessChart
+import app.pacinglab.core.ui.RestednessPill
 import app.pacinglab.core.ui.StrainPill
+import app.pacinglab.core.ui.formatRestedness
+import app.pacinglab.core.ui.nearestAnswer
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
@@ -153,6 +158,34 @@ internal fun SleepTile(state: TodayUiState.Loaded, onClick: () -> Unit, modifier
                 height = 32.dp,
             )
         }
+    }
+}
+
+/**
+ * How rested the athlete can expect to feel this morning, learnt from their answers: the expected answer
+ * and its word, the week's expected line with the answers as rings, and where it lies against the usual.
+ * Today shows it only once it follows the answers more closely than the sleep score.
+ */
+@Composable
+internal fun RestednessTile(state: TodayUiState.Loaded, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val estimate = state.extras.restedness
+    val value = estimate?.expected?.get(state.today)
+    val locale = LocalConfiguration.current.locales[0]
+    val days = (TodayViewModel.TILE_DAYS - 1 downTo 0).map { state.today.minusDays(it.toLong()) }
+    Tile(
+        label = stringResource(UiR.string.restedness_title),
+        value = value?.let { formatRestedness(it, locale) } ?: DASH,
+        detail = value?.let { restedWord(nearestAnswer(it)) } ?: stringResource(R.string.tile_no_night),
+        modifier = modifier,
+        onClick = onClick,
+        status = estimate?.standing(state.today)?.let { standing -> { RestednessPill(standing) } },
+    ) {
+        RestednessChart(
+            expected = days.map { estimate?.expected?.get(it) },
+            answers = days.map { state.restedHistory[it] },
+            usual = estimate?.usual,
+            labels = state.days(locale),
+        )
     }
 }
 

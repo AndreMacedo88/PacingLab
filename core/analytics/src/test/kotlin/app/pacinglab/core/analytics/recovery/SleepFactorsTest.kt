@@ -32,6 +32,8 @@ class SleepFactorsTest {
         hrv: Double = 60.0,
         restingHr: Double = 50.0,
         deepAtEnd: Boolean = false,
+        deepMinutes: Int = 60,
+        remMinutes: Int = 90,
     ): Night {
         val start = date.minusDays(1).atTime(22, 0).toInstant(ZoneOffset.UTC).plus(Duration.ofMinutes(bedtime.toLong()))
         val end = start.plus(Duration.ofMinutes(asleepMinutes.toLong()))
@@ -44,7 +46,11 @@ class SleepFactorsTest {
             start = start,
             end = end,
             asleepMillis = asleepMinutes * 60_000L,
-            stageMillis = emptyMap(),
+            stageMillis = mapOf(
+                SleepStageType.DEEP to deepMinutes * 60_000L,
+                SleepStageType.REM to remMinutes * 60_000L,
+                SleepStageType.LIGHT to (asleepMinutes - deepMinutes - remMinutes) * 60_000L,
+            ),
             hrvMs = hrv,
             restingHr = restingHr,
             respiratoryRate = 14.0,
@@ -182,6 +188,72 @@ class SleepFactorsTest {
         assertThat(bedroom.mean).isLessThan(-3.0)
         assertThat(withoutHome.waiting.none { it.group == FactorGroup.BEDROOM }).isTrue()
         assertThat(withoutHome.effects.none { it.factor.group == FactorGroup.BEDROOM }).isTrue()
+    }
+
+    @Test
+    fun `the expected restedness waits for enough rated mornings`() {
+        val random = Random(7)
+        val dates = List(40) { first.plusDays(it.toLong()) }
+        val nights = dates.map { night(it, random.nextInt(90), 470, deepMinutes = 40 + random.nextInt(50)) }
+        val rested = dates.take(20).associateWith { 2 + random.nextInt(3) }
+
+        val restedness = SleepFactors.of(history(nights, List(40) { 80 }), rested, emptyList(), emptyMap(), weekend).restedness
+
+        assertThat(restedness.mornings).isEqualTo(20)
+        assertThat(restedness.learning).isTrue()
+        assertThat(restedness.predictive).isFalse()
+        assertThat(restedness.expected).isEmpty()
+    }
+
+    @Test
+    fun `the expected restedness follows deep sleep that the sleep score ignores, and covers unrated nights`() {
+        val random = Random(8)
+        val dates = List(91) { first.plusDays(it.toLong()) }
+        val deep = dates.map { 40 + random.nextInt(60) }
+        val nights = dates.mapIndexed { i, date ->
+            night(date, random.nextInt(90), 440 + random.nextInt(60), deepMinutes = deep[i], remMinutes = 70 + random.nextInt(40))
+        }
+        // About a step per half hour of deep sleep, which the score knows nothing about. The last morning is not rated yet.
+        val rested = dates.indices.take(90).associate { i ->
+            dates[i] to (3 + (deep[i] - 70) / 30.0 + 0.4 * random.nextGaussian()).roundToInt().coerceIn(1, 5)
+        }
+        val scores = dates.map { 75 + random.nextInt(15) }
+
+        val factors = SleepFactors.of(history(nights, scores), rested, emptyList(), emptyMap(), weekend)
+        val restedness = factors.restedness
+
+        assertThat(factors.rested.effects.single { it.factor == SleepFactor.DEEP_SLEEP }.clear).isTrue()
+        assertThat(restedness.predictive).isTrue()
+        assertThat(restedness.comparison).isEqualTo(ScoreComparison.CLOSER)
+        assertThat(restedness.error!!).isLessThan(restedness.scoreError!!)
+        assertThat(restedness.expected.keys).isEqualTo(dates.toSet())
+        // The rated mornings carry their left-out predictions, which still follow deep sleep.
+        val deepNights = dates.indices.take(90).filter { deep[it] >= 85 }.map { restedness.expected.getValue(dates[it]) }
+        val lightNights = dates.indices.take(90).filter { deep[it] <= 55 }.map { restedness.expected.getValue(dates[it]) }
+        assertThat(deepNights.average()).isGreaterThan(lightNights.average() + 0.5)
+        val tonight = dates.last()
+        val expected = restedness.expected.getValue(tonight)
+        val standing = restedness.standing(tonight)
+        if (deep.last() >= 85) assertThat(standing).isEqualTo(RestednessStanding.ABOVE)
+        if (deep.last() <= 55) assertThat(standing).isEqualTo(RestednessStanding.BELOW)
+        assertThat(expected).isGreaterThan(RestednessEstimate.LOWEST - 1e-9)
+        assertThat(expected).isLessThan(RestednessEstimate.HIGHEST + 1e-9)
+    }
+
+    @Test
+    fun `answers unrelated to the nights give no estimate`() {
+        val random = Random(9)
+        val dates = List(60) { first.plusDays(it.toLong()) }
+        val nights = dates.map { night(it, random.nextInt(90), 430 + random.nextInt(80), deepMinutes = 40 + random.nextInt(50)) }
+        val rested = dates.associateWith { 2 + random.nextInt(3) }
+
+        val restedness = SleepFactors.of(history(nights, List(60) { 70 + random.nextInt(20) }), rested, emptyList(), emptyMap(), weekend)
+            .restedness
+
+        assertThat(restedness.learning).isFalse()
+        assertThat(restedness.predictive).isFalse()
+        assertThat(restedness.comparison).isEqualTo(null)
+        assertThat(restedness.expected).isEmpty()
     }
 
     @Test

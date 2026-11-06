@@ -42,6 +42,7 @@ import kotlin.math.sqrt
  * @property centers the weighted mean of each predictor.
  * @property weights ω_i of each observation; 1 for an ordinary one, smaller the further it lies off.
  * @property fitted the posterior mean of α + x_iᵀβ for each observation.
+ * @property looFitted the prediction of each observation from all the others, as [looError] measures it.
  * @property tauWeights the posterior weight of each grid value of τ.
  * @property inflation the autocorrelation widening of each coefficient's spread, at least 1.
  * @property looError weighted mean squared error predicting each observation from the others.
@@ -53,6 +54,7 @@ class ShrinkageRegression private constructor(
     val centers: DoubleArray,
     val weights: DoubleArray,
     val fitted: DoubleArray,
+    val looFitted: DoubleArray,
     val tauWeights: DoubleArray,
     val inflation: DoubleArray,
     val looError: Double,
@@ -70,6 +72,12 @@ class ShrinkageRegression private constructor(
 
     /** The posterior mean of coefficient [j]. */
     fun mean(j: Int): Double = means.indices.sumOf { k -> tauWeights[k] * means[k][j] }
+
+    /** The posterior mean of α + xᵀβ for new predictors [x], on the scale of those the model was fitted on. */
+    fun predict(x: DoubleArray): Double {
+        require(x.size == coefficients) { "Expected $coefficients predictors, got ${x.size}" }
+        return intercept + x.indices.sumOf { j -> (x[j] - centers[j]) * mean(j) }
+    }
 
     /** P(β_j <= [value]). */
     fun cdf(j: Int, value: Double): Double = means.indices.sumOf { k ->
@@ -154,6 +162,7 @@ class ShrinkageRegression private constructor(
                 centers = state.xBar,
                 weights = omega,
                 fitted = state.fitted,
+                looFitted = state.looFitted,
                 tauWeights = state.tauWeights,
                 inflation = inflation,
                 looError = state.looError,
@@ -189,6 +198,7 @@ class ShrinkageRegression private constructor(
         val scales = Array(grid.size) { DoubleArray(p) }
         val tauWeights = DoubleArray(grid.size)
         val fitted = DoubleArray(n)
+        val looFitted = DoubleArray(n)
         var sigma2 = 0.0
         var looError = 0.0
         var baselineLooError = 0.0
@@ -239,6 +249,7 @@ class ShrinkageRegression private constructor(
                     leftOut += tauWeights[k] * (yc[i] - fit) / max(1 - leverage, 1e-9)
                 }
                 fitted[i] = yBar + prediction
+                looFitted[i] = y[i] - leftOut
                 val alone = yc[i] / max(1 - own, 1e-9)
                 modelError += omega[i] * leftOut * leftOut
                 meanError += omega[i] * alone * alone

@@ -437,6 +437,8 @@ private fun factorRow(effect: FactorEffect, locale: Locale): String {
         SleepFactor.BEDROOM_CO2 -> stringResource(R.string.factors_row_bedroom_co2, step)
         SleepFactor.TIME_ASLEEP -> stringResource(R.string.factors_row_time_asleep, step)
         SleepFactor.AWAKE -> stringResource(R.string.factors_row_awake, step)
+        SleepFactor.DEEP_SLEEP -> stringResource(R.string.factors_row_deep_sleep, step)
+        SleepFactor.REM_SLEEP -> stringResource(R.string.factors_row_rem_sleep, step)
         SleepFactor.DEEP_BEFORE_WAKING -> stringResource(R.string.factors_row_deep)
         SleepFactor.HRV -> stringResource(R.string.factors_row_hrv, step)
         SleepFactor.SLEEPING_HR -> stringResource(R.string.factors_row_sleeping_hr, step)
@@ -511,6 +513,8 @@ private fun SleepFactor.name(): Int = when (this) {
     SleepFactor.BEDROOM_CO2 -> R.string.factors_name_bedroom_co2
     SleepFactor.TIME_ASLEEP -> R.string.factors_name_time_asleep
     SleepFactor.AWAKE -> R.string.factors_name_awake
+    SleepFactor.DEEP_SLEEP -> R.string.factors_name_deep_sleep
+    SleepFactor.REM_SLEEP -> R.string.factors_name_rem_sleep
     SleepFactor.DEEP_BEFORE_WAKING -> R.string.factors_name_deep
     SleepFactor.HRV -> R.string.factors_name_hrv
     SleepFactor.SLEEPING_HR -> R.string.factors_name_sleeping_hr

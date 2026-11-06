@@ -173,4 +173,5 @@
         <item quantity="other">%1$d of %2$d days</item>
     </plurals>
     <string name="tile_strain_detail">%1$s bpm over usual</string>
+    <string name="today_card_restedness">How rested you can expect to feel, learnt from your morning answers. Shows once it follows them more closely than the sleep score</string>
 </resources>

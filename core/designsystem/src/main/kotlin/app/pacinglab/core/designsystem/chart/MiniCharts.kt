@@ -218,9 +218,9 @@ fun LevelSparkline(
     }
 }
 
-/** Labels under evenly spaced days, the one at [today] marked. */
+/** Labels under evenly spaced days, the one at [today] marked, for mini charts drawn elsewhere. */
 @Composable
-private fun DayLabels(labels: List<String>, modifier: Modifier = Modifier, today: Int = labels.lastIndex) {
+fun DayLabels(labels: List<String>, modifier: Modifier = Modifier, today: Int = labels.lastIndex) {
     Row(modifier.fillMaxWidth()) {
         labels.forEachIndexed { i, label ->
             Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {

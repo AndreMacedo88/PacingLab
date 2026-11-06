@@ -79,7 +79,8 @@ fun SleepRoute(
 }
 
 /**
- * One night in depth, laid out like the sleep screen of Google Health: the night's score and the two
+ * One night in depth, laid out like the sleep screen of Google Health, after the restedness the athlete
+ * can expect from it (learnt from their morning answers): the night's score and the two
  * weeks' sleep health at the top with time asleep and sleep debt, the night's stages, both scores'
  * parts, sleep quality against published ranges, heart rate through the night, the night's vitals,
  * key metrics over recent nights, and what goes with better and worse nights. Arrows step from night to night. A top-level screen: settings sit at
@@ -168,6 +169,10 @@ fun SleepScreen(
                         }
                         for (card in loaded.cards.filter { it.visible }.mapNotNull { SleepCardKind.of(it.id) }) {
                             when (card) {
+                                SleepCardKind.RESTEDNESS -> item(key = card.id) {
+                                    RestednessCard(factors?.restedness, night.date, loaded.rested)
+                                }
+
                                 SleepCardKind.TILES -> item(key = card.id) { TopTiles(loaded, night, locale) }
 
                                 SleepCardKind.NIGHT -> item(key = card.id) {

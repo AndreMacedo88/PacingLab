@@ -2,9 +2,11 @@ package app.pacinglab.feature.sleep
 
 import androidx.annotation.StringRes
 import app.pacinglab.core.data.repository.CardSpec
+import app.pacinglab.core.ui.R as UiR
 
 /** The cards of the sleep screen, in the default order; the night selector above them stays put. */
 enum class SleepCardKind(val id: String, @param:StringRes val title: Int, @param:StringRes val description: Int) {
+    RESTEDNESS("restedness", UiR.string.restedness_title, R.string.sleep_card_restedness),
     TILES("tiles", R.string.card_tiles_title, R.string.card_tiles),
     NIGHT("stages", R.string.card_night_title, R.string.card_night),
     SCORE("score", R.string.sleep_score_title, R.string.card_score),

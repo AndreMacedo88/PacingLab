@@ -62,4 +62,13 @@
         <item quantity="one">Learning: %1$d of %2$d days</item>
         <item quantity="other">Learning: %1$d of %2$d days</item>
     </plurals>
+    <string name="restedness_title">Expected restedness</string>
+    <string name="restedness_above">Above usual</string>
+    <string name="restedness_usual">Usual</string>
+    <string name="restedness_below">Below usual</string>
+    <string name="restedness_chart">Expected restedness over the last week as a line, with your own answers as rings</string>
+    <plurals name="restedness_learning">
+        <item quantity="one">Learning: %1$d of %2$d rated mornings</item>
+        <item quantity="other">Learning: %1$d of %2$d rated mornings</item>
+    </plurals>
 </resources>

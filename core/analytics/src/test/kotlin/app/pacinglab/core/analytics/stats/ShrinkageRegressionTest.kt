@@ -45,7 +45,7 @@ class ShrinkageRegressionTest {
     }
 
     @Test
-    fun `with one tau and plain errors it is ridge regression, and its left-out errors match refitting`() {
+    fun `with one tau and plain errors it is ridge regression, and its left-out predictions match refitting`() {
         val random = Random(7)
         val x = List(25) { doubleArrayOf(random.nextGaussian(), random.nextGaussian(), if (random.nextBoolean()) 1.0 else 0.0) }
         val y = DoubleArray(25) { 3 + 2 * x[it][0] - x[it][1] + 1.5 * x[it][2] + random.nextGaussian() }
@@ -59,10 +59,12 @@ class ShrinkageRegressionTest {
         val refitted = (0 until 25).sumOf { i ->
             val others = (0 until 25).filter { it != i }
             val leftOut = ShrinkageRegression.fit(others.map { x[it] }, DoubleArray(24) { y[others[it]] }, nu = gaussian, tau = tau)!!
-            val prediction = leftOut.intercept + (0 until 3).sumOf { leftOut.mean(it) * (x[i][it] - leftOut.centers[it]) }
+            val prediction = leftOut.predict(x[i])
+            assertThat(fit.looFitted[i]).isCloseTo(prediction, 1e-8)
             (y[i] - prediction) * (y[i] - prediction)
         } / 25
         assertThat(fit.looError).isCloseTo(refitted, 1e-8)
+        assertThat(fit.predict(x[3])).isCloseTo(fit.fitted[3], 1e-10)
     }
 
     @Test
