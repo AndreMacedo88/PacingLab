@@ -90,30 +90,33 @@ fun PacingLabApp(modifier: Modifier = Modifier, syncProblems: Flow<SyncProblem> 
         // only reserves space for the navigation bar.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            NavigationBar {
-                TopLevelDestination.entries.forEach { destination ->
-                    val selected = destination == currentTopLevel
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = { if (!selected || backStack.size > 1) backStack.replaceWith(destination.key) },
-                        icon = {
-                            Icon(
-                                painter = painterResource(if (selected) destination.selectedIcon else destination.icon),
-                                contentDescription = null,
-                            )
-                        },
-                        // Five tabs leave about 77 dp each on a phone; "Performance" would wrap, so a long label shrinks instead.
-                        label = {
-                            Text(
-                                text = stringResource(destination.label),
-                                maxLines = 1,
-                                autoSize = TextAutoSize.StepBased(
-                                    minFontSize = 8.sp,
-                                    maxFontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                ),
-                            )
-                        },
-                    )
+            // The reaction test takes taps anywhere on the screen, so nothing else may sit under a thumb.
+            if (backStack.lastOrNull() != ReactionTestKey) {
+                NavigationBar {
+                    TopLevelDestination.entries.forEach { destination ->
+                        val selected = destination == currentTopLevel
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = { if (!selected || backStack.size > 1) backStack.replaceWith(destination.key) },
+                            icon = {
+                                Icon(
+                                    painter = painterResource(if (selected) destination.selectedIcon else destination.icon),
+                                    contentDescription = null,
+                                )
+                            },
+                            // Five tabs leave about 77 dp each on a phone; "Performance" would wrap, so a long label shrinks instead.
+                            label = {
+                                Text(
+                                    text = stringResource(destination.label),
+                                    maxLines = 1,
+                                    autoSize = TextAutoSize.StepBased(
+                                        minFontSize = 8.sp,
+                                        maxFontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                    ),
+                                )
+                            },
+                        )
+                    }
                 }
             }
         },
