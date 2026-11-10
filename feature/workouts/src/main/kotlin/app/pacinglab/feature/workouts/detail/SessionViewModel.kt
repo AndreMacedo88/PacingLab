@@ -24,6 +24,7 @@ import app.pacinglab.core.analytics.workout.StreamCleaning
 import app.pacinglab.core.analytics.workout.TrainingSession
 import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.data.repository.EffortRepository
+import app.pacinglab.core.data.repository.ExcludedWorkoutRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.repository.UserPreferencesRepository
 import app.pacinglab.core.data.repository.WorkoutRepository
@@ -136,6 +137,7 @@ sealed interface SessionUiState {
      * @property weather the weather during the session; null while it is looked up.
      * @property heatAdjustment the athlete has estimates corrected for heat, so the conditions say by how much.
      * @property routeColoring what the map colours the route by at first.
+     * @property usedForEstimates false when the athlete left the session out of the fitness estimates.
      */
     data class Loaded(
         val session: SessionItem,
@@ -147,6 +149,7 @@ sealed interface SessionUiState {
         val weather: SessionWeatherState? = null,
         val heatAdjustment: Boolean = true,
         val routeColoring: RouteColoring = RouteColoring.ZONES_FIVE,
+        val usedForEstimates: Boolean = true,
     ) : SessionUiState {
         /** The rating of the workouts in [scope] when they share one; null when unrated. */
         fun effortOf(scope: DetailScope): Int? = scope.workoutIds.map { efforts[it] }.distinct().singleOrNull()
@@ -162,6 +165,7 @@ class SessionViewModel @AssistedInject constructor(
     private val ratings: EffortRepository,
     preferences: UserPreferencesRepository,
     private val weatherRepository: SessionWeatherRepository,
+    private val excludedWorkouts: ExcludedWorkoutRepository,
 ) : ViewModel() {
     private val analysed = combine(
         repository.observeSessions(),
@@ -209,7 +213,8 @@ class SessionViewModel @AssistedInject constructor(
         ratings.observe(),
         preferences.preferences.map { Triple(it.speedByDefault, it.heatAdjustment, it.routeColoring) }.distinctUntilChanged(),
         weather,
-    ) { state, rated, (speed, heat, coloring), conditions ->
+        excludedWorkouts.observe(),
+    ) { state, rated, (speed, heat, coloring), conditions, excluded ->
         if (state is SessionUiState.Loaded) {
             val ids = state.scopes.first().workoutIds.toSet()
             state.copy(
@@ -218,6 +223,7 @@ class SessionViewModel @AssistedInject constructor(
                 weather = conditions,
                 heatAdjustment = heat,
                 routeColoring = coloring,
+                usedForEstimates = ids.none { it in excluded },
             )
         } else {
             state
@@ -234,6 +240,12 @@ class SessionViewModel @AssistedInject constructor(
                 workoutIds.forEach { ratings.rate(it, effort) }
             }
         }
+    }
+
+    /** Leaves the whole session out of the fitness estimates, or brings it back. */
+    fun useForEstimates(used: Boolean) {
+        val ids = (state.value as? SessionUiState.Loaded)?.scopes?.first()?.workoutIds ?: return
+        viewModelScope.launch { excludedWorkouts.setExcluded(ids, excluded = !used) }
     }
 
     private suspend fun load(session: TrainingSession, timeline: AnchorTimeline, weighting: BanisterWeighting): SessionUiState.Loaded {

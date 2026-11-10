@@ -88,6 +88,13 @@ class WellnessEntity(@PrimaryKey @ColumnInfo(name = "epoch_day") val epochDay: L
 @Entity(tableName = "efforts")
 class EffortEntity(@PrimaryKey @ColumnInfo(name = "workout_id") val workoutId: String, @ColumnInfo(name = "effort") val effort: Int)
 
+/**
+ * A workout the athlete left out of the fitness estimates, because its heart rate does not reflect the effort
+ * (talking all the way, illness, a faulty reading).
+ */
+@Entity(tableName = "excluded_workouts")
+class ExcludedWorkoutEntity(@PrimaryKey @ColumnInfo(name = "workout_id") val workoutId: String)
+
 /** Heart rate values the athlete set, valid from a date (stored as epoch day) until the next entry. */
 @Entity(tableName = "physiology")
 class PhysiologyEntity(

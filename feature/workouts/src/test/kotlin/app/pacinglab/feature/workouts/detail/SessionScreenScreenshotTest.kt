@@ -476,6 +476,37 @@ class SessionScreenScreenshotTest {
     }
 
     @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun estimatesCard() {
+        compose.setContent {
+            PacingLabTheme {
+                Surface {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        EstimatesCard(used = true, onUsedChange = {})
+                        EstimatesCard(used = false, onUsedChange = {})
+                    }
+                }
+            }
+        }
+        compose.onRoot().captureRoboImage()
+    }
+
+    @Test
+    fun turningTheSwitchOffLeavesTheSessionOutOfTheEstimates() {
+        var used: Boolean? = null
+        compose.setContent {
+            PacingLabTheme {
+                SessionScreen(state = loaded, onBack = {
+                }, onOpenPhysiology = {}, onUseForEstimates = { used = it }, zoneId = ZoneOffset.UTC)
+            }
+        }
+
+        compose.onNodeWithText("Use this session").performScrollTo().performClick()
+
+        assertThat(used).isEqualTo(false)
+    }
+
+    @Test
     fun theSpeedPreferenceShowsSpeedFirst() {
         compose.setContent {
             PacingLabTheme {

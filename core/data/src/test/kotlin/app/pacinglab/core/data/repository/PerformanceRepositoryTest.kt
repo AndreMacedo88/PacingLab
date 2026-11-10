@@ -11,6 +11,7 @@ import app.pacinglab.core.data.weather.SessionWeatherRepository
 import app.pacinglab.core.database.PacingLabDatabase
 import app.pacinglab.core.database.store.DailyVitalsStore
 import app.pacinglab.core.database.store.EffortStore
+import app.pacinglab.core.database.store.ExcludedWorkoutStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
 import app.pacinglab.core.database.store.SessionWeatherStore
@@ -57,6 +58,7 @@ class PerformanceRepositoryTest {
     private lateinit var workouts: WorkoutStore
     private lateinit var measurements: MeasurementStore
     private lateinit var repository: PerformanceRepository
+    private lateinit var excluded: ExcludedWorkoutRepository
 
     @Before
     fun setUp() {
@@ -66,6 +68,7 @@ class PerformanceRepositoryTest {
         workouts = WorkoutStore(database)
         measurements = MeasurementStore(database)
         val physiology = PhysiologyStore(database)
+        excluded = ExcludedWorkoutRepository(ExcludedWorkoutStore(database))
         val clock = Clock.fixed(now, cest)
         val preferences = testPreferences()
         val load =
@@ -75,6 +78,7 @@ class PerformanceRepositoryTest {
                 NightRepository(measurements, DailyVitalsStore(database), preferences, clock),
                 preferences,
                 EffortRepository(EffortStore(database)),
+                excluded,
                 clock,
             )
         repository = PerformanceRepository(
@@ -84,6 +88,7 @@ class PerformanceRepositoryTest {
             DailyVitalsStore(database),
             SessionWeatherRepository(SessionWeatherStore(database), NoWeather, preferences, clock),
             preferences,
+            excluded,
             clock,
         )
         runTest { physiology.save(PhysiologyEntry(LocalDate.of(2026, 1, 1), maxHr = 190, thresholdHr = 170, restingHr = 50)) }
@@ -115,6 +120,40 @@ class PerformanceRepositoryTest {
         // 4.0 m/s at 160 bpm with HRmax 190 and resting 50.
         assertThat(history.points.single { it.source == Vo2MaxSource.PACINGLAB }.value).isCloseTo(3.5 + 48.0 / (110.0 / 140), 1e-6)
         assertThat(history.trend).isNotNull()
+    }
+
+    @Test
+    fun `a run left out of the estimates gives no VO2max, and Fitbit's value of its day goes with it`() = runTest {
+        saveSteadyRun("solo", Instant.parse("2026-10-15T16:00:00Z"))
+        saveSteadyRun("social", Instant.parse("2026-10-20T16:00:00Z"))
+        measurements.saveMeasurements(
+            listOf(
+                Measurement(
+                    "fitbit-solo",
+                    MeasurementKind.VO2_MAX,
+                    Instant.parse("2026-10-15T16:00:00Z"),
+                    cest,
+                    55.0,
+                    "com.fitbit.FitbitMobile",
+                ),
+                Measurement(
+                    "fitbit-social",
+                    MeasurementKind.VO2_MAX,
+                    Instant.parse("2026-10-20T16:00:00Z"),
+                    cest,
+                    52.0,
+                    "com.fitbit.FitbitMobile",
+                ),
+            ),
+        )
+
+        excluded.setExcluded(listOf("hc:social"), excluded = true)
+        val history = repository.observeVo2Max().first()
+
+        assertThat(history.points.map { it.date to it.source }).containsExactly(
+            LocalDate.of(2026, 10, 15) to Vo2MaxSource.PACINGLAB,
+            LocalDate.of(2026, 10, 15) to Vo2MaxSource.FITBIT,
+        )
     }
 
     @Test

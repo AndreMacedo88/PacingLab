@@ -5,6 +5,7 @@ import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import app.pacinglab.core.database.dao.DailyVitalsDao
 import app.pacinglab.core.database.dao.EffortDao
+import app.pacinglab.core.database.dao.ExcludedWorkoutDao
 import app.pacinglab.core.database.dao.MeasurementDao
 import app.pacinglab.core.database.dao.NightClimateDao
 import app.pacinglab.core.database.dao.PhysiologyDao
@@ -17,6 +18,7 @@ import app.pacinglab.core.database.dao.WellnessDao
 import app.pacinglab.core.database.dao.WorkoutDao
 import app.pacinglab.core.database.entity.DailyVitalsEntity
 import app.pacinglab.core.database.entity.EffortEntity
+import app.pacinglab.core.database.entity.ExcludedWorkoutEntity
 import app.pacinglab.core.database.entity.MeasurementEntity
 import app.pacinglab.core.database.entity.NightClimateEntity
 import app.pacinglab.core.database.entity.PhysiologyEntity
@@ -44,8 +46,9 @@ import app.pacinglab.core.database.entity.WorkoutStreamEntity
         StillHeartRateEntity::class,
         NightClimateEntity::class,
         ReactionTestEntity::class,
+        ExcludedWorkoutEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true,
     autoMigrations = [
         // 2: workouts.route_pending
@@ -74,6 +77,8 @@ import app.pacinglab.core.database.entity.WorkoutStreamEntity
         AutoMigration(from = 12, to = 13),
         // 14: reaction_tests (alertness)
         AutoMigration(from = 13, to = 14),
+        // 15: excluded_workouts (left out of fitness estimates)
+        AutoMigration(from = 14, to = 15),
     ],
 )
 abstract class PacingLabDatabase : RoomDatabase() {
@@ -100,6 +105,8 @@ abstract class PacingLabDatabase : RoomDatabase() {
     abstract fun nightClimateDao(): NightClimateDao
 
     abstract fun reactionTestDao(): ReactionTestDao
+
+    abstract fun excludedWorkoutDao(): ExcludedWorkoutDao
 
     companion object {
         const val FILE_NAME = "pacinglab.db"

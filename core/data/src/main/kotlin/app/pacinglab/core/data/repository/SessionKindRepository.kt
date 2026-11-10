@@ -42,6 +42,7 @@ data class SessionRecoveryPoint(val date: LocalDate, val sessionId: String, val 
 class SessionKindRepository @Inject constructor(
     private val workouts: WorkoutRepository,
     trainingLoad: TrainingLoadRepository,
+    private val excluded: ExcludedWorkoutRepository,
     private val clock: Clock,
 ) {
     private data class Key(val parts: List<Pair<String, Instant>>, val anchors: HeartRateAnchors?)
@@ -65,9 +66,12 @@ class SessionKindRepository @Inject constructor(
     }
         .onStart { emit(emptyMap()) }
 
-    /** Heart rate recovery after reps of every running session that has it, oldest first. */
-    fun observeRecoveries(): Flow<List<SessionRecoveryPoint>> = facts.map { all ->
-        all.mapNotNull { (session, f) ->
+    /**
+     * Heart rate recovery after reps of every running session that has it, oldest first, without sessions
+     * the athlete left out of the estimates.
+     */
+    fun observeRecoveries(): Flow<List<SessionRecoveryPoint>> = combine(facts, excluded.observe()) { all, left ->
+        all.filterKeys { session -> session.workouts.none { it.id in left } }.mapNotNull { (session, f) ->
             f.recovery?.let { SessionRecoveryPoint(TrainingLoads.dateOf(session.workouts.first(), clock.zone), session.id, it) }
         }.sortedBy { it.date }
     }

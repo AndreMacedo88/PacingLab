@@ -7,6 +7,7 @@ import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
 import app.pacinglab.core.database.store.DailyVitalsStore
 import app.pacinglab.core.database.store.EffortStore
+import app.pacinglab.core.database.store.ExcludedWorkoutStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.NightClimateStore
 import app.pacinglab.core.database.store.PhysiologyStore
@@ -323,6 +324,28 @@ class MigrationTest {
 
         assertThat(stored).isEqualTo(listOf(test))
         assertThat(climate.keys).isEqualTo(setOf(LocalDate.ofEpochDay(20751)))
+    }
+
+    @Test
+    fun `version 14 reaction tests survive the upgrade and workouts can then be left out of the estimates`() = runTest {
+        val file = databaseFile()
+        createFromSchema(file, version = 14)
+        SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL(
+                "INSERT INTO reaction_tests (start_ms, zone_offset_s, reactions, false_starts) VALUES (1790000000000, 3600, '281,305', 0)",
+            )
+        }
+
+        val database = Room.databaseBuilder(context, PacingLabDatabase::class.java, file.path).setDriver(AndroidSQLiteDriver()).build()
+        val excluded = ExcludedWorkoutStore(database)
+        excluded.exclude(listOf("hc:1", "hc:2"))
+        excluded.include(listOf("hc:2"))
+        val left = excluded.observe().first()
+        val tests = ReactionTestStore(database).observe().first()
+        database.close()
+
+        assertThat(left).isEqualTo(setOf("hc:1"))
+        assertThat(tests.map { it.reactionMillis }).isEqualTo(listOf(listOf(281, 305)))
     }
 
     private fun databaseFile(): File = context.getDatabasePath("migration-test.db").apply {

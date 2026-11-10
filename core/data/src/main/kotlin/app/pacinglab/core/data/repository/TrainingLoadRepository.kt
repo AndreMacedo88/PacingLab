@@ -50,6 +50,7 @@ class TrainingLoadRepository @Inject constructor(
     nights: NightRepository,
     private val preferences: UserPreferencesRepository,
     private val ratings: EffortRepository,
+    excluded: ExcludedWorkoutRepository,
     private val clock: Clock,
 ) {
     private class Cached(val scores: LoadScores?, val intensity: ZoneDistribution?, val zones: ZoneDistribution? = null)
@@ -69,10 +70,18 @@ class TrainingLoadRepository @Inject constructor(
     /** Sustained peaks by workout and version, so that a sync only decodes what changed. */
     private val peaks = ConcurrentHashMap<Pair<String, Instant>, Peak>()
 
+    /**
+     * Every workout with the ids of those the athlete left out of the estimates. Duplicates go first, so
+     * that the copy of a left-out workout another app recorded does not take its place.
+     */
+    private val estimating: Flow<Pair<List<Workout>, Set<String>>> = combine(workouts.observeAll(), excluded.observe()) { all, left ->
+        all to left
+    }
+
     /** Maximal heart rate estimated from the workouts that count as training. */
-    val estimatedMax: Flow<MaxHeartRateEstimate?> = workouts.observeAll()
-        .mapLatest { all ->
-            val counted = TrainingSessions.removeDuplicates(all.filter(TrainingLoads::counts))
+    val estimatedMax: Flow<MaxHeartRateEstimate?> = estimating
+        .mapLatest { (all, left) ->
+            val counted = TrainingSessions.removeDuplicates(all.filter(TrainingLoads::counts)).filter { it.id !in left }
             val found = counted.mapNotNull { workout ->
                 val key = workout.id to workout.lastModified
                 val peak = peaks[key] ?: Peak(MaxHeartRateEstimate.sustainedPeak(workouts.heartRate(workout.id))).also { peaks[key] = it }
@@ -89,13 +98,13 @@ class TrainingLoadRepository @Inject constructor(
     private val efforts = ConcurrentHashMap<Pair<String, Instant>, Effort>()
 
     /** The hardest continuous half hour of every run long enough to hold one. */
-    private val thresholdEfforts: Flow<List<ThresholdEffort>> = workouts.observeAll()
-        .mapLatest { all ->
+    private val thresholdEfforts: Flow<List<ThresholdEffort>> = estimating
+        .mapLatest { (all, left) ->
             val runs = all.filter {
                 it.sport == Sport.RUN && TrainingLoads.counts(it) &&
                     Duration.between(it.start, it.end).seconds >= ThresholdHeartRateEstimate.EFFORT_SECONDS
             }
-            TrainingSessions.removeDuplicates(runs).mapNotNull { workout ->
+            TrainingSessions.removeDuplicates(runs).filter { it.id !in left }.mapNotNull { workout ->
                 val key = workout.id to workout.lastModified
                 val effort = efforts[key] ?: Effort(thresholdEffort(workout)).also { efforts[key] = it }
                 effort.bpm?.let { ThresholdEffort(workout.id, TrainingLoads.dateOf(workout, clock.zone), it) }

@@ -81,6 +81,7 @@ fun SessionRoute(sessionId: String, onBack: () -> Unit, onOpenPhysiology: () -> 
         onOpenPhysiology = onOpenPhysiology,
         modifier = modifier,
         onRateEffort = viewModel::rateEffort,
+        onUseForEstimates = viewModel::useForEstimates,
     )
 }
 
@@ -89,6 +90,7 @@ fun SessionRoute(sessionId: String, onBack: () -> Unit, onOpenPhysiology: () -> 
  * and time in zones then describe the selected part only.
  *
  * @param onRateEffort rates the given workouts of a gym session from 1 to 10.
+ * @param onUseForEstimates puts the whole session in or out of the fitness estimates.
  * @param initialScope tab selected on first display: 0 for the whole session, 1 for the first part.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,6 +101,7 @@ fun SessionScreen(
     onOpenPhysiology: () -> Unit,
     modifier: Modifier = Modifier,
     onRateEffort: (List<String>, Int) -> Unit = { _, _ -> },
+    onUseForEstimates: (Boolean) -> Unit = {},
     zoneId: ZoneId = ZoneId.systemDefault(),
     initialScope: Int = 0,
 ) {
@@ -157,6 +160,11 @@ fun SessionScreen(
                 weather = state.weather,
                 heatAdjustment = state.heatAdjustment,
                 routeColoring = state.routeColoring,
+                // Runs with heart rate feed the estimates; the switch acts on the whole session from any tab.
+                estimates = state.usedForEstimates.takeIf {
+                    scopes.first().heartRate.size > 0 && scopes.any { it.sport == Sport.RUN }
+                },
+                onUseForEstimates = onUseForEstimates,
             )
         }
     }
@@ -205,6 +213,8 @@ private fun ScopeContent(
     weather: SessionWeatherState? = null,
     heatAdjustment: Boolean = true,
     routeColoring: RouteColoring = RouteColoring.ZONES_FIVE,
+    estimates: Boolean? = null,
+    onUseForEstimates: (Boolean) -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier,
@@ -245,6 +255,9 @@ private fun ScopeContent(
         // The effort card shows the load of a rated gym session.
         scope.analysis.load?.takeIf { it.heartRateMillis > 0 && rated == null }?.let { load ->
             item(key = "load") { LoadCard(load) }
+        }
+        estimates?.let { used ->
+            item(key = "estimates") { EstimatesCard(used, onUseForEstimates) }
         }
         if (parts.isNotEmpty()) {
             item(key = "parts") {

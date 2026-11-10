@@ -12,6 +12,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import app.pacinglab.core.database.store.EffortStore
+import app.pacinglab.core.database.store.ExcludedWorkoutStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
 import app.pacinglab.core.database.store.ReactionTestStore
@@ -39,9 +40,10 @@ data class BackupSummary(
     val efforts: Int,
     val settings: Int,
     val reactionTests: Int = 0,
+    val excluded: Int = 0,
 ) {
     /** Entries, settings not counted. */
-    val entries: Int get() = physiology + tests + mornings + efforts + reactionTests
+    val entries: Int get() = physiology + tests + mornings + efforts + reactionTests + excluded
 }
 
 /** Why a file could not be restored. */
@@ -51,8 +53,8 @@ class BackupFormatException(val reason: Reason, cause: Throwable? = null) : Exce
 
 /**
  * Everything the athlete entered by hand, which Health Connect cannot give back: heart rate values with
- * their dates, VO2max tests, morning ratings, gym effort ratings, reaction tests and every setting, dashboards and zone
- * boundaries included. Workouts, nights and measurements are left out; a sync brings them back.
+ * their dates, VO2max tests, morning ratings, gym effort ratings, reaction tests, workouts left out of the estimates
+ * and every setting, dashboards and zone boundaries included. Workouts, nights and measurements are left out; a sync brings them back.
  *
  * The file is plain JSON, so it also moves data between the debug and release builds. Restoring
  * merges: an entry in the backup replaces the one of the same day or workout, other entries stay, and
@@ -65,6 +67,7 @@ class BackupRepository @Inject constructor(
     private val wellness: WellnessStore,
     private val efforts: EffortStore,
     private val reactions: ReactionTestStore,
+    private val excluded: ExcludedWorkoutStore,
     private val dataStore: DataStore<Preferences>,
     private val clock: Clock,
 ) {
@@ -76,6 +79,7 @@ class BackupRepository @Inject constructor(
         val rested = wellness.observeRested().first()
         val rated = efforts.observe().first()
         val reactionTests = reactions.observe().first()
+        val leftOut = excluded.observe().first().sorted()
         val settings = dataStore.data.first().asMap()
 
         val json = JSONObject()
@@ -87,8 +91,10 @@ class BackupRepository @Inject constructor(
             .put("mornings", JSONArray(rested.map { (date, rating) -> JSONObject().put("date", date.toString()).put("rested", rating) }))
             .put("efforts", JSONArray(rated.map { (workout, effort) -> JSONObject().put("workout", workout).put("effort", effort) }))
             .put("reactionTests", JSONArray(reactionTests.map { it.toJson() }))
+            .put("excludedWorkouts", JSONArray(leftOut))
             .put("settings", JSONArray(settings.map { (key, value) -> setting(key.name, value) }))
-        return json.toString(2) to BackupSummary(entries.size, tests.size, rested.size, rated.size, settings.size, reactionTests.size)
+        return json.toString(2) to
+            BackupSummary(entries.size, tests.size, rested.size, rated.size, settings.size, reactionTests.size, leftOut.size)
     }
 
     /** Restores the backup in [text]; nothing is changed when it cannot be read. */
@@ -105,6 +111,7 @@ class BackupRepository @Inject constructor(
         backup.mornings.forEach { (date, rating) -> wellness.setRested(date, rating) }
         backup.efforts.forEach { (workout, effort) -> efforts.set(workout, effort) }
         reactions.save(backup.reactionTests)
+        excluded.exclude(backup.excluded)
         dataStore.edit { prefs -> backup.settings.forEach { it(prefs) } }
         return BackupSummary(
             backup.physiology.size,
@@ -113,6 +120,7 @@ class BackupRepository @Inject constructor(
             backup.efforts.size,
             backup.settings.size,
             backup.reactionTests.size,
+            backup.excluded.size,
         )
     }
 
@@ -122,6 +130,7 @@ class BackupRepository @Inject constructor(
         val mornings: Map<LocalDate, Int>,
         val efforts: Map<String, Int>,
         val reactionTests: List<ReactionTest>,
+        val excluded: List<String>,
         val settings: List<(MutablePreferences) -> Unit>,
     )
 
@@ -160,6 +169,15 @@ class BackupRepository @Inject constructor(
                     reactionMillis = (0 until answers.length()).map(answers::getInt),
                     falseStarts = it.getInt("falseStarts"),
                 )
+            },
+            excluded = json.optJSONArray("excludedWorkouts").let { ids ->
+                if (ids ==
+                    null
+                ) {
+                    emptyList()
+                } else {
+                    (0 until ids.length()).map(ids::getString)
+                }
             },
             settings = json.optJSONArray("settings").objects().map(::settingWriter),
         )

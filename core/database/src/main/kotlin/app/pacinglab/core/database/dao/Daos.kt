@@ -6,6 +6,7 @@ import androidx.room3.Transaction
 import androidx.room3.Upsert
 import app.pacinglab.core.database.entity.DailyVitalsEntity
 import app.pacinglab.core.database.entity.EffortEntity
+import app.pacinglab.core.database.entity.ExcludedWorkoutEntity
 import app.pacinglab.core.database.entity.MeasurementEntity
 import app.pacinglab.core.database.entity.NightClimateEntity
 import app.pacinglab.core.database.entity.PhysiologyEntity
@@ -127,6 +128,18 @@ interface EffortDao {
 
     @Query("DELETE FROM efforts WHERE workout_id = :workoutId")
     suspend fun delete(workoutId: String)
+}
+
+@Dao
+interface ExcludedWorkoutDao {
+    @Query("SELECT workout_id FROM excluded_workouts")
+    fun observeIds(): Flow<List<String>>
+
+    @Upsert
+    suspend fun upsert(entries: List<ExcludedWorkoutEntity>)
+
+    @Query("DELETE FROM excluded_workouts WHERE workout_id IN (:workoutIds)")
+    suspend fun delete(workoutIds: List<String>)
 }
 
 @Dao

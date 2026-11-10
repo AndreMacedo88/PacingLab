@@ -8,6 +8,7 @@ import app.pacinglab.core.data.testDataStore
 import app.pacinglab.core.data.testPreferences
 import app.pacinglab.core.database.PacingLabDatabase
 import app.pacinglab.core.database.store.EffortStore
+import app.pacinglab.core.database.store.ExcludedWorkoutStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
 import app.pacinglab.core.database.store.ReactionTestStore
@@ -54,8 +55,9 @@ class BackupRepositoryTest {
         val wellness = WellnessStore(database)
         val efforts = EffortStore(database)
         val reactions = ReactionTestStore(database)
+        val excluded = ExcludedWorkoutStore(database)
         val preferences = testPreferences(dataStore)
-        val backup = BackupRepository(physiology, measurements, wellness, efforts, reactions, dataStore, clock)
+        val backup = BackupRepository(physiology, measurements, wellness, efforts, reactions, excluded, dataStore, clock)
 
         suspend fun vo2max() = measurements.observeMeasurements(MeasurementKind.VO2_MAX, Instant.EPOCH, clock.instant()).first()
     }
@@ -81,6 +83,7 @@ class BackupRepositoryTest {
         debug.efforts.set("gym-1", 7)
         val reaction = ReactionTest(Instant.parse("2026-10-27T14:00:00Z"), ZoneOffset.ofHours(1), listOf(281, 305, 30_000), falseStarts = 1)
         debug.reactions.save(listOf(reaction))
+        debug.excluded.exclude(listOf("hc:social-run"))
         debug.preferences.setTheme(ThemeChoice.GREEN)
         debug.preferences.setSleepNeed(Duration.ofMinutes(480))
         debug.preferences.setZoneBoundaries(ZoneBoundaries(five = listOf(140, 150, 160, 172)))
@@ -90,13 +93,16 @@ class BackupRepositoryTest {
         val release = Install()
         val read = release.backup.restore(text)
 
-        assertThat(written).isEqualTo(BackupSummary(physiology = 2, tests = 1, mornings = 1, efforts = 1, settings = 5, reactionTests = 1))
+        assertThat(written).isEqualTo(
+            BackupSummary(physiology = 2, tests = 1, mornings = 1, efforts = 1, settings = 5, reactionTests = 1, excluded = 1),
+        )
         assertThat(read).isEqualTo(written)
         assertThat(release.physiology.observe().first().entries).isEqualTo(debug.physiology.observe().first().entries)
         assertThat(release.vo2max()).containsExactly(debug.vo2max().first { it.origin == PerformanceRepository.TEST_ORIGIN })
         assertThat(release.wellness.observeRested().first()).isEqualTo(mapOf(LocalDate.of(2026, 10, 27) to 4))
         assertThat(release.efforts.observe().first()).isEqualTo(mapOf("gym-1" to 7))
         assertThat(release.reactions.observe().first()).containsExactly(reaction)
+        assertThat(release.excluded.observe().first()).isEqualTo(setOf("hc:social-run"))
         assertThat(release.preferences.preferences.first()).isEqualTo(debug.preferences.preferences.first())
         assertThat(release.dataStore.data.first().asMap().mapKeys { it.key.name })
             .isEqualTo(debug.dataStore.data.first().asMap().mapKeys { it.key.name })

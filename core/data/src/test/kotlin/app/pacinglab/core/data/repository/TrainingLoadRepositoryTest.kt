@@ -9,6 +9,7 @@ import app.pacinglab.core.data.testPreferences
 import app.pacinglab.core.database.PacingLabDatabase
 import app.pacinglab.core.database.store.DailyVitalsStore
 import app.pacinglab.core.database.store.EffortStore
+import app.pacinglab.core.database.store.ExcludedWorkoutStore
 import app.pacinglab.core.database.store.MeasurementStore
 import app.pacinglab.core.database.store.PhysiologyStore
 import app.pacinglab.core.database.store.WorkoutStore
@@ -54,6 +55,7 @@ class TrainingLoadRepositoryTest {
     private lateinit var physiology: PhysiologyStore
     private lateinit var measurements: MeasurementStore
     private lateinit var repository: TrainingLoadRepository
+    private lateinit var excluded: ExcludedWorkoutRepository
     private val preferences = testPreferences()
 
     @Before
@@ -64,6 +66,7 @@ class TrainingLoadRepositoryTest {
         workouts = WorkoutStore(database)
         physiology = PhysiologyStore(database)
         measurements = MeasurementStore(database)
+        excluded = ExcludedWorkoutRepository(ExcludedWorkoutStore(database))
         val clock = Clock.fixed(now, cest)
         repository =
             TrainingLoadRepository(
@@ -72,6 +75,7 @@ class TrainingLoadRepositoryTest {
                 NightRepository(measurements, DailyVitalsStore(database), preferences, clock),
                 preferences,
                 EffortRepository(EffortStore(database)),
+                excluded,
                 clock,
             )
     }
@@ -163,6 +167,28 @@ class TrainingLoadRepositoryTest {
         assertThat(series.first().load).isCloseTo(loads.first().scores!!.stressScore, 1e-9)
         assertThat(series.last().load).isEqualTo(0.0)
         assertThat(series.single { it.date == LocalDate.of(2026, 10, 20) }.load).isCloseTo(loads.last().scores!!.stressScore, 1e-9)
+    }
+
+    @Test
+    fun `a workout left out of the estimates sets no maximum, and its duplicate does not stand in`() = runTest {
+        save(workout("a", start = "2026-10-10T16:00:00Z", minutes = 30), bpm = 180)
+        save(workout("b", start = "2026-10-12T16:00:00Z", minutes = 30), bpm = 179)
+        save(workout("odd", start = "2026-10-14T16:00:00Z", minutes = 30), bpm = 195)
+        save(
+            workout("odd-copy", start = "2026-10-14T16:01:00Z", minutes = 29, origin = GOOGLE_FIT, method = RecordingMethod.AUTOMATIC),
+            bpm = 195,
+        )
+        save(workout("c", start = "2026-10-16T16:00:00Z", minutes = 30), bpm = 194)
+        assertThat(repository.estimatedMax.first()?.bpm).isEqualTo(195)
+
+        excluded.setExcluded(listOf("hc:odd"), excluded = true)
+
+        // 194 has nothing within 3 bpm to confirm it once the 195 is gone.
+        assertThat(repository.estimatedMax.first()?.bpm).isEqualTo(180)
+
+        excluded.setExcluded(listOf("hc:odd"), excluded = false)
+
+        assertThat(repository.estimatedMax.first()?.bpm).isEqualTo(195)
     }
 
     private suspend fun save(workout: Workout, bpm: Int) {
