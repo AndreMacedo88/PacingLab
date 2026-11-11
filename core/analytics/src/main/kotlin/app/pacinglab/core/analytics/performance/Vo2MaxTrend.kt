@@ -60,10 +60,14 @@ data class Vo2MaxTrend(val days: List<Vo2MaxDay>, val current: Vo2MaxDay, val so
         /** How many points of its own a source needs to outweigh the prior scatter. */
         private const val PRIOR_POINTS = 5.0
 
+        /** Largest share of the trend a single point is taken to explain, so that one point never divides by zero. */
+        private const val MAX_LEVERAGE = 0.95
+
         /**
          * A local-level Kalman filter with a Rauch-Tung-Striebel smoother over [points] up to [until].
-         * Each source's measurement noise is learned from its scatter around a first pass, shrunk towards
-         * [PRIOR_SD], so that consistent sources pull the trend harder. Null without points.
+         * Each source's measurement noise is learned from its scatter around a first pass, each residual
+         * corrected for the pull of its own point on the trend, and shrunk towards [PRIOR_SD], so that
+         * consistent sources pull the trend harder. Null without points.
          */
         fun of(points: List<Vo2MaxPoint>, until: LocalDate): Vo2MaxTrend? {
             val usable = points.filter { !it.date.isAfter(until) && it.value.isFinite() && it.weight > 0 }
@@ -72,13 +76,21 @@ data class Vo2MaxTrend(val days: List<Vo2MaxDay>, val current: Vo2MaxDay, val so
             repeat(2) {
                 val pass = run(usable, until, sd)
                 sd = Vo2MaxSource.entries.associateWith { source ->
-                    val residuals = usable.filter { it.source == source }.map { p -> p.value - pass.smoothedAt(p.date) }
+                    val current = sd.getValue(source)
+                    // A point pulls the trend towards itself, so its residual understates its noise: for a point of
+                    // variance r = sd^2 / weight that explains a share h = (smoothed variance) / r of the trend there,
+                    // the residual's variance is r (1 - h), and weight x residual^2 / (1 - h) estimates sd^2 fairly.
+                    val estimates = usable.filter { it.source == source }.map { p ->
+                        val variance = current * current / p.weight
+                        val leverage = (pass.smoothedVarianceAt(p.date) / variance).coerceAtMost(MAX_LEVERAGE)
+                        val residual = p.value - pass.smoothedAt(p.date)
+                        p.weight * residual * residual / (1 - leverage)
+                    }
                     val prior = PRIOR_SD.getValue(source)
-                    if (residuals.isEmpty()) {
+                    if (estimates.isEmpty()) {
                         prior
                     } else {
-                        val variance = residuals.sumOf { it * it } / residuals.size
-                        sqrt((residuals.size * variance + PRIOR_POINTS * prior * prior) / (residuals.size + PRIOR_POINTS))
+                        sqrt((estimates.sum() + PRIOR_POINTS * prior * prior) / (estimates.size + PRIOR_POINTS))
                     }
                 }
             }
@@ -90,6 +102,8 @@ data class Vo2MaxTrend(val days: List<Vo2MaxDay>, val current: Vo2MaxDay, val so
             private val byDate = smoothed.associateBy { it.date }
 
             fun smoothedAt(date: LocalDate): Double = byDate.getValue(date).value
+
+            fun smoothedVarianceAt(date: LocalDate): Double = byDate.getValue(date).sd.let { it * it }
         }
 
         private fun run(points: List<Vo2MaxPoint>, until: LocalDate, sd: Map<Vo2MaxSource, Double>): Pass {

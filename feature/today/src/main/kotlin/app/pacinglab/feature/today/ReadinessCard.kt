@@ -187,7 +187,7 @@ private fun Contributors(readiness: Readiness, modifier: Modifier = Modifier) {
                 name = stringResource(R.string.readiness_hrv),
                 value = stringResource(
                     R.string.readiness_hrv_value,
-                    hrv.weekAverageMs.roundToInt(),
+                    hrv.recentMs.roundToInt(),
                     hrv.normalLowMs.roundToInt(),
                     hrv.normalHighMs.roundToInt(),
                 ),
@@ -199,7 +199,12 @@ private fun Contributors(readiness: Readiness, modifier: Modifier = Modifier) {
         readiness.restingHr?.let {
             ContributorRow(
                 name = stringResource(R.string.readiness_resting_hr),
-                value = stringResource(R.string.readiness_resting_hr_value, it.lastNight.roundToInt(), it.usual.roundToInt()),
+                value = stringResource(
+                    R.string.readiness_resting_hr_value,
+                    it.lastNight.roundToInt(),
+                    it.normalLow.roundToInt(),
+                    it.normalHigh.roundToInt(),
+                ),
                 standing = it.standing,
                 below = R.string.standing_low,
                 above = R.string.standing_raised,
@@ -220,8 +225,9 @@ private fun Contributors(readiness: Readiness, modifier: Modifier = Modifier) {
                 name = stringResource(R.string.readiness_training),
                 value = stringResource(R.string.readiness_training_value, signed(it.form), it.band.roundToInt()),
                 standing = it.standing,
-                below = R.string.standing_strained,
-                above = R.string.standing_fresh,
+                below = R.string.form_fatigued,
+                above = R.string.form_fresh,
+                normal = R.string.form_balanced,
             )
         }
     }
@@ -240,10 +246,11 @@ private fun ContributorRow(
     @StringRes above: Int,
     modifier: Modifier = Modifier,
     aboveIsBad: Boolean = false,
+    @StringRes normal: Int = R.string.standing_normal,
 ) {
     val word = when (standing) {
         null -> null
-        Standing.NORMAL -> stringResource(R.string.standing_normal)
+        Standing.NORMAL -> stringResource(normal)
         Standing.BELOW -> stringResource(below)
         Standing.ABOVE -> stringResource(above)
     }

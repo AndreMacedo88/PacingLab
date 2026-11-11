@@ -25,6 +25,7 @@ import app.pacinglab.core.data.repository.SessionKindRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.repository.TrainingStatusRepository
 import app.pacinglab.core.data.repository.UserPreferencesRepository
+import app.pacinglab.core.data.repository.WorkoutRepository
 import app.pacinglab.core.data.strain.DaytimeStrainRepository
 import app.pacinglab.core.data.strain.StrainHistory
 import app.pacinglab.core.data.sync.SyncScheduler
@@ -90,6 +91,7 @@ class TrendsViewModel @Inject constructor(
     kinds: SessionKindRepository,
     private val preferences: UserPreferencesRepository,
     strain: DaytimeStrainRepository,
+    workouts: WorkoutRepository,
 ) : ViewModel() {
     private val recovery = nights.observeSleep().map { sleep ->
         val today = LocalDate.now(clock)
@@ -98,10 +100,16 @@ class TrendsViewModel @Inject constructor(
 
     private val standing = combine(training.observeStatus(), training.observeFocus()) { status, focus -> status to focus }
 
+    /** The training session of every workout, so that the weekly table and the calendar count sessions. */
+    private val sessionOf = workouts.observeSessions().map { sessions ->
+        sessions.flatMap { session -> session.workouts.map { it.id to session.id } }.toMap()
+    }
+
     private val extras = combine(
         kinds.observeKindsByWorkout(),
         preferences.preferences.map { it.runningIncreasePercent }.distinctUntilChanged(),
-    ) { sessionKinds, increase -> sessionKinds to increase }
+        sessionOf,
+    ) { sessionKinds, increase, sessions -> Triple(sessionKinds, increase, sessions) }
 
     private val content = combine(
         repository.observeWorkoutLoads(),
@@ -109,13 +117,13 @@ class TrendsViewModel @Inject constructor(
         dashboards.layout(Dashboard.TRENDS),
         standing,
         extras,
-    ) { loads, (recoveryDays, variation), layout, (status, focus), (sessionKinds, increase) ->
+    ) { loads, (recoveryDays, variation), layout, (status, focus), (sessionKinds, increase, sessions) ->
         val today = LocalDate.now(clock)
         val days = FitnessModel.series(TrainingLoads.daily(loads), until = today)
         if (days.isEmpty() && loads.isNotEmpty()) {
             TrendsUiState.NeedsHeartRateValues
         } else {
-            val weeks = TrainingLoads.weeks(loads, until = today, count = WEEKS)
+            val weeks = TrainingLoads.weeks(loads, until = today, count = WEEKS, sessionOf = sessions)
             TrendsUiState.Loaded(
                 days,
                 weeks,
@@ -132,7 +140,7 @@ class TrendsViewModel @Inject constructor(
                     count = RUNNING_WEEKS,
                     tolerance = 1 + increase / 100.0,
                 ),
-                calendar = TrainingCalendar.days(loads, sessionKinds),
+                calendar = TrainingCalendar.days(loads, sessionKinds, sessions),
             )
         }
     }

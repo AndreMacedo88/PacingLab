@@ -10,9 +10,9 @@
     <string name="readiness_low">Take it easy</string>
     <string name="readiness_calibrating">Learning your normal range</string>
     <string name="readiness_hrv">HRV</string>
-    <string name="readiness_hrv_value">7-day %1$d ms, normal %2$d–%3$d</string>
+    <string name="readiness_hrv_value">Recent %1$d ms, normal %2$d–%3$d</string>
     <string name="readiness_resting_hr">Resting HR</string>
-    <string name="readiness_resting_hr_value">%1$d bpm, usual %2$d</string>
+    <string name="readiness_resting_hr_value">%1$d bpm, usual %2$d–%3$d</string>
     <string name="readiness_sleep">Sleep</string>
     <string name="readiness_sleep_value">Score %1$d, %2$s asleep</string>
     <string name="readiness_training">Training</string>
@@ -23,9 +23,7 @@
     <string name="standing_high">High</string>
     <string name="standing_raised">Raised</string>
     <string name="standing_poor">Poor</string>
-    <string name="standing_strained">Strained</string>
-    <string name="standing_fresh">Fresh</string>
-    <string name="readiness_info" formatted="false">Readiness combines last night\'s measurements with your recent training, each compared with your own normal rather than with population averages.\n\n# What goes in\n- HRV, 35 %: the 7-day average of nightly HRV against your normal range from the last 60 days.\n- Sleep, 25 %: last night\'s sleep score and the average of the last three nights.\n- Resting heart rate, 20 %: last night against your usual.\n- Training, 20 %: form against a band that grows with your fitness.\n\n# Safeguards\n- While your HRV is below its normal range, readiness stays below \"Ready to train\", as HRV-guided training studies recommend.\n- A breathing rate clearly above usual, together with low HRV or a raised resting heart rate, holds readiness at 40 or below: a common early sign of illness.\n\n# How much to trust it\nThe HRV comparison has the strongest research behind it. The weights are PacingLab\'s own choice, not a validated score. A first score appears after 7 nights of HRV and is marked provisional: with only a week, last night can be compared with the range seen so far, but the week\'s trend cannot yet be told apart from it. From 14 nights the score is settled; it keeps improving over four to eight weeks.\n\n# The week\nThe small chart shows the score of each of the last seven days, computed from the data up to that day, on the bands of the three levels: take it easy below 50, train with care from 50, ready to train from 70.</string>
+    <string name="readiness_info" formatted="false">How ready your body is to train today, from 0 to 100. It weighs what the watch measured overnight and your recent training, each against your own normal rather than population averages, and suggests whether the day suits hard training (ready to train, from 70), moderate training (train with care, from 50) or an easy day (take it easy, below 50).\n\n# What goes in\n- HRV, 35 %: its recent average against your normal range from the last 60 days. The average covers the last seven nights with the latest counting most (last night seven times, the night before six times, down to once a week back), so good nights after a poor spell show as recovery within days.\n- Sleep, 25 %: last night\'s sleep score and the average of the last three nights.\n- Resting heart rate, 20 %: last night against the nights before.\n- Training, 20 %: form against a band that grows with your fitness.\n\nEach part moves the score by its weight, so a low HRV pulls it down as far as its share allows and no further. A part without data leaves its weight to the others.\n\n# Illness\nA breathing rate clearly above usual, together with low HRV or a raised resting heart rate, holds readiness at 40 or below. Breathing rate has no weight of its own, and this combination is a common early sign of an illness, when training is best left alone.\n\n# How much to trust it\nThe HRV comparison has the strongest research behind it: in HRV-guided training studies, easy days whenever the week\'s HRV fell below its normal range gave results at least as good as a fixed plan (Vesterinen 2016; Javaloyes 2019). The weights are PacingLab\'s own choice, not a validated score. A first score appears after 7 nights of HRV and is marked provisional; from 14 nights it is settled, and it keeps improving over four to eight weeks.\n\n# The week\nThe small chart shows the score of each of the last seven days, computed from the data up to that day, on the bands of the three levels.</string>
 
     <string name="tile_sleep">Sleep score</string>
     <string name="sleep_good">Good</string>
@@ -80,7 +78,7 @@
     <string name="card_sleep_debt">Sleep missed against your need over two weeks</string>
     <string name="card_training_status">Load, VO2max and HRV in one word</string>
     <string name="vitals_title">Vitals</string>
-    <string name="vitals_info" formatted="false">Last night\'s overnight measures, each against your own usual range (where 80 % of your nights fell), as on the Sleep screen.\n\nAny measure leaves its range now and then. When two or more do on the same night, the card warns, as Apple\'s Vitals app does: an illness starting, alcohol, travel or a hard block of training are the usual reasons. It is a prompt to take it easy, not a diagnosis.\n\nSpO2 and skin temperature come only from the Google Health API. Tap for the Sleep screen.</string>
+    <string name="vitals_info" formatted="false">A quick check that your body was in its usual state last night: HRV, resting heart rate, breathing rate, SpO2 and skin temperature, each against your own usual range (where 80 % of your nights fell), as on the Sleep screen.\n\nAny measure leaves its range now and then. When two or more do on the same night, the card warns, as Apple\'s Vitals app does: an illness starting, alcohol, travel or a hard block of training are the usual reasons. It is a prompt to take it easy, not a diagnosis.\n\nSpO2 and skin temperature come only from the Google Health API. Tap for the Sleep screen.</string>
     <string name="tile_sleep_health">Sleep health</string>
     <string name="tile_sleep_health_detail">Habits over two weeks</string>
     <string name="tile_sleep_debt">Sleep debt</string>
@@ -90,7 +88,7 @@
     <string name="debt_moderate">Moderate</string>
     <string name="debt_high">High</string>
     <string name="training_status_none">Not enough training yet: the status needs four weeks of load.</string>
-    <string name="training_status_info">One word for where training stands, from three things: this week\'s load against your usual (fatigue over fitness), how VO2max moved over four weeks, and HRV against its normal range. Tap for Trends, where the reasons are listed.</string>
+    <string name="training_status_info">Where your training stands over the last weeks, in one word. Productive training builds fitness and maintaining holds it; peaking and recovery are lighter spells in which the body absorbs the work before; detraining loses fitness; overreaching, unproductive and strained warn that the body is not keeping up. Readiness is about today; this is about the trend.\n\nIt comes from three things: your recent load against your usual (fatigue over fitness), how VO2max moved over four weeks, and HRV\'s recent average against its normal range. Tap for Trends, where the reasons are listed.</string>
     <string name="card_rested_title">How rested do you feel</string>
     <string name="card_rested">The morning question, until you answer it</string>
     <string name="card_gym_title">Gym session rating</string>
@@ -124,7 +122,7 @@
     <string name="form_fresh">Fresh</string>
     <string name="form_balanced">Balanced</string>
     <string name="form_fatigued">Fatigued</string>
-    <string name="tile_vo2max_change">%1$s in 30 days</string>
+    <string name="tile_vo2max_change">%1$s in 4 weeks</string>
     <string name="tile_efficiency_detail">At %1$d bpm, %2$s</string>
     <string name="heart_rate_info">Heart rate as the watch last passed it on. The watch\'s app hands heart rate to Health Connect only when it syncs with the watch, so the latest value can be a quarter of an hour old; its time is shown.\n\nThe line is coloured by your heart rate zones. Tap the card for the whole day.</string>
     <string name="heart_rate_none">No heart rate from the watch today yet.</string>
@@ -134,7 +132,7 @@
     <string name="heart_rate_chart" tools:ignore="PluralsCandidate">Heart rate today, from %1$d to %2$d beats a minute</string>
     <string name="weather_title">Weather</string>
     <string name="card_weather">Now and the coming hours where you are</string>
-    <string name="weather_info">Forecast by Open-Meteo (open-meteo.com, CC BY 4.0), which blends the national weather services\' models; in Denmark that includes DMI\'s.\n\nOnly your approximate position, rounded to about 1 km, is sent, with no other data. A forecast is reused for 20 minutes while you stay nearby.\n\nFeels like combines temperature, wind and humidity. Dew point is the measure of humidity that matters when running in heat: the higher it is, the less your sweat evaporates and cools you. Wind is in metres per second. Each hour shows its chance of rain from 20 %% up.</string>
+    <string name="weather_info" formatted="false">Forecast by Open-Meteo (open-meteo.com, CC BY 4.0), which blends the national weather services\' models; in Denmark that includes DMI\'s.\n\nOnly your approximate position, rounded to about 1 km, is sent, with no other data. A forecast is reused for 20 minutes while you stay nearby.\n\nFeels like combines temperature, wind and humidity. Dew point is the measure of humidity that matters when running in heat: the higher it is, the less your sweat evaporates and cools you. Wind is in metres per second. Each hour shows its chance of rain from 20 % up.</string>
     <string name="weather_loading">Looking up the forecast</string>
     <string name="weather_needs_location">The forecast needs your approximate location. Only a position rounded to about 1 km is sent to Open-Meteo.</string>
     <string name="weather_allow_location">Allow approximate location</string>
@@ -166,12 +164,13 @@
     <string name="card_skin_temperature">Skin temperature against your baseline, from the Google Health API</string>
     <string name="unit_percent">%1$s %%</string>
     <string name="unit_celsius">%1$s °C</string>
-    <string name="readiness_advanced" formatted="false" tools:ignore="Typos,TypographyDashes,TypographyFractions"># HRV\nOver the nights of the last 60 days (at least 7), with $h = \\ln \\mathrm{RMSSD}$, mean $\\mu$ and standard deviation $s$ (at least 0.05):\n\n$$z_w = \\frac{\\bar{h}_7 - \\mu}{s/2}, \\quad z_n = \\frac{h_{\\mathrm{last}} - \\mu}{s}$$\n\n$$S_{\\mathrm{HRV}} = 70 + 10\\, z_w + 10\\, z_n$$\n\nwhere $\\bar{h}_7$ is the mean of the last seven days. The normal range is $e^{\\mu - s/2}$ to $e^{\\mu + s/2}$; the week is below it when $z_w &lt; -1$.\n\n# Resting heart rate\nOver the last 30 nights (at least 7), with mean $\\bar{r}$ and standard deviation $s_r$ (at least 1):\n\n$$S_{\\mathrm{RHR}} = 70 - 15\\, \\frac{r - \\bar{r}}{s_r}$$\n\nIt counts as raised when $r - \\bar{r} &gt; s_r$ and $r - \\bar{r} \\ge 3$ bpm.\n\n# Sleep\n$$S_{\\mathrm{sleep}} = 0.6\\, S_{\\mathrm{last}} + 0.4\\, \\bar{S}_3$$\n\nwith $\\bar{S}_3$ the mean sleep score of the last three nights.\n\n# Training\nWith fitness $C$ and form $T$ from the fitness and fatigue model:\n\n$$b = \\max(10,\\; 0.3\\, C)$$\n\n$$S_{\\mathrm{form}} = 75 + 25\\, \\frac{T}{b}$$\n\n# Combined\nEach part is clamped to 0 to 100; a part without data drops out with its weight:\n\n$$R = \\frac{\\sum_k w_k S_k}{\\sum_k w_k}$$\n\n$$w = (0.35,\\, 0.25,\\, 0.2,\\, 0.2)$$\n\n$$R^{*} = \\min(R,\\; c)$$\n\nwith $c = 40$ when breathing is at least 1 breath a minute above its 30-night mean together with low HRV or a raised resting heart rate, $c = 49$ when only the week\'s HRV is below its range, and $c = 100$ otherwise. Ready from 70, moderate from 50.</string>
+    <string name="readiness_advanced" formatted="false" tools:ignore="Typos,TypographyDashes,TypographyFractions"># HRV\nOver the nights of the last 60 days (at least 7), with $h = \\ln \\mathrm{RMSSD}$, mean $\\mu$ and standard deviation $s$ (at least 0.05). The recent average weights the night $k$ days ago, $k = 0$ to 6, by $7 - k$; missing nights drop out with their weights:\n\n$$\\bar{h}_r = \\frac{\\sum_k (7 - k)\\, h_k}{\\sum_k (7 - k)}$$\n\n$$S_{\\mathrm{HRV}} = 70 + 30\\, \\frac{\\bar{h}_r - \\mu}{s}$$\n\nThe normal range is $e^{\\mu - s/2}$ to $e^{\\mu + s/2}$; the recent average is below it when $\\bar{h}_r &lt; \\mu - s/2$.\n\n# Resting heart rate\nAgainst the nights before it in the last 30 days (at least 7), with mean $\\bar{r}$ and standard deviation $s_r$ (at least 1):\n\n$$S_{\\mathrm{RHR}} = 70 - 15\\, \\frac{r - \\bar{r}}{s_r}$$\n\nIt counts as raised or low outside the range a single night usually falls in: the 10th to 90th percentile of the 30 nights before, at least 2 bpm either side of their median. Before 14 nights, when $r$ lies more than $s_r$ and at least 3 bpm from $\\bar{r}$.\n\n# Sleep\n$$S_{\\mathrm{sleep}} = 0.6\\, S_{\\mathrm{last}} + 0.4\\, \\bar{S}_3$$\n\nwith $\\bar{S}_3$ the mean sleep score of the last three nights.\n\n# Training\nWith fitness $C$ and form $T$ from the fitness and fatigue model:\n\n$$b = \\max(10,\\; 0.3\\, C)$$\n\n$$S_{\\mathrm{form}} = 75 + 25\\, \\frac{T}{b}$$\n\n# Combined\nEach part is clamped to 0 to 100; a part without data drops out with its weight:\n\n$$R = \\frac{\\sum_k w_k S_k}{\\sum_k w_k}$$\n\n$$w = (0.35,\\, 0.25,\\, 0.2,\\, 0.2)$$\n\nWhen breathing is at least 1 breath a minute above its 30-night mean together with low HRV or a raised resting heart rate, the score is $\\min(R,\\, 40)$. Ready from 70, moderate from 50.</string>
     <string name="card_strain_tile">Daytime strain, from still heart rate</string>
     <plurals name="tile_strain_learning">
         <item quantity="one">%1$d of %2$d days</item>
         <item quantity="other">%1$d of %2$d days</item>
     </plurals>
     <string name="tile_strain_detail">%1$s bpm over usual</string>
+    <string name="tile_strain_due">After 2 h still today</string>
     <string name="today_card_alertness">How sharp you can expect to be through the day, from your sleep, with the reaction test when one is due</string>
 </resources>

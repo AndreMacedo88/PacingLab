@@ -49,6 +49,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.pacinglab.core.analytics.load.TrainingStatus
 import app.pacinglab.core.analytics.performance.FitnessAge
 import app.pacinglab.core.analytics.performance.Vo2MaxSource
 import app.pacinglab.core.data.repository.Vo2MaxHistory
@@ -110,7 +111,9 @@ internal fun Vo2MaxCard(
                     Text(
                         text = listOfNotNull(
                             stringResource(R.string.vo2_uncertainty, "%.1f".format(locale, trend.current.sd)),
-                            trend.change(30)?.let { stringResource(R.string.vo2_change, signedOneDecimal(it, locale)) },
+                            trend.change(TrainingStatus.VO2MAX_DAYS)?.let {
+                                stringResource(R.string.vo2_change, signedOneDecimal(it, locale))
+                            },
                         ).joinToString("  ·  "),
                         style = MaterialTheme.typography.bodyMedium.tabularNumbers(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -163,7 +163,7 @@ private fun levels() = listOf(
         StatusColors.Warning,
         stringResource(R.string.readiness_detail_level_moderate),
     ),
-    ChartLevel(Readiness.READY_FROM.toDouble()..100.0, StatusColors.Good, stringResource(R.string.readiness_level_ready)),
+    ChartLevel(Readiness.READY_FROM.toDouble()..100.0, StatusColors.Good, stringResource(R.string.readiness_detail_level_ready)),
 )
 
 @Composable
@@ -197,7 +197,11 @@ private fun ReadinessReadout(readiness: Readiness?, today: LocalDate, locale: Lo
 @Composable
 private fun LevelPill(level: ReadinessLevel) {
     when (level) {
-        ReadinessLevel.READY -> StatusPill(stringResource(R.string.readiness_level_ready), StatusColors.Good, PacingLabIcons.CheckCircle)
+        ReadinessLevel.READY -> StatusPill(
+            stringResource(R.string.readiness_detail_level_ready),
+            StatusColors.Good,
+            PacingLabIcons.CheckCircle,
+        )
 
         ReadinessLevel.MODERATE -> StatusPill(
             stringResource(R.string.readiness_detail_level_moderate),

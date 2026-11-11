@@ -2,24 +2,22 @@ package app.pacinglab.core.analytics.recovery
 
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
-import kotlin.math.exp
-import kotlin.math.ln
 
 /**
  * HRV and resting heart rate on one day, for trend charts.
  *
- * @property hrvMs that night's HRV; [hrvWeekMs] the average of the last seven days (on the log scale,
- *   as HRV-guided training uses it) once three nights have it.
- * @property hrvNormal the normal range readiness compares the week with; null before the baseline has a
- *   week of nights.
+ * @property hrvMs that night's HRV; [hrvRecentMs] the recent average readiness judges ([Readiness.recentHrv]:
+ *   the last seven days on the log scale, the latest nights counting most) once three nights have it.
+ * @property hrvNormal the normal range readiness compares the recent average with; null before the baseline
+ *   has a week of nights.
  * @property restingHr that night's resting heart rate; [restingWeek] the average of the last seven days.
- * @property restingNormal the range readiness counts as usual for resting heart rate; null on days
- *   without a night or before a week of them.
+ * @property restingNormal the range a single night's resting heart rate usually falls in, as readiness and the
+ *   Today tile judge it; null on days without a night or before a week of them.
  */
 data class RecoveryDay(
     val date: LocalDate,
     val hrvMs: Double?,
-    val hrvWeekMs: Double?,
+    val hrvRecentMs: Double?,
     val hrvNormal: ClosedFloatingPointRange<Double>?,
     val restingHr: Double?,
     val restingWeek: Double?,
@@ -49,9 +47,8 @@ object RecoveryTrend {
             RecoveryDay(
                 date = date,
                 hrvMs = byDate[date]?.hrvMs,
-                hrvWeekMs = week.mapNotNull {
-                    it.hrvMs
-                }.takeIf { it.size >= MIN_WEEK_NIGHTS }?.let { values -> exp(values.map { ln(it) }.average()) },
+                hrvRecentMs = week.takeIf { nights -> nights.count { it.hrvMs != null } >= MIN_WEEK_NIGHTS }
+                    ?.let { Readiness.recentHrv(it, date) },
                 hrvNormal = readiness.hrv?.let { it.normalLowMs..it.normalHighMs },
                 restingHr = byDate[date]?.restingHr,
                 restingWeek = week.mapNotNull { it.restingHr }.takeIf { it.size >= MIN_WEEK_NIGHTS }?.average(),

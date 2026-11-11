@@ -79,7 +79,8 @@ class ReadinessTest {
     @Test
     fun `a week of suppressed HRV with a raised resting heart rate lowers readiness`() {
         val ordinary = usualNights(30, last = today.minusDays(7))
-        val strained = (6 downTo 0).map { night(today.minusDays(it.toLong()), hrv = 45.0, restingHr = 57.0) }
+        val strained = (6 downTo 1).map { night(today.minusDays(it.toLong()), hrv = 45.0) } +
+            night(today, hrv = 45.0, restingHr = 58.0)
 
         val readiness = Readiness.of(ordinary + strained, form(-5.0), today)
 
@@ -87,6 +88,53 @@ class ReadinessTest {
         assertThat(readiness.restingHr!!.standing).isEqualTo(Standing.ABOVE)
         assertThat(readiness.score!!).isLessThan(50)
         assertThat(readiness.level).isEqualTo(ReadinessLevel.LOW)
+    }
+
+    @Test
+    fun `low HRV pulls readiness down by its weight and does not cap it`() {
+        val ordinary = usualNights(40, last = today.minusDays(7))
+        val lower = (6 downTo 0).map { night(today.minusDays(it.toLong()), hrv = 52.0) }
+
+        val readiness = Readiness.of(ordinary + lower, form(5.0), today)
+        val usual = Readiness.of(usualNights(47), form(5.0), today)
+
+        assertThat(readiness.hrv!!.standing).isEqualTo(Standing.BELOW)
+        assertThat(readiness.score!!).isLessThan(usual.score!!)
+        // The other parts are as usual, so the score stays above the old cap of 49 and keeps moving with them.
+        assertThat(readiness.score).isGreaterThan(Readiness.MODERATE_FROM)
+        assertThat(readiness.level).isEqualTo(ReadinessLevel.MODERATE)
+    }
+
+    @Test
+    fun `good nights after a poor spell count more than the poor ones`() {
+        val ordinary = usualNights(40, last = today.minusDays(7))
+        val week = listOf(40.0, 40.0, 60.0, 60.0, 60.0, 60.0, 60.0)
+        // The same seven values, the poor nights first or last.
+        val recovering = week.mapIndexed { i, hrv -> night(today.minusDays(6L - i), hrv = hrv) }
+        val worsening = week.reversed().mapIndexed { i, hrv -> night(today.minusDays(6L - i), hrv = hrv) }
+
+        val up = Readiness.of(ordinary + recovering, null, today).hrv!!
+        val down = Readiness.of(ordinary + worsening, null, today).hrv!!
+
+        assertThat(up.recentMs).isGreaterThan(down.recentMs)
+        assertThat(up.score).isGreaterThan(down.score)
+        // Two poor nights of seven: last night 7, the night before 6, a week back 1, out of 28.
+        assertThat(down.recentMs).isCloseTo(exp((13 * ln(40.0) + 15 * ln(60.0)) / 28), 1e-9)
+    }
+
+    @Test
+    fun `resting heart rate is judged against the range a single night usually falls in`() {
+        val nights = usualNights(30, last = today.minusDays(1)) + night(today, restingHr = 55.0)
+
+        val resting = Readiness.of(nights, null, today).restingHr!!
+        val range = NightlyRange.of(nights, NightlyMetric.RESTING_HR, today)!!
+
+        assertThat(resting.normalLow).isEqualTo(range.low)
+        assertThat(resting.normalHigh).isEqualTo(range.high)
+        assertThat(resting.standing).isEqualTo(Standing.ABOVE)
+        // The usual level comes from the nights before in the last 30 days, not from last night itself.
+        val before = nights.filter { it.date < today && it.date > today.minusDays(Readiness.SHORT_WINDOW_DAYS.toLong()) }
+        assertThat(resting.usual).isCloseTo(before.mapNotNull { it.restingHr }.average(), 1e-9)
     }
 
     @Test
@@ -100,7 +148,8 @@ class ReadinessTest {
         val sd = kotlin.math.sqrt(logs.sumOf { (it - mean) * (it - mean) } / (logs.size - 1))
         assertThat(hrv.normalLowMs).isCloseTo(exp(mean - sd / 2), 1e-9)
         assertThat(hrv.normalHighMs).isCloseTo(exp(mean + sd / 2), 1e-9)
-        assertThat(hrv.weekAverageMs).isCloseTo(exp(logs.takeLast(7).average()), 1e-9)
+        val weighted = logs.takeLast(7).mapIndexed { i, h -> (i + 1) * h }.sum() / 28
+        assertThat(hrv.recentMs).isCloseTo(exp(weighted), 1e-9)
     }
 
     @Test

@@ -174,7 +174,7 @@ class TodayScreenScreenshotTest {
         start = LocalDate.of(2026, 11, 16),
         load = 93.0,
         durationMillis = 81 * 60_000L,
-        workouts = 3,
+        sessions = 3,
         intensityMillis = longArrayOf(50 * 60_000L, 12 * 60_000L, 14 * 60_000L),
         strain = WeekStrain.of(doubleArrayOf(0.0, 58.0, 35.0, 0.0, 0.0, 0.0, 0.0)),
     )

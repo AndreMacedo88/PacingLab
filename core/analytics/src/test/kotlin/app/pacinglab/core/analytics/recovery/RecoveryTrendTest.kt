@@ -40,9 +40,10 @@ class RecoveryTrendTest {
         val days = RecoveryTrend.of(nights, today)
 
         assertThat(days.size).isEqualTo(10)
-        assertThat(days[1].hrvWeekMs).isNull()
-        // Day 7 (index 6) averages 72, 50, 72, 50, 72, 50, 72 on the log scale.
-        assertThat(days[6].hrvWeekMs!!).isCloseTo(exp((4 * ln(72.0) + 3 * ln(50.0)) / 7), 1e-9)
+        assertThat(days[1].hrvRecentMs).isNull()
+        // Day 7 (index 6) averages 72, 50, 72, 50, 72, 50, 72 on the log scale, weighted 1 to 7 from the oldest:
+        // the 72s carry 1 + 3 + 5 + 7 = 16 of 28.
+        assertThat(days[6].hrvRecentMs!!).isCloseTo(exp((16 * ln(72.0) + 12 * ln(50.0)) / 28), 1e-9)
         assertThat(days[5].hrvNormal).isNull()
         assertThat(days[9].hrvNormal).isNotNull()
         assertThat(days[9].restingWeek!!).isCloseTo(55.0, 1e-9)

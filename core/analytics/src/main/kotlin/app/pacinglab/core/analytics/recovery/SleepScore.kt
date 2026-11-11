@@ -73,13 +73,15 @@ data class SleepScore(val score: Int, val duration: Double, val continuity: Doub
         val MAX_NEED: Duration = Duration.ofHours(9)
 
         /**
-         * How much sleep the athlete needs going into the night of [date]: their usual time asleep over
-         * the 30 nights up to then, kept between the 7 and 9 hours recommended for adults.
+         * How much sleep the athlete needs going into the night that ends on the morning of [date]: their
+         * usual time asleep over the 30 nights before it, kept between the 7 and 9 hours recommended for
+         * adults. The night itself is left out, so that a short night does not lower the need it is judged by.
+         * Without earlier nights the need is 7 hours.
          */
         fun need(nights: List<Night>, date: LocalDate): Long {
             val usual = Nights.median(
                 nights.filter {
-                    it.date <= date && it.date > date.minusDays(NEED_WINDOW_DAYS)
+                    it.date < date && it.date >= date.minusDays(NEED_WINDOW_DAYS)
                 }.map { it.asleepMillis.toDouble() },
             )
             return (usual?.toLong() ?: MIN_NEED.toMillis()).coerceIn(MIN_NEED.toMillis(), MAX_NEED.toMillis())

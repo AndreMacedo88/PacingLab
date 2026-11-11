@@ -90,7 +90,7 @@ internal fun RecoveryCard(
             }
             Headline(
                 name = stringResource(R.string.recovery_hrv),
-                value = latest.hrvWeekMs?.let { stringResource(R.string.recovery_hrv_value, it.roundToInt()) },
+                value = latest.hrvRecentMs?.let { stringResource(R.string.recovery_hrv_value, it.roundToInt()) },
                 range = latest.hrvNormal?.let {
                     stringResource(R.string.recovery_hrv_range, it.start.roundToInt(), it.endInclusive.roundToInt())
                 },
@@ -113,7 +113,7 @@ internal fun RecoveryCard(
             }
             BandTrendChart(
                 days = shown.map { it.date },
-                line = shown.map { it.hrvWeekMs },
+                line = shown.map { it.hrvRecentMs },
                 dots = shown.map { it.hrvMs },
                 bands = shown.map { it.hrvNormal },
                 color = colors.series[0],

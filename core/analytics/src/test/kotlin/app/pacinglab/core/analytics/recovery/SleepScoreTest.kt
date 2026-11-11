@@ -177,6 +177,15 @@ class SleepScoreTest {
     }
 
     @Test
+    fun `a night is judged against the need of the nights before it`() {
+        val before = (1..10).map { night(day.minusDays(it.toLong()), hours = 8.1) }
+        val short = night(day, hours = 4.0)
+
+        assertThat(SleepScore.need(before + short, day)).isEqualTo(SleepScore.need(before, day))
+        assertThat(SleepScore.need(listOf(short), day)).isEqualTo(7 * hour)
+    }
+
+    @Test
     fun `a fixed need replaces the usual sleep for every night`() {
         val nights = (0..10).map { night(day.minusDays(it.toLong()), hours = 7.2) }
 

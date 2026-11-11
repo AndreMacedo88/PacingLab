@@ -44,6 +44,8 @@ data class WorkoutLoad(
 /**
  * One calendar week (Monday to Sunday) of training.
  *
+ * @property sessions training sessions in the week: back-to-back workouts such as a warm-up and an interval
+ *   workout count once.
  * @property intensityMillis time below VT1, between VT1 and VT2 and above VT2.
  * @property zoneMillis time in each of the five threshold-based zones.
  * @property strain Foster's monotony and strain; null for a week without load.
@@ -52,7 +54,7 @@ data class WeekSummary(
     val start: LocalDate,
     val load: Double,
     val durationMillis: Long,
-    val workouts: Int,
+    val sessions: Int,
     val intensityMillis: LongArray,
     val strain: WeekStrain?,
     val zoneMillis: LongArray = LongArray(5),
@@ -61,7 +63,7 @@ data class WeekSummary(
         start == other.start &&
         load == other.load &&
         durationMillis == other.durationMillis &&
-        workouts == other.workouts &&
+        sessions == other.sessions &&
         intensityMillis.contentEquals(other.intensityMillis) &&
         strain == other.strain &&
         zoneMillis.contentEquals(other.zoneMillis)
@@ -89,9 +91,10 @@ object TrainingLoads {
 
     /**
      * The [count] weeks up to and including the one holding [until], newest first. Weeks start on
-     * Monday; weeks without workouts are included with zeros.
+     * Monday; weeks without workouts are included with zeros. [sessionOf] gives the training session of each
+     * workout id, so that the workouts of one session count once; a workout without one counts on its own.
      */
-    fun weeks(loads: List<WorkoutLoad>, until: LocalDate, count: Int): List<WeekSummary> {
+    fun weeks(loads: List<WorkoutLoad>, until: LocalDate, count: Int, sessionOf: Map<String, String> = emptyMap()): List<WeekSummary> {
         val daily = daily(loads)
         val lastMonday = until.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         return List(count) { i ->
@@ -108,7 +111,7 @@ object TrainingLoads {
                 start = start,
                 load = days.sum(),
                 durationMillis = inWeek.sumOf { it.durationMillis },
-                workouts = inWeek.size,
+                sessions = inWeek.map { sessionOf[it.workoutId] ?: it.workoutId }.distinct().size,
                 intensityMillis = intensity,
                 strain = WeekStrain.of(days),
                 zoneMillis = five,

@@ -332,7 +332,7 @@ internal fun WeeksCard(
             } else {
                 start.format(week.start)
             }
-            val sessions = pluralStringResource(R.plurals.weeks_workouts, week.workouts, week.workouts)
+            val sessions = pluralStringResource(R.plurals.weeks_sessions, week.sessions, week.sessions)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clearAndSetSemantics {

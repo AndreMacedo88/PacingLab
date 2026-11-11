@@ -134,7 +134,7 @@ internal fun TrainingCalendarCard(
             }
             monday = monday.plusWeeks(1)
         }
-        val sessions = inMonth.values.sumOf { it.workoutIds.size }
+        val sessions = inMonth.values.sumOf { it.sessions }
         Text(
             text = pluralStringResource(
                 R.plurals.calendar_month_summary,

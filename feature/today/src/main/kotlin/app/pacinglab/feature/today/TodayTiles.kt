@@ -22,6 +22,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.pacinglab.core.analytics.load.TrainingStatus
 import app.pacinglab.core.analytics.performance.RaceDistance
 import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.NightlyMetric
@@ -384,7 +385,7 @@ internal fun Vo2MaxTile(state: TodayUiState.Loaded, onClick: () -> Unit, modifie
     Tile(
         label = stringResource(R.string.tile_vo2max),
         value = trend?.current?.value?.let { "%.1f".format(locale, it) } ?: DASH,
-        detail = trend?.change(30)?.let { stringResource(R.string.tile_vo2max_change, signedOne(it, locale)) },
+        detail = trend?.change(TrainingStatus.VO2MAX_DAYS)?.let { stringResource(R.string.tile_vo2max_change, signedOne(it, locale)) },
         modifier = modifier,
         onClick = onClick,
     ) {
@@ -454,6 +455,8 @@ internal fun StrainTile(state: TodayUiState.Loaded, onClick: () -> Unit, modifie
         value = latest?.score?.toString() ?: DASH,
         detail = when {
             history == null -> null
+
+            history.firstScoreDue -> stringResource(R.string.tile_strain_due)
 
             latest == null -> history.progress.coerceAtMost(StrainHistory.NEEDED_DAYS).let { shown ->
                 pluralStringResource(R.plurals.tile_strain_learning, StrainHistory.NEEDED_DAYS, shown, StrainHistory.NEEDED_DAYS)

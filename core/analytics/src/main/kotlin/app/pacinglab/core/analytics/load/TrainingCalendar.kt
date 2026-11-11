@@ -11,6 +11,7 @@ import java.time.LocalDate
  *   meaningful share of the time, [TrainingCalendar.HIGH_SHARE], [TrainingCalendar.THRESHOLD_SHARE]);
  *   null on days with only other training (gym, walks) or without heart rate.
  * @property workoutIds the day's workouts, the one with the most load first.
+ * @property sessions training sessions on the day: back-to-back workouts of one session count once.
  */
 data class CalendarDay(
     val date: LocalDate,
@@ -18,6 +19,7 @@ data class CalendarDay(
     val millis: Long,
     val intensity: IntensityDomain?,
     val workoutIds: List<String>,
+    val sessions: Int = workoutIds.size,
 )
 
 /**
@@ -34,29 +36,36 @@ object TrainingCalendar {
     /** Share of the day's time between the thresholds from which it counts as a threshold day. */
     const val THRESHOLD_SHARE = 0.20
 
-    /** Every day with a counted workout in [loads], by date; [kinds] names running sessions by workout id. */
-    fun days(loads: List<WorkoutLoad>, kinds: Map<String, SessionKind> = emptyMap()): Map<LocalDate, CalendarDay> =
-        loads.groupBy { it.date }.mapValues { (date, day) ->
-            val millis = LongArray(IntensityDomain.entries.size)
-            val goals = mutableListOf<IntensityDomain>()
-            for (load in day) {
-                val goal = kinds[load.workoutId]?.let(::domainOf)
-                when {
-                    goal != null -> goals += goal
+    /**
+     * Every day with a counted workout in [loads], by date; [kinds] names running sessions by workout id, and
+     * [sessionOf] gives each workout's training session, so that a session counts once.
+     */
+    fun days(
+        loads: List<WorkoutLoad>,
+        kinds: Map<String, SessionKind> = emptyMap(),
+        sessionOf: Map<String, String> = emptyMap(),
+    ): Map<LocalDate, CalendarDay> = loads.groupBy { it.date }.mapValues { (date, day) ->
+        val millis = LongArray(IntensityDomain.entries.size)
+        val goals = mutableListOf<IntensityDomain>()
+        for (load in day) {
+            val goal = kinds[load.workoutId]?.let(::domainOf)
+            when {
+                goal != null -> goals += goal
 
-                    // Zones describe endurance work; a gym session's heart rate says little about how hard it was.
-                    load.sport == null || load.sport in IntensityFocus.SPORTS ->
-                        load.intensity?.millis?.forEachIndexed { i, ms -> if (i < millis.size) millis[i] += ms }
-                }
+                // Zones describe endurance work; a gym session's heart rate says little about how hard it was.
+                load.sport == null || load.sport in IntensityFocus.SPORTS ->
+                    load.intensity?.millis?.forEachIndexed { i, ms -> if (i < millis.size) millis[i] += ms }
             }
-            CalendarDay(
-                date = date,
-                load = day.sumOf { it.scores?.stressScore ?: 0.0 },
-                millis = day.sumOf { it.durationMillis },
-                intensity = (goals + listOfNotNull(dominant(millis))).maxOrNull(),
-                workoutIds = day.sortedByDescending { it.scores?.stressScore ?: 0.0 }.map { it.workoutId },
-            )
         }
+        CalendarDay(
+            date = date,
+            load = day.sumOf { it.scores?.stressScore ?: 0.0 },
+            millis = day.sumOf { it.durationMillis },
+            intensity = (goals + listOfNotNull(dominant(millis))).maxOrNull(),
+            workoutIds = day.sortedByDescending { it.scores?.stressScore ?: 0.0 }.map { it.workoutId },
+            sessions = day.map { sessionOf[it.workoutId] ?: it.workoutId }.distinct().size,
+        )
+    }
 
     /**
      * The domain a session of [kind] aims at, as Seiler's three zones file it: tempo and threshold work

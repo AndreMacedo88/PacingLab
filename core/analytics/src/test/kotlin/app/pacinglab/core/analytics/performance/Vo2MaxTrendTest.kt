@@ -10,6 +10,7 @@ import assertk.assertions.isNull
 import org.junit.jupiter.api.Test
 import java.time.LocalDate
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 class Vo2MaxTrendTest {
     private val start = LocalDate.of(2026, 8, 1)
@@ -62,6 +63,20 @@ class Vo2MaxTrendTest {
         assertThat(trend.sourceSd.getValue(Vo2MaxSource.PACINGLAB)).isGreaterThan(trend.sourceSd.getValue(Vo2MaxSource.FITBIT))
         trend.days.forEach { assertThat(it.value).isCloseTo(54.0, 1.0) }
         assertThat(trend.sourceSd.keys).isEqualTo(setOf(Vo2MaxSource.FITBIT, Vo2MaxSource.PACINGLAB))
+    }
+
+    @Test
+    fun `a source's scatter is learned without the pull of its own points on the trend`() {
+        // Fortnightly values scattered by about 4 ml/kg/min around a steady 54.
+        val days = (0 until 730 step 14)
+        val noise = days.map { 4.0 * sqrt(2.0) * sin(it * 2.4) }
+        val points = days.zip(noise).map { (d, e) -> Vo2MaxPoint(start.plusDays(d.toLong()), 54.0 + e, Vo2MaxSource.FITBIT) }
+        val scatter = sqrt(noise.sumOf { (it - noise.average()) * (it - noise.average()) } / noise.size)
+
+        val trend = Vo2MaxTrend.of(points, until = start.plusDays(729))!!
+
+        // Residuals against a trend fitted with each point understate its noise (3.83 here); the correction does not.
+        assertThat(trend.sourceSd.getValue(Vo2MaxSource.FITBIT)).isCloseTo(scatter, 0.08)
     }
 
     @Test

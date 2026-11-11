@@ -95,12 +95,15 @@ class TrainingLoadsTest {
         val current = weeks[0]
         assertThat(current.load).isCloseTo(73.0, 1e-9)
         assertThat(current.durationMillis).isEqualTo(96 * 60_000L)
-        assertThat(current.workouts).isEqualTo(3)
+        assertThat(current.sessions).isEqualTo(3)
         assertThat(current.intensityMillis.toList()).isEqualTo(listOf(45 * 60_000L, 9 * 60_000L, 12 * 60_000L))
         assertThat(current.strain!!.load).isCloseTo(73.0, 1e-9)
         assertThat(weeks[1].load).isCloseTo(40.0, 1e-9)
-        assertThat(weeks[2].workouts).isEqualTo(0)
+        assertThat(weeks[2].sessions).isEqualTo(0)
         assertThat(weeks[2].strain).isNull()
+        // The walk joined the Tuesday session: one session of two workouts.
+        val grouped = TrainingLoads.weeks(loads, until = LocalDate.of(2026, 10, 21), count = 1, sessionOf = mapOf("walk" to "tue"))
+        assertThat(grouped.single().sessions).isEqualTo(2)
     }
 
     @Test

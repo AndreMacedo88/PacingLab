@@ -64,9 +64,12 @@ class SettingsViewModel @Inject constructor(
         .map { it.arrange(WidgetMeasure.entries.map { measure -> CardSpec(measure.id, measure.hiddenByDefault) }) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), emptyList())
 
-    /** The sleep need worked out from the nights, which the setting shows while it is automatic; null without nights. */
+    /**
+     * The sleep need worked out from the nights, which the setting shows while it is automatic: the need going into
+     * tonight, from the nights up to last night. Null without nights.
+     */
     val automaticSleepNeed: StateFlow<Duration?> = nights.observeNights()
-        .map { all -> if (all.isEmpty()) null else Duration.ofMillis(SleepScore.need(all, LocalDate.now(clock))) }
+        .map { all -> if (all.isEmpty()) null else Duration.ofMillis(SleepScore.need(all, LocalDate.now(clock).plusDays(1))) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), null)
 
     private val _backupMessage = MutableStateFlow<BackupMessage?>(null)

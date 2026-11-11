@@ -45,7 +45,7 @@ internal fun StrainCard(history: StrainHistory?, locale: Locale, modifier: Modif
     ) {
         val latest = history?.latest
         if (history == null || latest == null) {
-            Learning(history?.progress ?: 0)
+            Learning(history?.progress ?: 0, due = history?.firstScoreDue == true)
             return@TrendCard
         }
         val day = when (latest.date) {
@@ -94,12 +94,16 @@ internal fun StrainCard(history: StrainHistory?, locale: Locale, modifier: Modif
 }
 
 @Composable
-private fun Learning(days: Int, modifier: Modifier = Modifier) {
+private fun Learning(days: Int, due: Boolean, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         val shown = days.coerceAtMost(StrainHistory.NEEDED_DAYS)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = pluralStringResource(UiR.plurals.strain_learning, shown, shown, StrainHistory.NEEDED_DAYS),
+                text = if (due) {
+                    stringResource(R.string.strain_due)
+                } else {
+                    pluralStringResource(UiR.plurals.strain_learning, shown, shown, StrainHistory.NEEDED_DAYS)
+                },
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.weight(1f),
             )
@@ -111,7 +115,7 @@ private fun Learning(days: Int, modifier: Modifier = Modifier) {
             drawStopIndicator = {},
         )
         Text(
-            text = stringResource(R.string.strain_learning_detail),
+            text = stringResource(if (due) R.string.strain_due_detail else R.string.strain_learning_detail),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -48,6 +48,12 @@ data class StrainHistory(
 
     val learning: Boolean get() = latest == null
 
+    /**
+     * Learning is done but no day has a score yet: the days before today lacked enough scored days before them,
+     * so the first score is the next day with [DaytimeStrain.MIN_DAY_MINUTES] of still time, normally today.
+     */
+    val firstScoreDue: Boolean get() = learning && progress >= NEEDED_DAYS
+
     companion object {
         /** A week for the hourly baselines, then two weeks of days to set the scale. */
         const val NEEDED_DAYS = DaytimeStrain.MIN_HOUR_DAYS + DaytimeStrain.MIN_SCALE_DAYS
