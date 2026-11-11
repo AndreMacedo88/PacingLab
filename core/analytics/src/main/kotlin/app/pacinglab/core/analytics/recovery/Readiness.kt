@@ -25,9 +25,12 @@ enum class ReadinessLevel {
 /**
  * Nightly HRV as HRV-guided training studies use it (Plews 2013, Javaloyes 2019): the average of
  * ln(RMSSD) over the last seven nights against a normal range of the baseline mean plus or minus half a
- * standard deviation. The average leans towards the latest nights ([Readiness.recentHrv]), so that good
- * nights after a poor spell show as recovery at once instead of after the poor nights have left the week.
- * Values are given back in milliseconds.
+ * standard deviation. The baseline is the 60 days before those seven, so that the nights being judged are
+ * not part of what they are judged against. The average leans towards the latest nights
+ * ([Readiness.recentHrv]), so that good nights after a poor spell show as recovery at once instead of after
+ * the poor nights have left the week. Values are given back in milliseconds.
+ *
+ * @property baselineNights nights in the baseline, the recent seven days not included.
  *
  * @property recentMs the weighted average of the last seven nights.
  */
@@ -73,8 +76,10 @@ data class FormStatus(val form: Double, val fitness: Double, val band: Double, v
  * How ready the body is today, from what the watch measured overnight and from recent training.
  *
  * @property score 0 to 100, null until the HRV baseline has [Readiness.PROVISIONAL_NIGHTS] nights.
- * @property baselineNights nights of HRV the baseline has so far; from [Readiness.BASELINE_NIGHTS] on the
- *   score is settled, before that it is [provisional].
+ * @property baselineNights nights of HRV the baseline has so far, the recent seven days not included; from
+ *   [Readiness.BASELINE_NIGHTS] on the score is settled, before that it is [provisional].
+ * @property hrvNights nights of HRV so far, the recent seven days included: the progress towards a first
+ *   score, which comes at about [Readiness.FIRST_SCORE_NIGHTS].
  * @property breathingElevated breathing rate during sleep clearly above usual, a common early sign of illness.
  * @property breathingUsual the average breathing rate of the nights before; null with fewer than a week of them.
  */
@@ -89,6 +94,7 @@ data class Readiness(
     val breathingElevated: Boolean,
     val baselineNights: Int,
     val breathingUsual: Double? = null,
+    val hrvNights: Int = baselineNights,
 ) {
     /** True while the score rests on fewer than [BASELINE_NIGHTS] nights of HRV: a first impression. */
     val provisional: Boolean get() = score != null && baselineNights < BASELINE_NIGHTS
@@ -98,16 +104,19 @@ data class Readiness(
         const val BASELINE_NIGHTS = 14
 
         /**
-         * Nights of HRV for a first, provisional score. With a week of nights, last night can be placed
-         * against the range seen so far, but the week's trend cannot yet be told apart from the baseline.
+         * Nights of HRV in the baseline for a first, provisional score: a week of nights before the recent week,
+         * enough to place the recent average against the range seen so far, not yet to trust that range.
          */
         const val PROVISIONAL_NIGHTS = 7
 
-        /** Days the HRV baseline looks back. */
+        /** Days the HRV baseline looks back from the start of the recent week. */
         const val HRV_WINDOW_DAYS = 60
 
         /** Days of nights in the recent HRV average ([recentHrv]). */
         const val RECENT_DAYS = 7
+
+        /** Nights of HRV, worn every night, by which the first score appears: the recent week and a week of baseline. */
+        const val FIRST_SCORE_NIGHTS = PROVISIONAL_NIGHTS + RECENT_DAYS
 
         /**
          * Points the HRV part moves for each standard deviation the recent average lies from the baseline.
@@ -137,10 +146,16 @@ data class Readiness(
             val upToToday = nights.filter { !it.date.isAfter(today) }.sortedBy { it.date }
             val recent = currentStretch(upToToday)
             val lastNight = recent.lastOrNull()?.takeIf { it.date == today }
-            val hrvNights = recent.filter { it.hrvMs != null && it.date > today.minusDays(HRV_WINDOW_DAYS.toLong()) }
+            // The recent week is judged against the 60 days before it, never against itself.
+            val weekStart = today.minusDays(RECENT_DAYS - 1L)
+            val withHrv = recent.filter { it.hrvMs != null }
+            val recentHrvNights = withHrv.filter { !it.date.isBefore(weekStart) }
+            val baseline = withHrv.filter {
+                it.date.isBefore(weekStart) && !it.date.isBefore(weekStart.minusDays(HRV_WINDOW_DAYS.toLong()))
+            }
             val shortWindow = recent.filter { it.date > today.minusDays(SHORT_WINDOW_DAYS.toLong()) }
 
-            val hrv = hrvStatus(hrvNights, lastNight, today)
+            val hrv = hrvStatus(baseline, recentHrvNights, lastNight, today)
             val restingHr = restingHrStatus(upToToday, shortWindow, lastNight)
             val sleep = sleepStatus(shortWindow, lastNight, today, sleepScores)
             val training = form?.let(::trainingStatus)
@@ -175,8 +190,9 @@ data class Readiness(
                 sleep = sleep,
                 training = training,
                 breathingElevated = breathing,
-                baselineNights = hrvNights.size,
+                baselineNights = baseline.size,
                 breathingUsual = breathingUsual(shortWindow, today),
+                hrvNights = baseline.size + recentHrvNights.size,
             )
         }
 
@@ -189,12 +205,12 @@ data class Readiness(
             return nights.subList(start, nights.size)
         }
 
-        private fun hrvStatus(nights: List<Night>, lastNight: Night?, today: LocalDate): HrvStatus? {
-            if (nights.size < PROVISIONAL_NIGHTS) return null
-            val logs = nights.map { ln(it.hrvMs!!) }
+        private fun hrvStatus(baseline: List<Night>, recentNights: List<Night>, lastNight: Night?, today: LocalDate): HrvStatus? {
+            if (baseline.size < PROVISIONAL_NIGHTS) return null
+            val logs = baseline.map { ln(it.hrvMs!!) }
             val mean = logs.average()
             val sd = sqrt(logs.sumOf { (it - mean) * (it - mean) } / (logs.size - 1)).coerceAtLeast(MIN_LN_SD)
-            val recent = recentLog(nights, today) ?: return null
+            val recent = recentLog(recentNights, today) ?: return null
             // Distance of the recent average from the baseline in standard deviations; half of one is the
             // smallest worthwhile change, the edge of the normal range.
             val position = (recent - mean) / sd
@@ -204,7 +220,7 @@ data class Readiness(
                 normalLowMs = exp(mean - sd / 2),
                 normalHighMs = exp(mean + sd / 2),
                 standing = standing(position, -SMALLEST_WORTHWHILE_SD, SMALLEST_WORTHWHILE_SD),
-                baselineNights = nights.size,
+                baselineNights = baseline.size,
                 score = clampScore(70 + HRV_POINTS_PER_SD * position),
             )
         }

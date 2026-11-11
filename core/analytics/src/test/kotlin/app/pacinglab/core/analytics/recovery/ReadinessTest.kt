@@ -43,25 +43,31 @@ class ReadinessTest {
     private fun form(form: Double, fitness: Double = 40.0) = FormDay(today, 0.0, fitness, fitness - form, form)
 
     @Test
-    fun `fewer than a week of HRV nights leaves the score out`() {
-        val readiness = Readiness.of(usualNights(6), form(0.0), today)
+    fun `without a week of HRV nights before the recent week the score is left out`() {
+        val readiness = Readiness.of(usualNights(13), form(0.0), today)
 
         assertThat(readiness.score).isNull()
         assertThat(readiness.provisional).isFalse()
         assertThat(readiness.hrv).isNull()
+        // The last seven nights are the recent week; six came before it.
         assertThat(readiness.baselineNights).isEqualTo(6)
+        assertThat(readiness.hrvNights).isEqualTo(13)
         // Contributors with enough data are still reported.
         assertThat(readiness.training).isNotNull()
     }
 
     @Test
-    fun `between one and two weeks of HRV nights the score is provisional`() {
-        val early = Readiness.of(usualNights(10), form(0.0), today)
-        assertThat(early.score).isNotNull()
+    fun `the score is provisional until the baseline before the recent week has two weeks of nights`() {
+        val first = Readiness.of(usualNights(Readiness.FIRST_SCORE_NIGHTS), form(0.0), today)
+        assertThat(first.score).isNotNull()
+        assertThat(first.provisional).isTrue()
+        assertThat(first.baselineNights).isEqualTo(Readiness.PROVISIONAL_NIGHTS)
+
+        val early = Readiness.of(usualNights(17), form(0.0), today)
         assertThat(early.provisional).isTrue()
         assertThat(early.baselineNights).isEqualTo(10)
 
-        val settled = Readiness.of(usualNights(14), form(0.0), today)
+        val settled = Readiness.of(usualNights(21), form(0.0), today)
         assertThat(settled.provisional).isFalse()
     }
 
@@ -123,6 +129,25 @@ class ReadinessTest {
     }
 
     @Test
+    fun `the nights being judged are not part of the baseline`() {
+        val ordinary = usualNights(30, last = today.minusDays(7))
+        val low = (6 downTo 0).map { night(today.minusDays(it.toLong()), hrv = 45.0) }
+
+        val hrv = Readiness.of(ordinary + low, null, today).hrv!!
+        val before = Readiness.of(ordinary, null, today.minusDays(7)).hrv!!
+
+        // The low week neither drags the range down nor widens it: it is the range of the ordinary nights.
+        val logs = ordinary.map { ln(it.hrvMs!!) }
+        val mean = logs.average()
+        val sd = kotlin.math.sqrt(logs.sumOf { (it - mean) * (it - mean) } / (logs.size - 1))
+        assertThat(hrv.normalLowMs).isCloseTo(exp(mean - sd / 2), 1e-9)
+        assertThat(hrv.normalHighMs).isCloseTo(exp(mean + sd / 2), 1e-9)
+        assertThat(hrv.baselineNights).isEqualTo(30)
+        assertThat(hrv.score).isEqualTo(0)
+        assertThat(before.standing).isEqualTo(Standing.NORMAL)
+    }
+
+    @Test
     fun `resting heart rate is judged against the range a single night usually falls in`() {
         val nights = usualNights(30, last = today.minusDays(1)) + night(today, restingHr = 55.0)
 
@@ -144,8 +169,10 @@ class ReadinessTest {
         val hrv = Readiness.of(nights, null, today).hrv!!
 
         val logs = nights.map { ln(it.hrvMs!!) }
-        val mean = logs.average()
-        val sd = kotlin.math.sqrt(logs.sumOf { (it - mean) * (it - mean) } / (logs.size - 1))
+        // The baseline is the nights before the recent week.
+        val baseline = logs.dropLast(7)
+        val mean = baseline.average()
+        val sd = kotlin.math.sqrt(baseline.sumOf { (it - mean) * (it - mean) } / (baseline.size - 1))
         assertThat(hrv.normalLowMs).isCloseTo(exp(mean - sd / 2), 1e-9)
         assertThat(hrv.normalHighMs).isCloseTo(exp(mean + sd / 2), 1e-9)
         val weighted = logs.takeLast(7).mapIndexed { i, h -> (i + 1) * h }.sum() / 28
@@ -160,7 +187,8 @@ class ReadinessTest {
 
         val readiness = Readiness.of(listOf(stray) + fresh, null, today)
 
-        assertThat(readiness.baselineNights).isEqualTo(16)
+        assertThat(readiness.baselineNights).isEqualTo(9)
+        assertThat(readiness.hrvNights).isEqualTo(16)
         assertThat(readiness.hrv!!.standing).isEqualTo(Standing.NORMAL)
     }
 

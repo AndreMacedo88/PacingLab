@@ -86,7 +86,7 @@ internal fun ReadinessCard(
                 }
                 if (history.count { it.score != null } > 1) Week(history, days)
             } else {
-                Calibrating(readiness.baselineNights)
+                Calibrating(readiness.hrvNights)
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Contributors(readiness)
@@ -160,7 +160,7 @@ private fun Calibrating(nights: Int, modifier: Modifier = Modifier) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.readiness_calibrating), style = MaterialTheme.typography.titleMedium)
         LinearProgressIndicator(
-            progress = { (nights.toFloat() / Readiness.BASELINE_NIGHTS).coerceAtMost(1f) },
+            progress = { (nights.toFloat() / Readiness.FIRST_SCORE_NIGHTS).coerceAtMost(1f) },
             trackColor = MaterialTheme.colorScheme.surfaceVariant,
             drawStopIndicator = {},
             modifier = Modifier.fillMaxWidth(),
@@ -168,9 +168,9 @@ private fun Calibrating(nights: Int, modifier: Modifier = Modifier) {
         Text(
             text = pluralStringResource(
                 R.plurals.readiness_calibrating_detail,
-                Readiness.BASELINE_NIGHTS,
-                nights,
-                Readiness.BASELINE_NIGHTS,
+                Readiness.FIRST_SCORE_NIGHTS,
+                nights.coerceAtMost(Readiness.FIRST_SCORE_NIGHTS),
+                Readiness.FIRST_SCORE_NIGHTS,
             ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

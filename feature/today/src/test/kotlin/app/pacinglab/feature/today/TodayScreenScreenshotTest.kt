@@ -244,7 +244,7 @@ class TodayScreenScreenshotTest {
     fun learningTheNormalRange() = capture(loaded(nights(6)))
 
     @Test
-    fun provisional() = capture(loaded(nights(10)))
+    fun provisional() = capture(loaded(nights(17)))
 
     @Test
     fun ready() = capture(loaded(nights(40)).copy(rested = 4))
