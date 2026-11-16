@@ -62,6 +62,7 @@ import java.time.LocalDate
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.math.roundToInt
+import app.pacinglab.core.ui.R as UiR
 
 /** Everything readiness is computed from; the page works out each day of the period itself. */
 data class ReadinessState(
@@ -149,6 +150,7 @@ fun ReadinessScreen(state: ReadinessState?, onBack: () -> Unit, modifier: Modifi
                 About(
                     stringResource(R.string.metric_about_title, stringResource(R.string.readiness_title)),
                     stringResource(R.string.about_readiness),
+                    advanced = stringResource(UiR.string.ui_readiness_advanced),
                 )
             }
         }

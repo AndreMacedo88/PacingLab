@@ -213,7 +213,11 @@ private fun CurrentCard(current: CurrentPhysiology, estimatedThreshold: Threshol
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CardHeader(stringResource(R.string.physiology_current), info = stringResource(R.string.physiology_current_info))
+            CardHeader(
+                stringResource(R.string.physiology_current),
+                info = stringResource(R.string.physiology_current_info),
+                advanced = stringResource(R.string.physiology_current_advanced),
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Value(
                     label = stringResource(R.string.physiology_max_hr),

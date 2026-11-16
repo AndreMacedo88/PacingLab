@@ -31,7 +31,8 @@ class AdvancedInfoTest {
     val compose = createComposeRule()
 
     private val texts = listOf(
-        app.pacinglab.feature.today.R.string.readiness_advanced,
+        app.pacinglab.core.ui.R.string.ui_readiness_advanced,
+        app.pacinglab.feature.settings.R.string.physiology_current_advanced,
         app.pacinglab.core.ui.R.string.ui_nightly_range_advanced,
         app.pacinglab.core.ui.R.string.ui_training_status_advanced,
         app.pacinglab.core.ui.R.string.ui_effort_advanced,

@@ -32,6 +32,7 @@ enum class Capture {
  * @property origin the app that wrote the first part.
  * @property kind what a running session was for; null for other sports and while it is worked out.
  * @property load stress score of the parts with one; null when none has one or while the list does not need it.
+ * @property leftOut the athlete left the session out of the fitness estimates (any of its parts, as the session page reads it).
  */
 data class SessionItem(
     val id: String,
@@ -49,6 +50,7 @@ data class SessionItem(
     val origin: String = "",
     val kind: SessionKind? = null,
     val load: Double? = null,
+    val leftOut: Boolean = false,
 )
 
 fun TrainingSession.toItem(kind: SessionKind? = null): SessionItem {

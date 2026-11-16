@@ -39,7 +39,7 @@ class WorkoutsScreenScreenshotTest {
         item("s2", Sport.RUN, listOf("Run", "Interval workout"), 2, "2026-10-12T17:08:18Z", 35.9, 6_590.0, 155, 178, route = true)
             .copy(kind = SessionKind.VO2MAX_INTERVALS),
         item("s3", Sport.RUN, listOf("Run", "Interval workout"), 2, "2026-10-08T17:34:42Z", 36.6, 6_825.0, 152, 182, route = true)
-            .copy(kind = SessionKind.THRESHOLD_INTERVALS),
+            .copy(kind = SessionKind.THRESHOLD_INTERVALS, leftOut = true),
         item("s6", Sport.RUN, listOf("Interval workout"), 2, "2026-10-04T07:25:06Z", 9.2, 930.0, 122, 149).copy(kind = SessionKind.SPRINTS),
         item("s4", Sport.RIDE, emptyList(), 1, "2026-09-30T07:41:00Z", 18.2, 5_210.0, null, null, capture = Capture.DETECTED),
         item(

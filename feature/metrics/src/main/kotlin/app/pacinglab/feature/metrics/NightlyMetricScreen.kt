@@ -42,6 +42,7 @@ import app.pacinglab.core.analytics.recovery.NightlyMetric
 import app.pacinglab.core.analytics.recovery.NightlyRange
 import app.pacinglab.core.data.repository.NightRepository
 import app.pacinglab.core.designsystem.chart.HistoryChart
+import app.pacinglab.core.designsystem.component.AdvancedInfo
 import app.pacinglab.core.designsystem.component.RangePill
 import app.pacinglab.core.designsystem.component.StatusPill
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
@@ -61,6 +62,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
+import app.pacinglab.core.ui.R as UiR
 
 /** Every night with the metric's values; the page derives each period from it. */
 data class NightlyMetricState(val metric: NightlyMetric, val nights: List<Night>, val today: LocalDate)
@@ -174,7 +176,11 @@ fun NightlyMetricScreen(
                 item(key = "nights") { NightList(metric, period, values, ranges, byDate, locale) }
             }
             item(key = "about") {
-                About(stringResource(R.string.metric_about_title, stringResource(metric.title())), stringResource(metric.about()))
+                About(
+                    stringResource(R.string.metric_about_title, stringResource(metric.title())),
+                    stringResource(metric.about()),
+                    advanced = stringResource(UiR.string.ui_nightly_range_advanced),
+                )
             }
         }
     }
@@ -287,11 +293,13 @@ private fun NightList(
     }
 }
 
+/** The page's explanation, with the mathematics folded away under it when there is any. */
 @Composable
-internal fun About(title: String, text: String, modifier: Modifier = Modifier) {
+internal fun About(title: String, text: String, modifier: Modifier = Modifier, advanced: String? = null) {
     Column(modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(title, style = MaterialTheme.typography.titleMedium)
         Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (advanced != null) AdvancedInfo(advanced)
     }
 }
 

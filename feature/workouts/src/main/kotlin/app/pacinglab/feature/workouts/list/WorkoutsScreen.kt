@@ -537,15 +537,31 @@ private fun SessionRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (session.parts > 1) {
-                Text(
-                    text = pluralStringResource(R.plurals.session_parts, session.parts, session.parts),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+            if (session.parts > 1 || session.leftOut) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    if (session.parts > 1) {
+                        Text(
+                            text = pluralStringResource(R.plurals.session_parts, session.parts, session.parts),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    if (session.leftOut) LeftOutLabel()
+                }
             }
         }
     }
+}
+
+/** Marks a session the athlete left out of the fitness estimates, so that it can be found again in the list. */
+@Composable
+private fun LeftOutLabel(modifier: Modifier = Modifier) {
+    Text(
+        text = stringResource(R.string.workouts_left_out),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier,
+    )
 }
 
 @Composable

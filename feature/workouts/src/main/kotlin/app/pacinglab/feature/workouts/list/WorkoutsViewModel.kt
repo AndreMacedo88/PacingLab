@@ -2,6 +2,7 @@ package app.pacinglab.feature.workouts.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.pacinglab.core.data.repository.ExcludedWorkoutRepository
 import app.pacinglab.core.data.repository.SessionKindRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.data.repository.WorkoutListRepository
@@ -45,6 +46,7 @@ class WorkoutsViewModel @Inject constructor(
     repository: WorkoutRepository,
     kinds: SessionKindRepository,
     trainingLoad: TrainingLoadRepository,
+    excludedWorkouts: ExcludedWorkoutRepository,
     healthSync: HealthSync,
     private val list: WorkoutListRepository,
     private val scheduler: SyncScheduler,
@@ -67,10 +69,16 @@ class WorkoutsViewModel @Inject constructor(
             }
         }
 
-    private val sessions = combine(repository.observeSessions(), kinds.observeKinds(), loads) { sessions, byId, loadById ->
+    private val sessions = combine(
+        repository.observeSessions(),
+        kinds.observeKinds(),
+        loads,
+        excludedWorkouts.observe(),
+    ) { sessions, byId, loadById, excluded ->
         sessions.map { session ->
             session.toItem(byId[session.id]).copy(
                 load = loadById?.let { loads -> session.workouts.mapNotNull { loads[it.id] }.takeIf { it.isNotEmpty() }?.sum() },
+                leftOut = session.workouts.any { it.id in excluded },
             )
         }
     }

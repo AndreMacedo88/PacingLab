@@ -37,6 +37,7 @@ import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.StatusColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import kotlin.math.roundToInt
+import app.pacinglab.core.ui.R as UiR
 
 /**
  * Readiness: the score and its level once the HRV baseline has a week of nights (marked provisional until
@@ -66,7 +67,7 @@ internal fun ReadinessCard(
             CardHeader(
                 title = stringResource(R.string.readiness_title),
                 info = stringResource(R.string.readiness_info),
-                advanced = stringResource(R.string.readiness_advanced),
+                advanced = stringResource(UiR.string.ui_readiness_advanced),
             )
             val score = readiness.score
             val level = readiness.level
