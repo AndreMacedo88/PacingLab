@@ -134,5 +134,8 @@ class GoogleHealthRepository @Inject constructor(
         private val CONNECTED = booleanPreferencesKey("google_health_connected")
         private val LAST_SYNC = longPreferencesKey("google_health_last_sync")
         private val PROBLEM = stringPreferencesKey("google_health_problem")
+
+        /** Whether this installation is connected and how its last read went: not the athlete's to back up. */
+        internal val DEVICE_KEYS: Set<String> = setOf(CONNECTED.name, LAST_SYNC.name, PROBLEM.name)
     }
 }

@@ -4,14 +4,20 @@ import androidx.test.core.app.ApplicationProvider
 import app.pacinglab.core.model.BriefAwakening
 import app.pacinglab.core.model.DailyVitals
 import app.pacinglab.core.model.source.SourceAuthorizationException
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isInstanceOf
+import assertk.assertions.isTrue
+import com.google.android.gms.common.api.CommonStatusCodes
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.io.IOException
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -102,6 +108,17 @@ class GoogleHealthVitalsSourceTest {
         assertThat(days.mapNotNull { day -> day.vo2max?.let { day.date to it } })
             .containsExactly(LocalDate.of(2026, 10, 20) to 50.6, LocalDate.of(2026, 10, 28) to 51.4)
         assertThat(days.last().vo2maxVariance).isEqualTo(1.9)
+    }
+
+    @Test
+    fun `Google out of reach is told apart from a refusal`() {
+        assertThat(GoogleHealthVitalsSource.tokenOf(GoogleHealthAccess.Granted("abc"))).isEqualTo("abc")
+        assertFailure { GoogleHealthVitalsSource.tokenOf(GoogleHealthAccess.Failed("7: network", transient = true)) }
+            .isInstanceOf(IOException::class)
+        assertFailure { GoogleHealthVitalsSource.tokenOf(GoogleHealthAccess.Failed("No access token")) }
+            .isInstanceOf(SourceAuthorizationException::class)
+        assertThat(GoogleHealthAuthorization.isTransient(CommonStatusCodes.NETWORK_ERROR)).isTrue()
+        assertThat(GoogleHealthAuthorization.isTransient(CommonStatusCodes.SIGN_IN_REQUIRED)).isFalse()
     }
 
     @Test

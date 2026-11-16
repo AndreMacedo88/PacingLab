@@ -251,7 +251,7 @@ class HealthSync @Inject constructor(
             spans.any { span -> span.start <= workout.end && span.endInclusive >= workout.start }
         }
         // The stored route is still valid; only the other streams changed.
-        saveWorkouts(affected.map { it.toSourceWorkout(route = null) }, tally, foreground)
+        saveWorkouts(affected.map { it.toSourceWorkout(route = null) }, tally, foreground, streamsOnly = true)
     }
 
     /** A token unused for too long expires; re-read the recent past and start tracking afresh. */
@@ -270,7 +270,7 @@ class HealthSync @Inject constructor(
             }
 
             ChangeChannel.HEART_RATE, ChangeChannel.SPEED, ChangeChannel.DISTANCE, ChangeChannel.STEPS -> {
-                saveWorkouts(workouts.overlapping(from, to).map { it.toSourceWorkout(route = null) }, tally, foreground)
+                saveWorkouts(workouts.overlapping(from, to).map { it.toSourceWorkout(route = null) }, tally, foreground, streamsOnly = true)
                 if (channel == ChangeChannel.HEART_RATE && ChangeChannel.SLEEP in channels) refreshSleepHeartRate(listOf(from..to))
             }
 
@@ -301,12 +301,16 @@ class HealthSync @Inject constructor(
         }
     }
 
-    private suspend fun saveWorkouts(sourceWorkouts: List<SourceWorkout>, tally: Tally, foreground: Boolean) {
+    /**
+     * Saves [sourceWorkouts] with freshly read streams. [streamsOnly] marks stored workouts read again only
+     * because heart rate, speed, distance or steps changed: their route and its pending state stay as they were.
+     */
+    private suspend fun saveWorkouts(sourceWorkouts: List<SourceWorkout>, tally: Tally, foreground: Boolean, streamsOnly: Boolean = false) {
         if (sourceWorkouts.isEmpty()) return
         val streams = source.readStreams(sourceWorkouts)
         for (sourceWorkout in sourceWorkouts) {
             val read = streams[sourceWorkout.sourceRecordId] ?: WorkoutStreams.EMPTY
-            val resolved = resolveRoute(sourceWorkout, foreground)
+            val resolved = if (streamsOnly) storedRoute(sourceWorkout) else resolveRoute(sourceWorkout, foreground)
             val workoutStreams = read.copy(route = resolved.route)
             val sport = SportClassifier.classify(
                 sourceWorkout.activity,
@@ -335,6 +339,17 @@ class HealthSync @Inject constructor(
             stored.summary.hasRoute -> ResolvedRoute(workouts.streams(id).route, pending = false)
             else -> ResolvedRoute(Route.EMPTY, pending = stored.routePending || RouteExpectation.possible(workout.activity))
         }
+    }
+
+    /**
+     * The route stored for [workout] and whether it is still to be fetched. Without this, a session Health
+     * Connect has already said has no route (an interval workout) would be marked pending after every
+     * heart rate update and read again on the next foreground sync.
+     */
+    private suspend fun storedRoute(workout: SourceWorkout): ResolvedRoute {
+        val id = workoutId(workout.sourceRecordId)
+        val stored = workouts.get(id) ?: return resolveRoute(workout, foreground = false)
+        return ResolvedRoute(if (stored.summary.hasRoute) workouts.streams(id).route else Route.EMPTY, pending = stored.routePending)
     }
 
     private suspend fun deleteWorkouts(recordIds: List<String>, tally: Tally) {

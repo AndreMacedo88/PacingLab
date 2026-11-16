@@ -1,6 +1,10 @@
 package app.pacinglab.core.data.repository
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.core.app.ApplicationProvider
@@ -26,6 +30,7 @@ import assertk.assertions.isInstanceOf
 import assertk.assertions.prop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -106,6 +111,29 @@ class BackupRepositoryTest {
         assertThat(release.preferences.preferences.first()).isEqualTo(debug.preferences.preferences.first())
         assertThat(release.dataStore.data.first().asMap().mapKeys { it.key.name })
             .isEqualTo(debug.dataStore.data.first().asMap().mapKeys { it.key.name })
+    }
+
+    @Test
+    fun `the state of this installation stays out of the backup and out of a restore`() = runTest {
+        val phone = Install()
+        phone.preferences.setTheme(ThemeChoice.GREEN)
+        phone.dataStore.edit {
+            it[booleanPreferencesKey("google_health_connected")] = true
+            it[longPreferencesKey("google_health_last_sync")] = 1L
+            it[stringPreferencesKey("google_health_problem")] = "UNREACHABLE"
+            it[stringPreferencesKey("morning_reminder_last")] = "2026-10-28"
+        }
+
+        val (text, written) = phone.backup.export()
+        assertThat(written.settings).isEqualTo(1)
+        // A backup made before these keys were left out.
+        val older = JSONObject(text).also { json ->
+            json.getJSONArray("settings").put(JSONObject().put("key", "google_health_connected").put("type", "boolean").put("value", true))
+        }.toString()
+        val other = Install()
+        other.backup.restore(older)
+
+        assertThat(other.dataStore.data.first().asMap().keys.map { it.name }).containsExactly("theme")
     }
 
     @Test

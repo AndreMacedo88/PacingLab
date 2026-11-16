@@ -171,6 +171,23 @@ class SleepFactorsTest {
     }
 
     @Test
+    fun `nights recorded without stages say nothing about deep sleep before waking`() {
+        val random = Random(9)
+        val dates = List(40) { first.plusDays(it.toLong()) }
+        // The watch's classic mode: plain asleep, no stages.
+        val nights = dates.map { date ->
+            val staged = night(date, random.nextInt(90), 420 + random.nextInt(90))
+            staged.copy(stages = listOf(SleepStage(staged.start, staged.end, SleepStageType.ASLEEP_UNSPECIFIED)), stageMillis = emptyMap())
+        }
+        val rested = dates.associateWith { 1 + random.nextInt(5) }
+
+        val factors = SleepFactors.of(history(nights, List(40) { 80 }), rested, emptyList(), emptyMap(), weekend)
+
+        assertThat(factors.rested.waiting.contains(SleepFactor.DEEP_BEFORE_WAKING)).isFalse()
+        assertThat(factors.rested.effects.any { it.factor == SleepFactor.DEEP_BEFORE_WAKING }).isFalse()
+    }
+
+    @Test
     fun `a warm bedroom shows among the factors, and unmeasured factors are not listed as waiting`() {
         val random = Random(6)
         val dates = List(120) { first.plusDays(it.toLong()) }

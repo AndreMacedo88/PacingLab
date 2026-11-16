@@ -7,6 +7,7 @@ import com.google.android.gms.auth.api.identity.AuthorizationRequest
 import com.google.android.gms.auth.api.identity.AuthorizationResult
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Scope
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -22,8 +23,11 @@ sealed interface GoogleHealthAccess {
     /** The athlete has to sign in or consent first: start [intent] from an activity. */
     data class NeedsConsent(val intent: PendingIntent) : GoogleHealthAccess
 
-    /** Google refused or could not be reached; [reason] says why, for the data sources screen. */
-    data class Failed(val reason: String) : GoogleHealthAccess
+    /**
+     * Google refused or could not be reached; [reason] says why, for the data sources screen. [transient]
+     * failures (no network, a timeout) say nothing about the grant and pass by themselves.
+     */
+    data class Failed(val reason: String, val transient: Boolean = false) : GoogleHealthAccess
 }
 
 /**
@@ -42,7 +46,7 @@ class GoogleHealthAuthorization @Inject constructor(@param:ApplicationContext pr
     } catch (e: CancellationException) {
         throw e
     } catch (e: ApiException) {
-        GoogleHealthAccess.Failed("Google Play services: ${e.statusCode} ${e.message.orEmpty()}".trim())
+        GoogleHealthAccess.Failed("Google Play services: ${e.statusCode} ${e.message.orEmpty()}".trim(), isTransient(e.statusCode))
     }
 
     /** The result of the consent screen started from [GoogleHealthAccess.NeedsConsent]. */
@@ -58,6 +62,19 @@ class GoogleHealthAuthorization @Inject constructor(@param:ApplicationContext pr
     }
 
     companion object {
+        /** Play services status codes of a failure to reach Google rather than a refusal. */
+        private val TRANSIENT = setOf(
+            CommonStatusCodes.NETWORK_ERROR,
+            CommonStatusCodes.INTERNAL_ERROR,
+            CommonStatusCodes.INTERRUPTED,
+            CommonStatusCodes.TIMEOUT,
+            CommonStatusCodes.API_NOT_CONNECTED,
+            CommonStatusCodes.RECONNECTION_TIMED_OUT_DURING_UPDATE,
+            CommonStatusCodes.RECONNECTION_TIMED_OUT,
+        )
+
+        fun isTransient(statusCode: Int): Boolean = statusCode in TRANSIENT
+
         /**
          * Read-only access to nightly measurements (HRV, SpO2, breathing, resting heart rate), sleep (skin
          * temperature) and activity and fitness (daily VO2max).

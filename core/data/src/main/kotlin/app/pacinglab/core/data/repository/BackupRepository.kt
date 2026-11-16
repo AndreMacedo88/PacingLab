@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import app.pacinglab.core.data.reminder.MorningReminder
 import app.pacinglab.core.database.store.EffortStore
 import app.pacinglab.core.database.store.ExcludedWorkoutStore
 import app.pacinglab.core.database.store.MeasurementStore
@@ -58,7 +59,10 @@ class BackupFormatException(val reason: Reason, cause: Throwable? = null) : Exce
  *
  * The file is plain JSON, so it also moves data between the debug and release builds. Restoring
  * merges: an entry in the backup replaces the one of the same day or workout, other entries stay, and
- * every setting in the backup takes its value from it.
+ * every setting in the backup takes its value from it. What describes the installation rather than the
+ * athlete ([DEVICE_KEYS]: whether Google Health is connected here, when it was last read, the last
+ * reminder) is neither written nor restored, so a restore on another phone or build does not claim a
+ * connection that only Google's consent can give.
  */
 @Singleton
 class BackupRepository @Inject constructor(
@@ -80,7 +84,7 @@ class BackupRepository @Inject constructor(
         val rated = efforts.observe().first()
         val reactionTests = reactions.observe().first()
         val leftOut = excluded.observe().first().sorted()
-        val settings = dataStore.data.first().asMap()
+        val settings = dataStore.data.first().asMap().filterKeys { it.name !in DEVICE_KEYS }
 
         val json = JSONObject()
             .put("app", APP)
@@ -179,7 +183,8 @@ class BackupRepository @Inject constructor(
                     (0 until ids.length()).map(ids::getString)
                 }
             },
-            settings = json.optJSONArray("settings").objects().map(::settingWriter),
+            // Backups written before these keys were left out still hold them.
+            settings = json.optJSONArray("settings").objects().filter { it.optString("key") !in DEVICE_KEYS }.map(::settingWriter),
         )
     }
 
@@ -250,6 +255,9 @@ class BackupRepository @Inject constructor(
         const val FORMAT = 1
         const val MIME_TYPE = "application/json"
         private val FAR_FUTURE = Instant.parse("2200-01-01T00:00:00Z")
+
+        /** Preference keys that belong to this installation, not to the athlete. */
+        internal val DEVICE_KEYS: Set<String> = GoogleHealthRepository.DEVICE_KEYS + MorningReminder.DEVICE_KEYS
 
         /** The suggested file name for a backup made on [date]. */
         fun fileName(date: LocalDate): String = "pacinglab-backup-$date.json"

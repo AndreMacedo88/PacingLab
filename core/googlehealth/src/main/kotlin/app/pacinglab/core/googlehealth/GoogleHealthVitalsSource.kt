@@ -3,6 +3,7 @@ package app.pacinglab.core.googlehealth
 import app.pacinglab.core.model.DailyVitals
 import app.pacinglab.core.model.source.SourceAuthorizationException
 import app.pacinglab.core.model.source.VitalsSource
+import java.io.IOException
 import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
@@ -19,14 +20,8 @@ class GoogleHealthVitalsSource @Inject constructor(
     private val api: GoogleHealthApi,
     private val clock: Clock,
 ) : VitalsSource {
-    override suspend fun readDailyVitals(since: LocalDate, vo2maxSince: LocalDate, sleepSince: LocalDate): List<DailyVitals> {
-        val token = when (val access = authorization.authorize()) {
-            is GoogleHealthAccess.Granted -> access.token
-            is GoogleHealthAccess.NeedsConsent -> throw SourceAuthorizationException("Sign-in needed")
-            is GoogleHealthAccess.Failed -> throw SourceAuthorizationException(access.reason)
-        }
-        return read(token, since, vo2maxSince, sleepSince)
-    }
+    override suspend fun readDailyVitals(since: LocalDate, vo2maxSince: LocalDate, sleepSince: LocalDate): List<DailyVitals> =
+        read(tokenOf(authorization.authorize()), since, vo2maxSince, sleepSince)
 
     internal suspend fun read(
         token: String,
@@ -68,8 +63,26 @@ class GoogleHealthVitalsSource @Inject constructor(
         return found
     }
 
-    private companion object {
+    internal companion object {
         /** A safety stop; a year of one type fits in four pages. */
-        const val MAX_PAGES = 20
+        private const val MAX_PAGES = 20
+
+        /**
+         * The token of [access]; a refusal needs the athlete to sign in again, while Google out of reach (an
+         * [IOException]) only means trying again at the next sync.
+         */
+        fun tokenOf(access: GoogleHealthAccess): String = when (access) {
+            is GoogleHealthAccess.Granted -> access.token
+
+            is GoogleHealthAccess.NeedsConsent -> throw SourceAuthorizationException("Sign-in needed")
+
+            is GoogleHealthAccess.Failed -> if (access.transient) {
+                throw IOException(
+                    access.reason,
+                )
+            } else {
+                throw SourceAuthorizationException(access.reason)
+            }
+        }
     }
 }

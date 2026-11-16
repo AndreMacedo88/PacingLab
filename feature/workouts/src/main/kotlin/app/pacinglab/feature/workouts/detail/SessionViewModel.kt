@@ -345,9 +345,11 @@ class SessionViewModel @AssistedInject constructor(
                     phase.startMillis >= it.workout.start.toEpochMilli() && phase.endMillis <= it.workout.end.toEpochMilli()
                 }
                     ?: continue
+            // A rep without a distance would add steps but no metres and shorten the stride.
+            val distance = phase.distanceMeters ?: continue
             steps += RunningForm.stepsBetween(part.streams.steps, phase.startMillis, phase.endMillis)
             millis += phase.durationMillis
-            meters += phase.distanceMeters ?: 0.0
+            meters += distance
         }
         val reps = if (millis >= MIN_REP_MILLIS) RunningForm.fromTotals(steps, millis, meters) else null
         return RunningFormView(overall, reps, minutes)

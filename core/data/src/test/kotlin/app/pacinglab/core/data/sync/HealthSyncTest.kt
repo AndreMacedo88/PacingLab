@@ -273,6 +273,26 @@ class HealthSyncTest {
     }
 
     @Test
+    fun `heart rate arriving later leaves a workout without a route settled`() = runTest {
+        source.addWorkout(workout("intervals", daysAgo = 1, activity = "boot_camp"))
+        sync.sync()
+        assertThat(workouts.get(HealthSync.workoutId("intervals"))!!.routePending).isFalse()
+
+        val start = now.minus(Duration.ofDays(1))
+        for (foreground in listOf(false, true)) {
+            visibility.isForeground = foreground
+            source.routesAvailable = foreground
+            source.replaceStreams("intervals", WorkoutStreams.EMPTY.copy(heartRate = HeartRateSeries.of(start.toEpochMilli() to 150)))
+            val reads = source.workoutReads
+            sync.sync()
+
+            assertThat(workouts.get(HealthSync.workoutId("intervals"))!!.routePending).isFalse()
+            // No session read to look for a route that Health Connect already said is not there.
+            assertThat(source.workoutReads).isEqualTo(reads)
+        }
+    }
+
+    @Test
     fun `workouts from an older sync version are imported again`() = runTest {
         source.addWorkout(workout("a", daysAgo = 3))
         sync.sync()

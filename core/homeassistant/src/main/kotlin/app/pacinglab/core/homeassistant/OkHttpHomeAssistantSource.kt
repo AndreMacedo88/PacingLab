@@ -9,6 +9,7 @@ import app.pacinglab.core.model.home.StatisticsPeriod
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -33,9 +34,12 @@ import kotlin.coroutines.resumeWithException
  */
 @Singleton
 class OkHttpHomeAssistantSource @Inject constructor() : HomeAssistantSource {
+    // The read timeout ends with a web socket's upgrade (OkHttp sets the socket's to zero); pings notice a
+    // connection that died on the way, such as Tailscale dropping out, and fail the socket.
     private val client = OkHttpClient.Builder()
         .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .pingInterval(PING_SECONDS, TimeUnit.SECONDS)
         .build()
 
     override suspend fun server(url: String, token: String): HomeServer = HomeAssistantJson.server(get("${base(url)}/api/config", token))
@@ -61,51 +65,63 @@ class OkHttpHomeAssistantSource @Inject constructor() : HomeAssistantSource {
     ): Map<String, List<SensorStatistic>> {
         if (entityIds.isEmpty()) return emptyMap()
         val socket = base(url).replaceFirst("https://", "wss://").replaceFirst("http://", "ws://") + "/api/websocket"
-        return suspendCancellableCoroutine { continuation ->
-            fun fail(error: Throwable) {
-                if (continuation.isActive) continuation.resumeWithException(error)
-            }
-            val listener = object : WebSocketListener() {
-                override fun onMessage(webSocket: WebSocket, text: String) {
-                    try {
-                        val message = JSONObject(text)
-                        when (message.optString("type")) {
-                            "auth_required" -> webSocket.send(HomeAssistantJson.authMessage(token))
+        // A server that keeps the socket open but never answers must not hold up the syncs after this one.
+        return withTimeoutOrNull(STATISTICS_TIMEOUT_MILLIS) { askStatistics(socket, token, entityIds, from, to, period) }
+            ?: throw IOException("Home Assistant did not send the statistics in time")
+    }
 
-                            "auth_ok" -> webSocket.send(HomeAssistantJson.statisticsCommand(COMMAND_ID, entityIds, from, to, period))
-
-                            "auth_invalid" -> {
-                                fail(HomeAssistantAuthException(message.optString("message", "Token refused")))
-                                webSocket.close(NORMAL_CLOSURE, null)
-                            }
-
-                            "result" -> {
-                                if (message.optBoolean("success")) {
-                                    val result = HomeAssistantJson.statistics(message.optJSONObject("result") ?: JSONObject())
-                                    if (continuation.isActive) continuation.resume(result)
-                                } else {
-                                    fail(IOException(message.optJSONObject("error")?.optString("message") ?: "Statistics refused"))
-                                }
-                                webSocket.close(NORMAL_CLOSURE, null)
-                            }
-                        }
-                    } catch (e: JSONException) {
-                        fail(IOException("Unreadable answer from Home Assistant", e))
-                        webSocket.close(NORMAL_CLOSURE, null)
-                    }
-                }
-
-                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                    fail(if (t is IOException) t else IOException(t))
-                }
-
-                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                    fail(IOException("Home Assistant closed the connection: $reason"))
-                }
-            }
-            val webSocket = client.newWebSocket(Request.Builder().url(socket).build(), listener)
-            continuation.invokeOnCancellation { webSocket.cancel() }
+    /** One statistics command over the web socket at [socket]: authenticate, ask, read the answer, close. */
+    private suspend fun askStatistics(
+        socket: String,
+        token: String,
+        entityIds: List<String>,
+        from: Instant,
+        to: Instant,
+        period: StatisticsPeriod,
+    ): Map<String, List<SensorStatistic>> = suspendCancellableCoroutine { continuation ->
+        fun fail(error: Throwable) {
+            if (continuation.isActive) continuation.resumeWithException(error)
         }
+        val listener = object : WebSocketListener() {
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                try {
+                    val message = JSONObject(text)
+                    when (message.optString("type")) {
+                        "auth_required" -> webSocket.send(HomeAssistantJson.authMessage(token))
+
+                        "auth_ok" -> webSocket.send(HomeAssistantJson.statisticsCommand(COMMAND_ID, entityIds, from, to, period))
+
+                        "auth_invalid" -> {
+                            fail(HomeAssistantAuthException(message.optString("message", "Token refused")))
+                            webSocket.close(NORMAL_CLOSURE, null)
+                        }
+
+                        "result" -> {
+                            if (message.optBoolean("success")) {
+                                val result = HomeAssistantJson.statistics(message.optJSONObject("result") ?: JSONObject())
+                                if (continuation.isActive) continuation.resume(result)
+                            } else {
+                                fail(IOException(message.optJSONObject("error")?.optString("message") ?: "Statistics refused"))
+                            }
+                            webSocket.close(NORMAL_CLOSURE, null)
+                        }
+                    }
+                } catch (e: JSONException) {
+                    fail(IOException("Unreadable answer from Home Assistant", e))
+                    webSocket.close(NORMAL_CLOSURE, null)
+                }
+            }
+
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                fail(if (t is IOException) t else IOException(t))
+            }
+
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+                fail(IOException("Home Assistant closed the connection: $reason"))
+            }
+        }
+        val webSocket = client.newWebSocket(Request.Builder().url(socket).build(), listener)
+        continuation.invokeOnCancellation { webSocket.cancel() }
     }
 
     private suspend fun get(url: String, token: String): String = withContext(Dispatchers.IO) {
@@ -130,6 +146,10 @@ class OkHttpHomeAssistantSource @Inject constructor() : HomeAssistantSource {
 
     private companion object {
         const val TIMEOUT_SECONDS = 20L
+        const val PING_SECONDS = 15L
+
+        /** A year of hourly statistics for three sensors comes back in seconds. */
+        const val STATISTICS_TIMEOUT_MILLIS = 60_000L
         const val COMMAND_ID = 1
         const val NORMAL_CLOSURE = 1000
         const val UNAUTHORIZED = 401

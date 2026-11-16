@@ -533,7 +533,8 @@ data class SleepFactors(val score: OutcomeFactors, val rested: OutcomeFactors, v
         private val STAGED = setOf(SleepStageType.LIGHT, SleepStageType.DEEP, SleepStageType.REM)
 
         private fun deepBeforeWaking(night: Night): Double? {
-            if (night.stages.isEmpty()) return null
+            // Without stages (or in classic mode) deep sleep is unknown, not absent.
+            if (night.stages.none { it.type in STAGED }) return null
             val from = night.end.minus(DEEP_BEFORE_WAKING)
             return if (night.stages.any { it.type == SleepStageType.DEEP && it.end > from }) 1.0 else 0.0
         }

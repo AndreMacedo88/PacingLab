@@ -59,6 +59,9 @@ class MorningReminder @Inject constructor(
         val LATEST: LocalTime = LocalTime.of(13, 0)
 
         private val REMINDED = stringPreferencesKey("morning_reminder_last")
+
+        /** The morning this installation last reminded; not the athlete's to back up. */
+        internal val DEVICE_KEYS: Set<String> = setOf(REMINDED.name)
     }
 }
 
