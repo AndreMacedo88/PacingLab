@@ -80,7 +80,8 @@ fun AlertnessPill(level: AlertnessLevel, modifier: Modifier = Modifier) {
 /**
  * The score of the day after the night of [date], where in the day the athlete is sharpest, the day's curve
  * and, when [onTest] is given, the reaction test: how far the model has learnt from tests, and a button
- * when one is due. [now] marks the present on today's curve.
+ * when one is due (unless [testButton] is off, where another card offers it). [now] marks the present on
+ * today's curve.
  */
 @Composable
 fun AlertnessSummary(
@@ -89,6 +90,7 @@ fun AlertnessSummary(
     zone: ZoneId,
     modifier: Modifier = Modifier,
     onTest: (() -> Unit)? = null,
+    testButton: Boolean = true,
 ) {
     val locale = LocalConfiguration.current.locales[0]
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -125,14 +127,14 @@ fun AlertnessSummary(
                 }
                 AlertnessChart(day, history.testsOn(date, zone), zone, now = now)
                 if (day.assumed) Muted(stringResource(R.string.alertness_assumed))
-                if (onTest != null) TestRow(history, onTest)
+                if (onTest != null) TestRow(history, onTest, testButton)
             }
         }
     }
 }
 
 @Composable
-private fun TestRow(history: AlertnessHistory, onTest: () -> Unit) {
+private fun TestRow(history: AlertnessHistory, onTest: () -> Unit, button: Boolean) {
     val calibration = history.calibration
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (calibration.learning) {
@@ -153,7 +155,7 @@ private fun TestRow(history: AlertnessHistory, onTest: () -> Unit) {
         } else {
             Muted(pluralStringResource(R.plurals.alertness_tuned, calibration.tests, calibration.tests))
         }
-        if (history.testDue) {
+        if (button && history.testDue) {
             FilledTonalButton(onClick = onTest) { Text(stringResource(R.string.alertness_take_test)) }
         }
     }

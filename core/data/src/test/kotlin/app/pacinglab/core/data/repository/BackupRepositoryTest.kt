@@ -25,11 +25,13 @@ import app.pacinglab.core.model.ZoneBoundaries
 import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.containsExactlyInAnyOrder
 import assertk.assertions.isEqualTo
 import assertk.assertions.isInstanceOf
 import assertk.assertions.prop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Test
@@ -54,7 +56,9 @@ class BackupRepositoryTest {
             .setDriver(AndroidSQLiteDriver())
             .build()
             .also { databases += it }
-        val dataStore = testDataStore()
+
+        // As in the app, a new store is marked with the current version of the arrangements.
+        val dataStore = testDataStore(listOf(DashboardMigration.dataMigration))
         val physiology = PhysiologyStore(database)
         val measurements = MeasurementStore(database)
         val wellness = WellnessStore(database)
@@ -99,7 +103,8 @@ class BackupRepositoryTest {
         val read = release.backup.restore(text)
 
         assertThat(written).isEqualTo(
-            BackupSummary(physiology = 2, tests = 1, mornings = 1, efforts = 1, settings = 5, reactionTests = 1, excluded = 1),
+            // The three preferences, Today's order and hidden cards, and the version of the arrangements.
+            BackupSummary(physiology = 2, tests = 1, mornings = 1, efforts = 1, settings = 6, reactionTests = 1, excluded = 1),
         )
         assertThat(read).isEqualTo(written)
         assertThat(release.physiology.observe().first().entries).isEqualTo(debug.physiology.observe().first().entries)
@@ -125,7 +130,8 @@ class BackupRepositoryTest {
         }
 
         val (text, written) = phone.backup.export()
-        assertThat(written.settings).isEqualTo(1)
+        // The theme and the version of the arrangements.
+        assertThat(written.settings).isEqualTo(2)
         // A backup made before these keys were left out.
         val older = JSONObject(text).also { json ->
             json.getJSONArray("settings").put(JSONObject().put("key", "google_health_connected").put("type", "boolean").put("value", true))
@@ -133,7 +139,33 @@ class BackupRepositoryTest {
         val other = Install()
         other.backup.restore(older)
 
-        assertThat(other.dataStore.data.first().asMap().keys.map { it.name }).containsExactly("theme")
+        // The restore also marks the arrangements as of this version, having carried any older ones over.
+        assertThat(other.dataStore.data.first().asMap().keys.map { it.name }).containsExactlyInAnyOrder("theme", "dashboards_version")
+    }
+
+    @Test
+    fun `a backup made before the screens were reorganised keeps its arrangements`() = runTest {
+        val older = JSONObject()
+            .put("app", "PacingLab")
+            .put("format", 1)
+            .put(
+                "settings",
+                JSONArray()
+                    .put(JSONObject().put("key", "dashboard_trends_order").put("type", "string").put("value", "weeks,status,recovery,form"))
+                    .put(
+                        JSONObject().put("key", "dashboard_trends_hidden").put("type", "strings").put("value", JSONArray().put("recovery")),
+                    )
+                    .put(JSONObject().put("key", "dashboard_today_order").put("type", "string").put("value", "weather,readiness")),
+            )
+            .toString()
+        val install = Install()
+
+        install.backup.restore(older)
+
+        val dashboards = DashboardRepository(install.dataStore)
+        assertThat(dashboards.layout(Dashboard.LOAD).first().order).isEqualTo(listOf("weeks", "status", "form"))
+        assertThat(dashboards.layout(Dashboard.BODY).first().hidden).isEqualTo(setOf("recovery"))
+        assertThat(dashboards.layout(Dashboard.TODAY).first().order).isEqualTo(null)
     }
 
     @Test

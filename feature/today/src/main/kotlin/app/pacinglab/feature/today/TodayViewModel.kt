@@ -201,7 +201,8 @@ class TodayViewModel @Inject constructor(
                 if (TodayCard.RACE_5K in visible) performance.observeRunning() else flowOf(null),
                 if (TodayCard.EFFICIENCY in visible) performance.observeEfficiency() else flowOf(null),
                 if (TodayCard.STRAIN in visible) strain.observe() else flowOf(null),
-                if (TodayCard.ALERTNESS in visible) alertness.observe() else flowOf(null),
+                // The To do card asks for a reaction test when one is due.
+                if (TodayCard.ALERTNESS in visible || TodayCard.TODO in visible) alertness.observe() else flowOf(null),
             ) { vo2max, running, efficiency, strainHistory, alertnessHistory ->
                 TodayExtras(
                     vo2max = vo2max,

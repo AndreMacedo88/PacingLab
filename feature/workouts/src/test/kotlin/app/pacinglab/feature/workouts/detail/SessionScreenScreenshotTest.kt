@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -13,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.dp
 import app.pacinglab.core.analytics.intervals.PhaseKind
 import app.pacinglab.core.analytics.load.LoadScores
@@ -348,8 +352,11 @@ class SessionScreenScreenshotTest {
         }
         compose.onNodeWithText("Recorded with Fitbit", substring = true).assertDoesNotExist()
 
-        compose.onNodeWithText("Recorded parts").performScrollTo()
-        compose.onAllNodesWithText("Interval workout")[1].performScrollTo().performClick()
+        // The part's row in the list, not the tab of the same name above it.
+        val list = hasScrollToNodeAction()
+        val part = hasText("Interval workout") and hasAnyAncestor(list)
+        compose.onNode(list).performScrollToNode(part)
+        compose.onNode(part).performClick()
 
         compose.onNodeWithText("Recorded with Fitbit", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("No GPS", substring = true).assertExists()

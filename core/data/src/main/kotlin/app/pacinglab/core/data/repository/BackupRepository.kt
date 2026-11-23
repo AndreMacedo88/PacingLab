@@ -116,7 +116,12 @@ class BackupRepository @Inject constructor(
         backup.efforts.forEach { (workout, effort) -> efforts.set(workout, effort) }
         reactions.save(backup.reactionTests)
         excluded.exclude(backup.excluded)
-        dataStore.edit { prefs -> backup.settings.forEach { it(prefs) } }
+        dataStore.edit { prefs ->
+            // A backup made before the screens were reorganised holds no version and the old arrangements.
+            prefs.remove(DashboardMigration.VERSION)
+            backup.settings.forEach { it(prefs) }
+            DashboardMigration.upgrade(prefs)
+        }
         return BackupSummary(
             backup.physiology.size,
             backup.tests.size,

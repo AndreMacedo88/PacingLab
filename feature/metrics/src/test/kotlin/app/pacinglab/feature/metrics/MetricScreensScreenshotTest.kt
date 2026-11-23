@@ -11,6 +11,7 @@ import app.pacinglab.core.analytics.recovery.NightlyMetric
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.data.repository.DayHeartRate
+import app.pacinglab.core.designsystem.component.Span
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
 import app.pacinglab.core.model.HeartRateAnchors
 import app.pacinglab.core.model.HeartRateSeries

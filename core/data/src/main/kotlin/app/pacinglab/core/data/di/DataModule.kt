@@ -14,6 +14,7 @@ import app.pacinglab.core.data.home.SecretBox
 import app.pacinglab.core.data.reminder.MorningReminder
 import app.pacinglab.core.data.reminder.PlatformReminderNotifier
 import app.pacinglab.core.data.reminder.ReminderNotifier
+import app.pacinglab.core.data.repository.DashboardMigration
 import app.pacinglab.core.data.strain.StillHeartRateFiller
 import app.pacinglab.core.data.sync.AfterSync
 import app.pacinglab.core.data.sync.AppVisibility
@@ -99,7 +100,9 @@ object DataModule {
     @Provides
     @Singleton
     fun preferences(@ApplicationContext context: Context, @ApplicationScope scope: CoroutineScope): DataStore<Preferences> =
-        PreferenceDataStoreFactory.create(scope = scope) { context.preferencesDataStoreFile("user_preferences") }
+        PreferenceDataStoreFactory.create(scope = scope, migrations = listOf(DashboardMigration.dataMigration)) {
+            context.preferencesDataStoreFile("user_preferences")
+        }
 
     /** The Home Assistant link's settings, apart from [preferences] so that backups never copy its token. */
     @Provides

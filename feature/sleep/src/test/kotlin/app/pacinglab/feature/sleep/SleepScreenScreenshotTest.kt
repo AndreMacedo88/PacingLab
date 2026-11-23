@@ -1,5 +1,7 @@
 package app.pacinglab.feature.sleep
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
@@ -35,7 +37,7 @@ import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h4200dp-xxhdpi")
+@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h3000dp-xxhdpi")
 class SleepScreenScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
@@ -133,6 +135,17 @@ class SleepScreenScreenshotTest {
     @Test
     fun lastNightDark() = capture(loaded, darkTheme = true)
 
+    @Test
+    fun patterns() = capture(loaded, view = SleepView.PATTERNS)
+
+    @Test
+    fun patternsDark() = capture(loaded, darkTheme = true, view = SleepView.PATTERNS)
+
+    /** Opened from the search at the morning question: Night, scrolled to it. */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun openedAtTheMorningQuestion() = capture(loaded, focus = SleepCardKind.RESTED.id)
+
     /**
      * With the Google Health API connected: SpO2 and skin temperature join the body card, and brief
      * awakenings get a lane of their own (one or two in each stretch of light and REM sleep).
@@ -211,16 +224,19 @@ class SleepScreenScreenshotTest {
                 // The newest morning is shown and rated, so its dot is ringed.
                 val morning = agreement.mornings.last()
                 Surface {
-                    FeelingCard(agreement, morning.date, morning.rested, onRate = {}, Modifier.padding(16.dp), today = morning.date)
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        RestedQuestionCard(morning.date, morning.rested, onRate = {}, today = morning.date)
+                        FeelingCard(agreement, morning.date)
+                    }
                 }
             }
         }
         compose.onRoot().captureRoboImage()
     }
 
-    private fun capture(state: SleepUiState, darkTheme: Boolean = false) {
+    private fun capture(state: SleepUiState, darkTheme: Boolean = false, view: SleepView = SleepView.NIGHT, focus: String? = null) {
         compose.setContent {
-            PacingLabTheme(darkTheme = darkTheme) { SleepScreen(state = state, onOpenSettings = {}) }
+            PacingLabTheme(darkTheme = darkTheme) { SleepScreen(state = state, onOpenSettings = {}, initialView = view, focus = focus) }
         }
         compose.onRoot().captureRoboImage()
     }

@@ -7,12 +7,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTouchInput
 import app.pacinglab.core.analytics.load.FitnessModel
 import app.pacinglab.core.analytics.load.FormDay
 import app.pacinglab.core.analytics.load.TrainingStatus
@@ -355,8 +357,10 @@ class TodayScreenScreenshotTest {
         val opened = mutableListOf<TodayDestination>()
         compose.setContent { PacingLabTheme { TodayScreen(loaded(nights(40)), onOpen = { opened += it }, zoneId = ZoneOffset.UTC) } }
 
-        compose.onNodeWithText("Take the 3-minute test").performScrollTo().performClick()
-        compose.onNodeWithText("Alertness").performClick()
+        // A due test waits in the To do card at the top, not on the alertness card.
+        compose.onNodeWithText("Take the 3-minute test").assertDoesNotExist()
+        compose.onNodeWithText("Reaction test due").performClick()
+        compose.onNodeWithText("Alertness").performScrollTo().performClick()
 
         assertThat(opened).isEqualTo(listOf(TodayDestination.ReactionTest, TodayDestination.Alertness))
     }
@@ -373,8 +377,10 @@ class TodayScreenScreenshotTest {
     @Test
     fun aTileOpensItsDetailPage() {
         var opened: TodayDestination? = null
+        // HRV lives on Body; pinned to Today, its tile opens the measure's page.
+        val pinned = DashboardLayout(order = listOf(TodayCard.HRV.id), hidden = emptySet()).arrange(TodayCard.catalog)
         compose.setContent {
-            PacingLabTheme { TodayScreen(loaded(nights(40)), onOpen = { opened = it }, zoneId = ZoneOffset.UTC) }
+            PacingLabTheme { TodayScreen(loaded(nights(40)).copy(cards = pinned), onOpen = { opened = it }, zoneId = ZoneOffset.UTC) }
         }
 
         // The vitals card names HRV too; the tile is the one with a range under the value.
@@ -383,6 +389,34 @@ class TodayScreenScreenshotTest {
         compose.onNode(tile).performClick()
 
         assertThat(opened).isEqualTo(TodayDestination.Metric(NightlyMetric.HRV))
+    }
+
+    @Test
+    fun aSummaryOpensItsCardOnItsOwnTab() {
+        val opened = mutableListOf<TodayDestination>()
+        compose.setContent { PacingLabTheme { TodayScreen(loaded(nights(40)), onOpen = { opened += it }, zoneId = ZoneOffset.UTC) } }
+
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Form"))
+        compose.onNodeWithText("Form").performClick()
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Vitals"))
+        compose.onNodeWithText("Vitals").performClick()
+
+        assertThat(opened).isEqualTo(
+            listOf(TodayDestination.Tab(TodayTab.LOAD, "form"), TodayDestination.Tab(TodayTab.BODY, "vitals")),
+        )
+    }
+
+    @Test
+    fun aLongPressHidesACard() {
+        var arranged: List<PlacedCard>? = null
+        compose.setContent {
+            PacingLabTheme { TodayScreen(loaded(nights(40)), onOpen = {}, zoneId = ZoneOffset.UTC, onArrange = { arranged = it }) }
+        }
+
+        compose.onNodeWithText("Vitals").performTouchInput { longClick() }
+        compose.onNodeWithText("Hide from Today").performClick()
+
+        assertThat(arranged?.single { it.id == TodayCard.VITALS.id }?.visible).isEqualTo(false)
     }
 
     private fun capture(state: TodayUiState, darkTheme: Boolean = false) {

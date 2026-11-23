@@ -14,9 +14,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object SettingsKey : NavKey
 
-/** A page of settings under the settings list. */
+/** A page of settings under the settings list, scrolled to the setting with the id [focus] (see SETTINGS_ON_PAGE). */
 @Serializable
-data class SettingsSectionKey(val section: SettingsSection) : NavKey
+data class SettingsSectionKey(val section: SettingsSection, val focus: String? = null) : NavKey
 
 @Serializable
 data object DataSourcesKey : NavKey
@@ -45,6 +45,7 @@ fun EntryProviderScope<NavKey>.settingsEntries(navigateTo: (NavKey) -> Unit, nav
             onOpenPhysiology = { navigateTo(PhysiologyKey) },
             onOpenDataSources = { navigateTo(DataSourcesKey) },
             onBack = navigateBack,
+            focus = key.focus,
         )
     }
     entry<PhysiologyKey> {

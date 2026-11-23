@@ -1,5 +1,6 @@
 package app.pacinglab.core.data
 
+import androidx.datastore.core.DataMigration
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
@@ -10,10 +11,10 @@ import kotlinx.coroutines.SupervisorJob
 import java.io.File
 import java.nio.file.Files
 
-/** An empty preferences store backed by a fresh file in a temporary directory. */
-fun testDataStore(): DataStore<Preferences> {
+/** An empty preferences store backed by a fresh file in a temporary directory, with [migrations] as the app's has. */
+fun testDataStore(migrations: List<DataMigration<Preferences>> = emptyList()): DataStore<Preferences> {
     val directory = Files.createTempDirectory("prefs").toFile()
-    return PreferenceDataStoreFactory.create(scope = CoroutineScope(Dispatchers.IO + SupervisorJob())) {
+    return PreferenceDataStoreFactory.create(scope = CoroutineScope(Dispatchers.IO + SupervisorJob()), migrations = migrations) {
         File(directory, "test.preferences_pb")
     }
 }

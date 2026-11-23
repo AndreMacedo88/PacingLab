@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -66,13 +68,21 @@ import app.pacinglab.core.designsystem.chart.MiniBars
 import app.pacinglab.core.designsystem.chart.SegmentBar
 import app.pacinglab.core.designsystem.chart.Sparkline
 import app.pacinglab.core.designsystem.chart.weekdayInitials
+import app.pacinglab.core.designsystem.component.CardActions
 import app.pacinglab.core.designsystem.component.CardHeader
+import app.pacinglab.core.designsystem.component.DashboardCard
 import app.pacinglab.core.designsystem.component.DashboardEditAction
 import app.pacinglab.core.designsystem.component.DashboardEditor
 import app.pacinglab.core.designsystem.component.DashboardEntry
+import app.pacinglab.core.designsystem.component.DashboardScaffold
+import app.pacinglab.core.designsystem.component.SectionHeading
 import app.pacinglab.core.designsystem.component.SettingsAction
+import app.pacinglab.core.designsystem.component.SharedBounds
+import app.pacinglab.core.designsystem.component.SharedKeys
+import app.pacinglab.core.designsystem.component.dashboardCardColors
 import app.pacinglab.core.designsystem.component.icon
 import app.pacinglab.core.designsystem.component.label
+import app.pacinglab.core.designsystem.component.rememberFocusedCard
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.theme.chartColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
@@ -83,6 +93,10 @@ import app.pacinglab.core.maps.rememberRouteShades
 import app.pacinglab.core.model.RouteColoring
 import app.pacinglab.core.model.SleepStageType
 import app.pacinglab.core.model.Sport
+import app.pacinglab.core.ui.EmptyTile
+import app.pacinglab.core.ui.HeartRateTodayCard
+import app.pacinglab.core.ui.NightlyTile
+import app.pacinglab.core.ui.TileRow
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.ZoneId
@@ -100,24 +114,25 @@ sealed interface TodayDestination {
 
     data object HeartRate : TodayDestination
 
-    data object Sleep : TodayDestination
-
-    data object Trends : TodayDestination
-
-    data object Performance : TodayDestination
-
     data object Physiology : TodayDestination
 
     data object Alertness : TodayDestination
 
     data object ReactionTest : TodayDestination
+
+    /** A card's home on another tab, which opens scrolled to the card with the id [focus]. */
+    data class Tab(val tab: TodayTab, val focus: String) : TodayDestination
 }
+
+/** The tabs Today's summaries lead to. */
+enum class TodayTab { LOAD, PERFORMANCE, BODY, SLEEP_NIGHT, SLEEP_PATTERNS }
 
 @Composable
 fun TodayRoute(
     onOpen: (TodayDestination) -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    focus: String? = null,
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -143,6 +158,7 @@ fun TodayRoute(
         onRateGym = viewModel::rateGym,
         onArrange = viewModel::arrange,
         onResetArrangement = viewModel::resetArrangement,
+        focus = focus,
         weatherAccess = WeatherAccess(
             locationRefused = locationRefused,
             onAllowLocation = {
@@ -159,13 +175,25 @@ fun TodayRoute(
     )
 }
 
+/** A row of Today: a heading over a group, or one wide card, or one or two tiles. */
+private sealed interface TodayRow {
+    val key: String
+
+    data class Heading(val section: TodaySection) : TodayRow {
+        override val key: String get() = "heading-${section.name}"
+    }
+
+    data class Cards(val cards: List<TodayCard>) : TodayRow {
+        override val key: String get() = cards.joinToString("+") { it.id }
+    }
+}
+
 /**
- * The day at a glance, arranged by the athlete: readiness and the morning question, today's heart
- * rate, tiles for last night and recent training, each with a mini chart of the last days and a status
- * pill, and the latest workout. Every card opens its detail. The pencil in the app bar switches to
- * arranging the cards.
+ * The day as a briefing, arranged by the athlete: what waits to be done, readiness as the answer to "how am I",
+ * alertness, last night's vitals and today's heart rate, then training: the latest session, the training
+ * status and the load tiles, and the weather. Every card opens its detail or its home on another tab, scrolled
+ * to it. The pencil in the app bar, or a long press on a card, switches to arranging the cards.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TodayScreen(
     state: TodayUiState,
@@ -181,6 +209,7 @@ fun TodayScreen(
     onResetArrangement: () -> Unit = {},
     initiallyEditing: Boolean = false,
     weatherAccess: WeatherAccess = WeatherAccess(),
+    focus: String? = null,
 ) {
     val locale = LocalConfiguration.current.locales[0]
     var editing by rememberSaveable { mutableStateOf(initiallyEditing) }
@@ -197,71 +226,80 @@ fun TodayScreen(
         answers++
         onRate(it)
     }
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = {
-                    if (editing) {
-                        Text(stringResource(R.string.today_edit_title))
-                    } else {
-                        Column {
-                            Text(stringResource(R.string.today_title))
-                            if (state is TodayUiState.Loaded) {
-                                val format = remember(locale) { DateTimeFormatter.ofPattern("EEEE d MMMM", locale) }
-                                Text(
-                                    text = format.format(state.today).replaceFirstChar { it.titlecase(locale) },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+    val loaded = state as? TodayUiState.Loaded
+    val dateFormat = remember(locale) { DateTimeFormatter.ofPattern("EEEE d MMMM", locale) }
+    val listState = rememberLazyListState()
+    val rows = loaded?.rows(answering = answers > 0).orEmpty()
+    val flashing = rememberFocusedCard(focus, listState, ready = loaded != null) { id ->
+        rows.indexOfFirst { row -> row is TodayRow.Cards && row.cards.any { it.id == id } }.takeIf { it >= 0 }
+    }
+    val screen = stringResource(R.string.today_title)
+    val actions: (TodayCard) -> CardActions = { card ->
+        CardActions(
+            screen = screen,
+            onHide = loaded?.let {
+                {
+                    onArrange(
+                        it.cards.map { placed ->
+                            if (placed.id ==
+                                card.id
+                            ) {
+                                placed.copy(visible = false)
+                            } else {
+                                placed
                             }
+                        },
+                    )
+                }
+            },
+            onArrange = { editing = true },
+        )
+    }
+    DashboardScaffold(
+        title = screen,
+        subtitle = loaded?.let { dateFormat.format(it.today).replaceFirstChar { c -> c.titlecase(locale) } },
+        onOpenSettings = onOpenSettings,
+        modifier = modifier,
+        editing = editing,
+        onEditingChange = if (loaded != null) ({ editing = it }) else null,
+        editTitle = stringResource(R.string.today_edit_title),
+        editor = { editorModifier ->
+            if (loaded != null) {
+                DashboardEditor(
+                    entries = loaded.cards.mapNotNull { placed ->
+                        TodayCard.of(placed.id)?.let { card ->
+                            DashboardEntry(card.id, stringResource(card.title), stringResource(card.description), placed.visible)
                         }
-                    }
-                },
-                actions = {
-                    if (state is TodayUiState.Loaded) DashboardEditAction(editing, onEditingChange = { editing = it })
-                    if (!editing) SettingsAction(onOpenSettings)
-                },
-            )
-        },
-    ) { scaffoldPadding ->
-        if (editing && state is TodayUiState.Loaded) {
-            val entries = state.cards.mapNotNull { placed ->
-                TodayCard.of(placed.id)?.let { card ->
-                    DashboardEntry(card.id, stringResource(card.title), stringResource(card.description), placed.visible)
-                }
+                    },
+                    onChange = { changed -> onArrange(changed.map { PlacedCard(it.id, it.visible) }) },
+                    onReset = onResetArrangement,
+                    modifier = editorModifier,
+                )
             }
-            DashboardEditor(
-                entries = entries,
-                onChange = { changed -> onArrange(changed.map { PlacedCard(it.id, it.visible) }) },
-                onReset = onResetArrangement,
-                modifier = Modifier.fillMaxSize().padding(scaffoldPadding),
-            )
-            return@Scaffold
-        }
-        PullToRefreshBox(
-            isRefreshing = refreshing,
-            onRefresh = onRefresh,
-            modifier = Modifier.fillMaxSize().padding(scaffoldPadding),
-        ) {
-            when (state) {
-                TodayUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+        },
+        refreshing = refreshing,
+        onRefresh = onRefresh,
+    ) {
+        when (state) {
+            TodayUiState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
 
-                is TodayUiState.Loaded -> LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    if (!state.heartRateValuesSet) {
-                        item(key = "values") { SetValuesCard(onOpenPhysiology = { onOpen(TodayDestination.Physiology) }) }
-                    }
-                    for (row in state.rows(answering = answers > 0)) {
-                        item(key = row.joinToString("+") { it.id }) {
-                            if (row.size == 1 && row.single().wide) {
+            is TodayUiState.Loaded -> LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(rows, key = { it.key }) { row ->
+                    when (row) {
+                        is TodayRow.Heading -> row.section.title?.let { SectionHeading(stringResource(it), Modifier.animateItem()) }
+
+                        is TodayRow.Cards -> if (row.cards.size == 1 && row.cards.single().wide) {
+                            val card = row.cards.single()
+                            DashboardCard(Modifier.animateItem(), actions(card), highlighted = flashing == card.id) {
                                 WideCard(
-                                    card = row.single(),
+                                    card = card,
                                     state = state,
                                     onOpen = onOpen,
                                     onRate = rate,
@@ -269,13 +307,17 @@ fun TodayScreen(
                                     weatherAccess = weatherAccess,
                                     locale = locale,
                                     zoneId = zoneId,
-                                    modifier = Modifier.animateItem(),
+                                    answering = answers > 0,
                                 )
-                            } else {
-                                TileRow(Modifier.animateItem()) {
-                                    row.forEach { TileCard(it, state, onOpen, Modifier.weight(1f)) }
-                                    if (row.size == 1) EmptyTile()
+                            }
+                        } else {
+                            TileRow(Modifier.animateItem()) {
+                                row.cards.forEach { card ->
+                                    DashboardCard(Modifier.weight(1f), actions(card), highlighted = flashing == card.id) {
+                                        TileCard(card, state, onOpen)
+                                    }
                                 }
+                                if (row.cards.size == 1) EmptyTile()
                             }
                         }
                     }
@@ -285,16 +327,23 @@ fun TodayScreen(
     }
 }
 
+/** What the To do card holds now; the morning question stays while [answering] so that the answer shows. */
+private fun TodayUiState.Loaded.todo(answering: Boolean) = TodoItems(
+    rested = rested == null || answering,
+    rating = rested,
+    gym = gymToRate,
+    testDue = extras.alertness?.testDue == true,
+    valuesMissing = !heartRateValuesSet,
+)
+
 /**
- * The visible cards that have something to show, in the athlete's order, as rows: a wide card alone,
- * tiles two at a time. The morning question shows until answered, or while [answering].
+ * The visible cards that have something to show, in the athlete's order, as rows: a wide card alone, tiles two
+ * at a time, and a heading where a new group starts.
  */
-private fun TodayUiState.Loaded.rows(answering: Boolean = false): List<List<TodayCard>> {
+private fun TodayUiState.Loaded.rows(answering: Boolean = false): List<TodayRow> {
     val shown = cards.filter { it.visible }.mapNotNull { TodayCard.of(it.id) }.filter { card ->
         when (card) {
-            TodayCard.RESTED -> rested == null || answering
-
-            TodayCard.GYM_EFFORT -> gymToRate != null
+            TodayCard.TODO -> todo(answering).any
 
             TodayCard.LAST_WORKOUT -> lastWorkout != null
 
@@ -316,26 +365,36 @@ private fun TodayUiState.Loaded.rows(answering: Boolean = false): List<List<Toda
             else -> true
         }
     }
-    val rows = mutableListOf<List<TodayCard>>()
+    val rows = mutableListOf<TodayRow>()
+    var section = TodaySection.MORNING
     var waiting: TodayCard? = null
+    fun flush() {
+        waiting?.let { rows += TodayRow.Cards(listOf(it)) }
+        waiting = null
+    }
     for (card in shown) {
+        if (card.section != section) {
+            flush()
+            section = card.section
+            if (section.title != null) rows += TodayRow.Heading(section)
+        }
         when {
             card.wide -> {
-                waiting?.let { rows += listOf(it) }
-                waiting = null
-                rows += listOf(card)
+                flush()
+                rows += TodayRow.Cards(listOf(card))
             }
 
             waiting == null -> waiting = card
 
             else -> {
-                rows += listOf(waiting, card)
+                rows += TodayRow.Cards(listOf(waiting!!, card))
                 waiting = null
             }
         }
     }
-    waiting?.let { rows += listOf(it) }
-    return rows
+    flush()
+    // A group heading used twice (the athlete moved a card) keeps only its first place.
+    return rows.distinctBy { it.key }
 }
 
 @Composable
@@ -348,17 +407,28 @@ private fun WideCard(
     weatherAccess: WeatherAccess,
     locale: Locale,
     zoneId: ZoneId,
-    modifier: Modifier = Modifier,
-) = Box(modifier) {
+    answering: Boolean,
+) {
     when (card) {
-        TodayCard.READINESS -> ReadinessCard(
-            state.readiness,
-            state.readinessHistory,
-            state.days(locale),
-            onClick = { onOpen(TodayDestination.Readiness) },
+        TodayCard.TODO -> TodoCard(
+            items = state.todo(answering),
+            today = state.today,
+            zoneId = zoneId,
+            onRate = onRate,
+            onRateGym = { effort -> state.gymToRate?.let { onRateGym(it.workoutIds, effort) } },
+            onTest = { onOpen(TodayDestination.ReactionTest) },
+            onOpenPhysiology = { onOpen(TodayDestination.Physiology) },
         )
 
-        TodayCard.RESTED -> RestedCard(state.rested, onRate)
+        TodayCard.READINESS -> SharedBounds(SharedKeys.READINESS) {
+            ReadinessCard(
+                state.readiness,
+                state.readinessHistory,
+                state.days(locale),
+                onClick = { onOpen(TodayDestination.Readiness) },
+                hero = true,
+            )
+        }
 
         TodayCard.ALERTNESS -> AlertnessTodayCard(
             state.extras.alertness,
@@ -368,16 +438,15 @@ private fun WideCard(
             onTest = { onOpen(TodayDestination.ReactionTest) },
         )
 
-        TodayCard.VITALS -> VitalsTodayCard(state.vitals(), onClick = { onOpen(TodayDestination.Sleep) })
+        TodayCard.VITALS -> VitalsTodayCard(state.vitals(), onClick = { onOpen(TodayDestination.Tab(TodayTab.BODY, BODY_VITALS)) })
 
-        TodayCard.TRAINING_STATUS -> TrainingStatusTodayCard(state.extras.trainingStatus, onClick = { onOpen(TodayDestination.Trends) })
-
-        TodayCard.GYM_EFFORT -> state.gymToRate?.let { gym ->
-            GymEffortCard(gym, state.today, zoneId, onRate = { onRateGym(gym.workoutIds, it) })
-        }
+        TodayCard.TRAINING_STATUS -> TrainingStatusTodayCard(
+            state.extras.trainingStatus,
+            onClick = { onOpen(TodayDestination.Tab(TodayTab.LOAD, LOAD_STATUS)) },
+        )
 
         TodayCard.HEART_RATE -> HeartRateTodayCard(
-            day = state.extras.heartRate,
+            series = state.extras.heartRate?.series,
             zones = state.extras.heartRateZones,
             restingHr = state.lastNight()?.restingHr,
             locale = locale,
@@ -404,65 +473,48 @@ private fun WideCard(
 
 @Composable
 private fun TileCard(card: TodayCard, state: TodayUiState.Loaded, onOpen: (TodayDestination) -> Unit, modifier: Modifier = Modifier) {
+    val locale = LocalConfiguration.current.locales[0]
+    val tab: (TodayTab, String) -> () -> Unit = { tab, focus -> { onOpen(TodayDestination.Tab(tab, focus)) } }
+    val nightly: @Composable (NightlyMetric) -> Unit = { metric ->
+        NightlyTile(
+            data = state.nightlyTile(metric),
+            labels = state.days(locale),
+            onClick = { onOpen(TodayDestination.Metric(metric)) },
+            modifier = modifier,
+            locale = locale,
+        )
+    }
     when (card) {
-        TodayCard.SLEEP_SCORE -> SleepTile(state, onClick = { onOpen(TodayDestination.Sleep) }, modifier)
-
-        TodayCard.SLEEP_HEALTH -> SleepHealthTile(state, onClick = { onOpen(TodayDestination.Sleep) }, modifier)
-
-        TodayCard.SLEEP_DEBT -> SleepDebtTile(state, onClick = { onOpen(TodayDestination.Sleep) }, modifier)
-
-        TodayCard.HRV -> NightlyTile(state, NightlyMetric.HRV, onClick = { onOpen(TodayDestination.Metric(NightlyMetric.HRV)) }, modifier)
-
-        TodayCard.RESTING_HR -> NightlyTile(
-            state,
-            NightlyMetric.RESTING_HR,
-            onClick = { onOpen(TodayDestination.Metric(NightlyMetric.RESTING_HR)) },
-            modifier,
-        )
-
-        TodayCard.BREATHING_RATE -> NightlyTile(
-            state,
-            NightlyMetric.BREATHING_RATE,
-            onClick = { onOpen(TodayDestination.Metric(NightlyMetric.BREATHING_RATE)) },
-            modifier,
-        )
-
-        TodayCard.STRAIN -> StrainTile(state, onClick = { onOpen(TodayDestination.Trends) }, modifier)
-
-        TodayCard.SLEEPING_HR -> NightlyTile(
-            state,
-            NightlyMetric.SLEEPING_HR,
-            onClick = { onOpen(TodayDestination.Metric(NightlyMetric.SLEEPING_HR)) },
-            modifier,
-        )
-
-        TodayCard.FORM -> FormTile(state, onClick = { onOpen(TodayDestination.Trends) }, modifier)
-
-        TodayCard.WEEK_LOAD -> WeekTile(state, onClick = { onOpen(TodayDestination.Trends) }, modifier)
-
-        TodayCard.VO2MAX -> Vo2MaxTile(state, onClick = { onOpen(TodayDestination.Performance) }, modifier)
-
-        TodayCard.RACE_5K -> RaceTile(state, onClick = { onOpen(TodayDestination.Performance) }, modifier)
-
-        TodayCard.EFFICIENCY -> EfficiencyTile(state, onClick = { onOpen(TodayDestination.Performance) }, modifier)
-
-        TodayCard.OXYGEN_SATURATION -> NightlyTile(
-            state,
-            NightlyMetric.OXYGEN_SATURATION,
-            onClick = { onOpen(TodayDestination.Metric(NightlyMetric.OXYGEN_SATURATION)) },
-            modifier,
-        )
-
-        TodayCard.SKIN_TEMPERATURE -> NightlyTile(
-            state,
-            NightlyMetric.SKIN_TEMPERATURE,
-            onClick = { onOpen(TodayDestination.Metric(NightlyMetric.SKIN_TEMPERATURE)) },
-            modifier,
-        )
-
+        TodayCard.SLEEP_SCORE -> SleepTile(state, onClick = tab(TodayTab.SLEEP_NIGHT, SLEEP_TILES), modifier)
+        TodayCard.SLEEP_HEALTH -> SleepHealthTile(state, onClick = tab(TodayTab.SLEEP_PATTERNS, SLEEP_HABITS), modifier)
+        TodayCard.SLEEP_DEBT -> SleepDebtTile(state, onClick = tab(TodayTab.SLEEP_PATTERNS, SLEEP_HABITS), modifier)
+        TodayCard.HRV -> nightly(NightlyMetric.HRV)
+        TodayCard.RESTING_HR -> nightly(NightlyMetric.RESTING_HR)
+        TodayCard.BREATHING_RATE -> nightly(NightlyMetric.BREATHING_RATE)
+        TodayCard.SLEEPING_HR -> nightly(NightlyMetric.SLEEPING_HR)
+        TodayCard.OXYGEN_SATURATION -> nightly(NightlyMetric.OXYGEN_SATURATION)
+        TodayCard.SKIN_TEMPERATURE -> nightly(NightlyMetric.SKIN_TEMPERATURE)
+        TodayCard.STRAIN -> StrainTile(state, onClick = tab(TodayTab.BODY, BODY_STRAIN), modifier)
+        TodayCard.FORM -> FormTile(state, onClick = tab(TodayTab.LOAD, LOAD_FORM), modifier)
+        TodayCard.WEEK_LOAD -> WeekTile(state, onClick = tab(TodayTab.LOAD, LOAD_WEEKS), modifier)
+        TodayCard.VO2MAX -> Vo2MaxTile(state, onClick = tab(TodayTab.PERFORMANCE, PERFORMANCE_VO2MAX), modifier)
+        TodayCard.RACE_5K -> RaceTile(state, onClick = tab(TodayTab.PERFORMANCE, PERFORMANCE_RACES), modifier)
+        TodayCard.EFFICIENCY -> EfficiencyTile(state, onClick = tab(TodayTab.PERFORMANCE, PERFORMANCE_EFFICIENCY), modifier)
         else -> Unit
     }
 }
+
+/** The ids of the cards on other tabs that Today's summaries open; each tab's catalogue uses the same. */
+private const val BODY_VITALS = "vitals"
+private const val BODY_STRAIN = "strain"
+private const val LOAD_STATUS = "status"
+private const val LOAD_FORM = "form"
+private const val LOAD_WEEKS = "weeks"
+private const val SLEEP_TILES = "tiles"
+private const val SLEEP_HABITS = "habits"
+private const val PERFORMANCE_VO2MAX = "vo2max"
+private const val PERFORMANCE_RACES = "races"
+private const val PERFORMANCE_EFFICIENCY = "efficiency"
 
 @Composable
 private fun LastWorkoutCard(
@@ -493,11 +545,7 @@ private fun LastWorkoutCard(
             ?.let { stringResource(R.string.unit_pace, it) },
         workout.load?.let { stringResource(R.string.workout_load, it.roundToInt()) },
     )
-    Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) {
+    Card(onClick = onClick, modifier = modifier.fillMaxWidth(), colors = dashboardCardColors()) {
         Column(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -552,19 +600,6 @@ private fun LastWorkoutCard(
                 val chartLegend = zones != null && workout.heartRate.size > 1
                 if (!(chartLegend && shade is RouteShade.Zones && shade.zones == zones)) RouteLegend(shade)
             }
-        }
-    }
-}
-
-@Composable
-private fun SetValuesCard(onOpenPhysiology: () -> Unit, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(stringResource(R.string.today_set_values), style = MaterialTheme.typography.bodyMedium)
-            TextButton(onClick = onOpenPhysiology) { Text(stringResource(R.string.today_set_values_action)) }
         }
     }
 }

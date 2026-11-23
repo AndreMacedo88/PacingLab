@@ -37,6 +37,8 @@ import app.pacinglab.core.data.repository.DayHeartRateRepository
 import app.pacinglab.core.data.repository.NightRepository
 import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.designsystem.chart.HeartRateChart
+import app.pacinglab.core.designsystem.component.SharedBounds
+import app.pacinglab.core.designsystem.component.SharedKeys
 import app.pacinglab.core.designsystem.component.ZoneSwatch
 import app.pacinglab.core.designsystem.component.zoneName
 import app.pacinglab.core.designsystem.component.zoneNumber
@@ -94,7 +96,7 @@ class HeartRateDayViewModel @Inject constructor(
 @Composable
 fun HeartRateDayRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: HeartRateDayViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    HeartRateDayScreen(state, onBack, onDay = viewModel::show, modifier = modifier)
+    SharedBounds(SharedKeys.HEART_RATE_DAY, modifier) { HeartRateDayScreen(state, onBack, onDay = viewModel::show) }
 }
 
 /**

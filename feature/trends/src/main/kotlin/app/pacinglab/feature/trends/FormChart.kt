@@ -30,6 +30,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import app.pacinglab.core.analytics.load.FormDay
+import app.pacinglab.core.designsystem.component.claimsPress
 import app.pacinglab.core.designsystem.theme.chartColors
 import java.time.DayOfWeek
 import java.time.format.DateTimeFormatter
@@ -40,13 +41,6 @@ import kotlin.math.floor
 import kotlin.math.log10
 import kotlin.math.pow
 import kotlin.math.roundToInt
-
-/** The stretch of history the chart shows. */
-enum class TrendRange(val days: Int, @param:StringRes val label: Int) {
-    SIX_WEEKS(42, R.string.range_six_weeks),
-    THREE_MONTHS(91, R.string.range_three_months),
-    YEAR(365, R.string.range_year),
-}
 
 /**
  * Daily load (bars), fitness and fatigue (lines) and form (area around zero), stacked as small multiples
@@ -81,6 +75,7 @@ internal fun FormChart(
             .fillMaxWidth()
             .height(CHART_HEIGHT)
             .semantics { contentDescription = description }
+            .claimsPress()
             .pointerInput(count) {
                 fun index(x: Float): Int {
                     val plot = size.width - AXIS_WIDTH.toPx()

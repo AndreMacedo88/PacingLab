@@ -44,6 +44,9 @@ import app.pacinglab.core.data.repository.NightRepository
 import app.pacinglab.core.designsystem.chart.HistoryChart
 import app.pacinglab.core.designsystem.component.AdvancedInfo
 import app.pacinglab.core.designsystem.component.RangePill
+import app.pacinglab.core.designsystem.component.SharedBounds
+import app.pacinglab.core.designsystem.component.SharedKeys
+import app.pacinglab.core.designsystem.component.Span
 import app.pacinglab.core.designsystem.component.StatusPill
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.chartColors
@@ -88,7 +91,8 @@ class NightlyMetricViewModel @AssistedInject constructor(@Assisted metric: Night
 fun NightlyMetricRoute(metric: NightlyMetric, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val viewModel = hiltViewModel<NightlyMetricViewModel, NightlyMetricViewModel.Factory>(key = metric.name) { it.create(metric) }
     val state by viewModel.state.collectAsStateWithLifecycle()
-    NightlyMetricScreen(metric, state, onBack, modifier)
+    // The page grows out of the tile that opened it.
+    SharedBounds(SharedKeys.metric(metric.name), modifier) { NightlyMetricScreen(metric, state, onBack) }
 }
 
 /**
@@ -122,16 +126,16 @@ fun NightlyMetricScreen(
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             return@Scaffold
         }
-        var span by rememberSaveable { mutableIntStateOf(initialSpan.ordinal) }
+        var span by rememberSaveable { mutableIntStateOf(PERIOD_SPANS.indexOf(initialSpan)) }
         var end by rememberSaveable { mutableLongStateOf(state.today.toEpochDay()) }
-        val period = Period(Span.entries[span], LocalDate.ofEpochDay(end))
+        val period = Period(PERIOD_SPANS[span], LocalDate.ofEpochDay(end))
         var selected by rememberSaveable(span, end) { mutableStateOf<Int?>(null) }
         val byDate = remember(state.nights) { state.nights.associateBy { it.date } }
         // At the resolution shown, so that a dot is coloured as its pill says.
         val values = period.days.map { day -> byDate[day]?.let(metric.value)?.let(metric::rounded) }
         val ranges = remember(state.nights, period) { period.days.map { NightlyRange.of(state.nights, metric, it) } }
         val trend = remember(state.nights, period) {
-            if (period.span.days > Span.MONTH.days) rollingAverage(period.days, byDate, metric) else emptyList()
+            if (period.span > Span.MONTH) rollingAverage(period.days, byDate, metric) else emptyList()
         }
         val shown = selected ?: values.indexOfLast { it != null }.takeIf { it >= 0 }
         LazyColumn(
@@ -141,7 +145,7 @@ fun NightlyMetricScreen(
         ) {
             item(key = "period") {
                 PeriodControls(period, state.today, onPeriod = {
-                    span = it.span.ordinal
+                    span = PERIOD_SPANS.indexOf(it.span)
                     end = it.end.toEpochDay()
                 }, locale = locale)
             }

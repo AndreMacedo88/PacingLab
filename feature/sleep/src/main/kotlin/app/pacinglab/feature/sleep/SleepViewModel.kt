@@ -42,7 +42,8 @@ sealed interface SleepUiState {
      * @property health sleep health over the two weeks up to each morning that has enough nights.
      * @property debts sleep debt going into each morning that has enough nights.
      * @property rested how rested the athlete said they felt each morning, 1 to 5.
-     * @property cards the athlete's arrangement of the screen, hidden cards included.
+     * @property cards the athlete's arrangement of Night, hidden cards included.
+     * @property patternCards the athlete's arrangement of Patterns, hidden cards included.
      * @property today the date now, for asking about this morning rather than a past one.
      */
     data class Loaded(
@@ -52,11 +53,14 @@ sealed interface SleepUiState {
         val rested: Map<LocalDate, Int> = emptyMap(),
         val health: Map<LocalDate, SleepHealth> = emptyMap(),
         val debts: Map<LocalDate, SleepDebt> = emptyMap(),
-        val cards: List<PlacedCard> = DashboardLayout().arrange(SleepCardKind.catalog),
+        val cards: List<PlacedCard> = DashboardLayout().arrange(SleepCardKind.catalog(SleepView.NIGHT)),
+        val patternCards: List<PlacedCard> = DashboardLayout().arrange(SleepCardKind.catalog(SleepView.PATTERNS)),
         val today: LocalDate? = null,
         val freeDays: Set<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
     ) : SleepUiState {
         val feeling: FeelingAgreement by lazy { FeelingAgreement.of(scores, rested) }
+
+        fun cards(view: SleepView): List<PlacedCard> = if (view == SleepView.NIGHT) cards else patternCards
     }
 }
 
@@ -71,12 +75,14 @@ class SleepViewModel @Inject constructor(
     sleepFactors: SleepFactorRepository,
     alertnessRepository: AlertnessRepository,
 ) : ViewModel() {
+    private val layouts = combine(dashboards.layout(Dashboard.SLEEP), dashboards.layout(Dashboard.SLEEP_PATTERNS), ::Pair)
+
     val state: StateFlow<SleepUiState> = combine(
         nights.observeSleep(),
         wellness.observeRested(),
-        dashboards.layout(Dashboard.SLEEP),
+        layouts,
         preferences.preferences.map { it.freeDays }.distinctUntilChanged(),
-    ) { history, rested, layout, freeDays ->
+    ) { history, rested, (night, patterns), freeDays ->
         SleepUiState.Loaded(
             history.nights,
             history.scores,
@@ -84,7 +90,8 @@ class SleepViewModel @Inject constructor(
             rested,
             history.health,
             history.debts,
-            layout.arrange(SleepCardKind.catalog),
+            night.arrange(SleepCardKind.catalog(SleepView.NIGHT)),
+            patterns.arrange(SleepCardKind.catalog(SleepView.PATTERNS)),
             today = LocalDate.now(clock),
             freeDays = freeDays,
         )
@@ -112,12 +119,12 @@ class SleepViewModel @Inject constructor(
         }
     }
 
-    fun arrange(cards: List<PlacedCard>) {
-        viewModelScope.launch { dashboards.save(Dashboard.SLEEP, cards) }
+    fun arrange(view: SleepView, cards: List<PlacedCard>) {
+        viewModelScope.launch { dashboards.save(view.dashboard, cards) }
     }
 
-    fun resetArrangement() {
-        viewModelScope.launch { dashboards.reset(Dashboard.SLEEP) }
+    fun resetArrangement(view: SleepView) {
+        viewModelScope.launch { dashboards.reset(view.dashboard) }
     }
 
     private companion object {

@@ -76,4 +76,13 @@
     <string name="route_coloring_pace">Pace</string>
     <string name="route_coloring_speed">Speed</string>
     <string name="route_coloring_plain">Plain</string>
+    <string name="search_action">Search</string>
+    <string name="card_menu_pin">Pin to Today</string>
+    <string name="card_menu_unpin">Remove from Today</string>
+    <string name="card_menu_hide">Hide from %1$s</string>
+    <string name="span_week">Week</string>
+    <string name="span_month">Month</string>
+    <string name="span_three_months">3 months</string>
+    <string name="span_year">Year</string>
+    <string name="span_all">All</string>
 </resources>

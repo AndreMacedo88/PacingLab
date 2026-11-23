@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -32,6 +31,8 @@ import app.pacinglab.core.analytics.recovery.Standing
 import app.pacinglab.core.designsystem.chart.ChartLevel
 import app.pacinglab.core.designsystem.chart.LevelSparkline
 import app.pacinglab.core.designsystem.component.CardHeader
+import app.pacinglab.core.designsystem.component.dashboardCardColors
+import app.pacinglab.core.designsystem.component.heroBorder
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.StatusColors
@@ -54,11 +55,13 @@ internal fun ReadinessCard(
     days: List<String>,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
+    hero: Boolean = false,
 ) {
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        colors = dashboardCardColors(hero),
+        border = heroBorder(hero),
     ) {
         Column(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
@@ -72,7 +75,7 @@ internal fun ReadinessCard(
             val score = readiness.score
             val level = readiness.level
             if (score != null && level != null) {
-                Score(score, level)
+                Score(score, level, hero = hero)
                 if (readiness.provisional) {
                     Text(
                         text = pluralStringResource(
@@ -99,7 +102,7 @@ internal fun ReadinessCard(
 }
 
 @Composable
-private fun Score(score: Int, level: ReadinessLevel, modifier: Modifier = Modifier) {
+private fun Score(score: Int, level: ReadinessLevel, modifier: Modifier = Modifier, hero: Boolean = false) {
     val (label, color) = when (level) {
         ReadinessLevel.READY -> R.string.readiness_ready to StatusColors.Good
         ReadinessLevel.MODERATE -> R.string.readiness_moderate to StatusColors.Warning
@@ -107,7 +110,8 @@ private fun Score(score: Int, level: ReadinessLevel, modifier: Modifier = Modifi
     }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(score.toString(), style = MaterialTheme.typography.displaySmall.tabularNumbers())
+            val size = if (hero) MaterialTheme.typography.displayMedium else MaterialTheme.typography.displaySmall
+            Text(score.toString(), style = size.tabularNumbers())
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(painterResource(levelIcon(level)), contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
                 Text(stringResource(label), style = MaterialTheme.typography.titleMedium)

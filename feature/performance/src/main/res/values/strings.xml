@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="performance_title">Performance</string>
-    <string name="range_three_months">3 months</string>
-    <string name="range_year">1 year</string>
-    <string name="range_all">All</string>
     <string name="vo2_title">VO2max</string>
     <string name="vo2_unit">ml/kg/min</string>
     <string name="vo2_uncertainty">± %1$s</string>
@@ -61,13 +58,11 @@
     <string name="cs_effort_watch">%1$s, watch speed</string>
     <string name="cs_info"># What it is\nCritical speed (CS) is the highest speed at which fatigue does not build up steadily. Above it you can run only a fixed distance, D′, before you must slow down. It lies close to threshold pace.\n\n# How it is found\nFrom your training, as in Smyth and Muniz-Pumares (2020): the farthest distance in 3, 7 and 12 minutes over the last 12 weeks, fitted with distance = CS × time + D′. Only sustained efforts count: no slowing to recover, and heart rate at threshold in their second half. The best 12 minutes of an interval session include recoveries and would make CS far too slow.\n\n# Getting a value\nRun 3 minutes and 12 minutes all out with GPS (Run mode, not Interval mode), on separate days or with 30 minutes of easy jogging between. A 7-minute effort makes the fit sturdier.</string>
     <string name="efforts_title">Best efforts</string>
-    <string name="efforts_recent">12 weeks</string>
-    <string name="efforts_all">All time</string>
     <string name="efforts_gps">GPS</string>
     <string name="efforts_watch">Watch, no GPS</string>
     <string name="efforts_watch_legend">Watch speed, estimate</string>
     <string name="efforts_distance">Distance</string>
-    <string name="efforts_none_recent">No runs with speed in the last 12 weeks</string>
+    <string name="efforts_none_recent">No runs with speed in the last 3 months</string>
     <string name="efforts_tick_minutes">%1$d min</string>
     <string name="efforts_tick_hours">%1$d h</string>
     <plurals name="efforts_chart_description">
@@ -140,4 +135,21 @@
     <string name="decoupling_advanced" formatted="false" tools:ignore="Typos,TypographyDashes,TypographyFractions">After the first 10 minutes, the run is split into two halves of equal time. Over the moving seconds of each half (at least 1.5 m/s), the speed each heartbeat buys:\n\n$$E_h = \\frac{\\bar{v}_h}{\\overline{\\mathrm{HR}}_h}$$\n\n$$\\mathrm{Pa:HR} = 100\\, \\frac{E_1 - E_2}{E_1}$$\n\nA run qualifies with at least 30 minutes after the warm-up, stopped no more than 10 % of the time, and its minute speeds varying by no more than 15 % (coefficient of variation). Under 5 % counts as well coupled.</string>
     <string name="paces_advanced" formatted="false" tools:ignore="Typos,TypographyDashes,TypographyFractions">Each intensity is a share $p$ of VO2max $V$, turned into a speed by solving the Daniels-Gilbert cost of running $c(v) = p V$ for $v$ in metres a minute:\n\n$$v = \\frac{-b + \\sqrt{b^2 - 4a\\,(c_0 - pV)}}{2a}$$\n\nwith $a = 0.000104$, $b = 0.182258$ and $c_0 = -4.60$. Easy runs span $p$ = 0.59 to 0.74, threshold 0.88, interval 0.975 and repetition 1.05. Marathon pace is $42195 / t_M$, from the predicted marathon time $t_M$.</string>
     <string name="hrr_advanced" formatted="false" tools:ignore="Typos,TypographyDashes,TypographyFractions">For a rep ending at $e$ followed by a recovery of at least a minute:\n\n$$\\Delta = \\max_{[e - 10,\\; e + 10]} \\mathrm{HR} \\;-\\; \\overline{\\mathrm{HR}}_{[e + 55,\\; e + 60]}$$\n\nin seconds, the peak allowing for the wrist sensor\'s lag and the later value the mean of the 5 seconds up to a minute after the rep. Only reps whose peak reached $0.85\\, \\mathrm{HR}_{\\max}$ count; a session needs at least 2, and its value is their median. The line is the median of the last five sessions.</string>
+    <string name="performance_section_capacity">Capacity</string>
+    <string name="performance_section_racing">Racing</string>
+    <string name="performance_section_records">Records</string>
+    <string name="performance_section_economy">Economy</string>
+    <string name="performance_zones_title">Heart rate zones</string>
+    <string name="card_performance_zones">Your maximal, threshold and resting heart rate, and the zones they give</string>
+    <string name="performance_zones_info">The heart rate values that your zones, training load and estimates use today, where each comes from, and the five zones they give.\n\nTap the card for Heart rate and zones in Settings, where you can enter your own values, see their history or set your own zone boundaries.</string>
+    <string name="performance_zones_none">Enter your maximal heart rate, or record a few hard workouts, to see your zones.</string>
+    <string name="performance_zones_max">Maximal heart rate</string>
+    <string name="performance_zones_threshold">Threshold heart rate</string>
+    <string name="performance_zones_resting">Resting heart rate</string>
+    <string name="performance_zones_yours">Your value</string>
+    <string name="performance_zones_max_estimate">Estimate from your workouts</string>
+    <string name="performance_zones_threshold_estimate">From your hardest half hour of running</string>
+    <string name="performance_zones_share" formatted="false">90 % of the maximum, until a hard half hour of running gives an estimate</string>
+    <string name="performance_zones_nights">Measured at night</string>
+    <string name="performance_zones_bpm">%1$d bpm</string>
 </resources>

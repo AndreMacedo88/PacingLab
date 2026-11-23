@@ -12,7 +12,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -22,6 +22,8 @@ import app.pacinglab.core.analytics.recovery.Night
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.designsystem.chart.Sparkline
 import app.pacinglab.core.designsystem.chart.weekdayInitials
+import app.pacinglab.core.designsystem.component.Span
+import app.pacinglab.core.designsystem.component.SpanButtons
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.theme.chartColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
@@ -31,7 +33,6 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 /** Key measures over the last week or month, ending with the selected night. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun KeyMetricsCard(
     nights: List<Night>,
@@ -41,20 +42,14 @@ internal fun KeyMetricsCard(
     locale: Locale,
     modifier: Modifier = Modifier,
 ) {
-    var span by rememberSaveable { mutableIntStateOf(0) }
-    val count = if (span == 0) WEEK else MONTH
+    var span by rememberSaveable { mutableStateOf(Span.WEEK) }
+    val count = requireNotNull(span.days)
     val days = (count - 1 downTo 0).map { until.minusDays(it) }
     val byDate = nights.associateBy { it.date }
     val colors = chartColors()
     fun series(value: (Night) -> Double?) = days.map { byDate[it]?.let(value) }
     SleepCard(stringResource(R.string.sleep_metrics_title), stringResource(R.string.sleep_metrics_info), modifier) {
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            listOf(R.string.sleep_metrics_week, R.string.sleep_metrics_month).forEachIndexed { i, label ->
-                SegmentedButton(selected = span == i, onClick = {
-                    span = i
-                }, shape = SegmentedButtonDefaults.itemShape(i, 2)) { Text(stringResource(label)) }
-            }
-        }
+        SpanButtons(listOf(Span.WEEK, Span.MONTH), span, onSelect = { span = it })
         // Weekday initials fit under a week; a month is read as a shape.
         val labels = if (count == WEEK) weekdayInitials(days, locale) else null
         val scoreValues = days.map { scores[it]?.score?.toDouble() }

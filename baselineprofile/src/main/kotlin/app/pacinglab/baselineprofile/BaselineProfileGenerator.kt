@@ -18,7 +18,7 @@ class BaselineProfileGenerator {
     fun generate() = rule.collect(packageName = "app.pacinglab", includeInStartupProfile = true) {
         pressHome()
         startActivityAndWait()
-        for (tab in listOf("Workouts", "Performance", "Trends", "Sleep", "Today")) {
+        for (tab in listOf("Training", "Performance", "Body", "Sleep", "Today")) {
             device.wait(Until.findObject(By.text(tab)), TIMEOUT_MILLIS)?.click()
             device.waitForIdle()
         }

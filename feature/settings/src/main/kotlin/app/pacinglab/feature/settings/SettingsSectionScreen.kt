@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.DatePicker
@@ -71,9 +72,11 @@ import app.pacinglab.core.data.repository.ThemeChoice
 import app.pacinglab.core.data.repository.UserPreferences
 import app.pacinglab.core.data.repository.UserPreferencesRepository
 import app.pacinglab.core.data.repository.WidgetChart
+import app.pacinglab.core.designsystem.component.DashboardCard
 import app.pacinglab.core.designsystem.component.DashboardEditor
 import app.pacinglab.core.designsystem.component.DashboardEntry
 import app.pacinglab.core.designsystem.component.label
+import app.pacinglab.core.designsystem.component.rememberFocusedCard
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.ThemePalette
@@ -95,6 +98,7 @@ fun SettingsSectionRoute(
     onOpenDataSources: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    focus: String? = null,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val preferences by viewModel.preferences.collectAsStateWithLifecycle()
@@ -145,6 +149,7 @@ fun SettingsSectionRoute(
         onOpenDataSources = onOpenDataSources,
         onBack = onBack,
         modifier = modifier,
+        focus = focus,
     )
 }
 
@@ -186,8 +191,11 @@ fun SettingsSectionScreen(
     widget: List<PlacedCard> = emptyList(),
     automaticSleepNeed: Duration? = null,
     backupMessage: BackupMessage? = null,
+    focus: String? = null,
 ) {
     val snackbar = remember { SnackbarHostState() }
+    val listState = rememberLazyListState()
+    val flashing = rememberFocusedCard(focus, listState, ready = true) { id -> SETTINGS_ON_PAGE[section]?.indexOf(id)?.takeIf { it >= 0 } }
     val messageText = backupMessage?.text()
     LaunchedEffect(backupMessage) {
         if (messageText != null) {
@@ -213,13 +221,14 @@ fun SettingsSectionScreen(
         }
         // Each setting on a tile of its own, as the cards elsewhere, so that one ends visibly where the next begins.
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             when (section) {
                 SettingsSection.PROFILE -> {
-                    tile {
+                    tile("sex", flashing) {
                         ChoiceItem(
                             title = stringResource(R.string.settings_sex),
                             summary = stringResource(R.string.settings_sex_summary),
@@ -228,8 +237,8 @@ fun SettingsSectionScreen(
                             onSelect = actions.onSex,
                         )
                     }
-                    tile { BirthDateItem(preferences.birthDate, actions.onBirthDate) }
-                    tile {
+                    tile("birth_date", flashing) { BirthDateItem(preferences.birthDate, actions.onBirthDate) }
+                    tile("physiology", flashing) {
                         SettingsItem(
                             title = stringResource(R.string.physiology_title),
                             summary = stringResource(R.string.settings_physiology_summary),
@@ -240,7 +249,7 @@ fun SettingsSectionScreen(
                 }
 
                 SettingsSection.TRAINING -> {
-                    tile {
+                    tile("merge_gap", flashing) {
                         RangeItem(
                             title = stringResource(R.string.settings_merge_gap),
                             summary = stringResource(R.string.settings_merge_gap_summary),
@@ -257,7 +266,7 @@ fun SettingsSectionScreen(
                             default = TrainingSessions.DEFAULT_MAX_GAP.toMinutes().toInt(),
                         )
                     }
-                    tile {
+                    tile("strength_in_load", flashing) {
                         SwitchItem(
                             title = stringResource(R.string.settings_strength_in_load),
                             summary = stringResource(R.string.settings_strength_in_load_summary),
@@ -265,7 +274,7 @@ fun SettingsSectionScreen(
                             onChange = actions.onStrengthInLoad,
                         )
                     }
-                    tile {
+                    tile("running_increase", flashing) {
                         RangeItem(
                             title = stringResource(R.string.settings_running_increase),
                             summary = stringResource(R.string.settings_running_increase_summary),
@@ -277,7 +286,7 @@ fun SettingsSectionScreen(
                             default = UserPreferencesRepository.DEFAULT_RUNNING_INCREASE,
                         )
                     }
-                    tile {
+                    tile("heat", flashing) {
                         SwitchItem(
                             title = stringResource(R.string.settings_heat),
                             summary = stringResource(R.string.settings_heat_summary),
@@ -288,9 +297,9 @@ fun SettingsSectionScreen(
                 }
 
                 SettingsSection.SLEEP -> {
-                    tile { SleepNeedItem(preferences.sleepNeed, automaticSleepNeed, actions.onSleepNeed) }
-                    tile { FreeDaysItem(preferences.freeDays, actions.onFreeDays) }
-                    tile {
+                    tile("sleep_need", flashing) { SleepNeedItem(preferences.sleepNeed, automaticSleepNeed, actions.onSleepNeed) }
+                    tile("free_days", flashing) { FreeDaysItem(preferences.freeDays, actions.onFreeDays) }
+                    tile("morning_reminder", flashing) {
                         SwitchItem(
                             title = stringResource(R.string.settings_morning_reminder),
                             summary = stringResource(R.string.settings_morning_reminder_summary),
@@ -301,9 +310,9 @@ fun SettingsSectionScreen(
                 }
 
                 SettingsSection.APPEARANCE -> {
-                    tile { ThemeRow(preferences.theme, actions.onTheme) }
-                    tile { DarkModeRow(preferences.darkMode, actions.onDarkMode) }
-                    tile {
+                    tile("theme", flashing) { ThemeRow(preferences.theme, actions.onTheme) }
+                    tile("dark_mode", flashing) { DarkModeRow(preferences.darkMode, actions.onDarkMode) }
+                    tile("speed", flashing) {
                         SwitchItem(
                             title = stringResource(R.string.settings_speed_by_default),
                             summary = stringResource(R.string.settings_speed_by_default_summary),
@@ -311,7 +320,7 @@ fun SettingsSectionScreen(
                             onChange = actions.onSpeedByDefault,
                         )
                     }
-                    tile {
+                    tile("route_coloring", flashing) {
                         ChoiceItem(
                             title = stringResource(R.string.settings_route_coloring),
                             summary = stringResource(R.string.settings_route_coloring_summary),
@@ -323,7 +332,7 @@ fun SettingsSectionScreen(
                 }
 
                 SettingsSection.DATA -> {
-                    tile {
+                    tile("data_sources", flashing) {
                         SettingsItem(
                             title = stringResource(R.string.data_sources_title),
                             summary = stringResource(R.string.settings_data_sources_summary),
@@ -331,7 +340,7 @@ fun SettingsSectionScreen(
                             onClick = onOpenDataSources,
                         )
                     }
-                    tile {
+                    tile("session_weather", flashing) {
                         SwitchItem(
                             title = stringResource(R.string.settings_session_weather),
                             summary = stringResource(R.string.settings_session_weather_summary),
@@ -339,7 +348,7 @@ fun SettingsSectionScreen(
                             onChange = actions.onSessionWeather,
                         )
                     }
-                    tile {
+                    tile("backup", flashing) {
                         SettingsItem(
                             title = stringResource(R.string.settings_backup),
                             summary = stringResource(R.string.settings_backup_summary),
@@ -347,7 +356,7 @@ fun SettingsSectionScreen(
                             onClick = actions.onBackUp,
                         )
                     }
-                    tile {
+                    tile("restore", flashing) {
                         SettingsItem(
                             title = stringResource(R.string.settings_restore),
                             summary = stringResource(R.string.settings_restore_summary),
@@ -363,8 +372,22 @@ fun SettingsSectionScreen(
     }
 }
 
-/** One setting on a tile of its own. */
-private fun LazyListScope.tile(content: @Composable () -> Unit) = item { SettingsTile(content = content) }
+/**
+ * The settings of each page, in their order on it, by the ids the search opens them with; a link to a page with a
+ * [SettingsSectionKey] focus scrolls to that setting and flashes it.
+ */
+internal val SETTINGS_ON_PAGE: Map<SettingsSection, List<String>> = mapOf(
+    SettingsSection.PROFILE to listOf("sex", "birth_date", "physiology"),
+    SettingsSection.TRAINING to listOf("merge_gap", "strength_in_load", "running_increase", "heat"),
+    SettingsSection.SLEEP to listOf("sleep_need", "free_days", "morning_reminder"),
+    SettingsSection.APPEARANCE to listOf("theme", "dark_mode", "speed", "route_coloring"),
+    SettingsSection.DATA to listOf("data_sources", "session_weather", "backup", "restore"),
+)
+
+/** One setting on a tile of its own, flashing while it is the one a link asked for. */
+private fun LazyListScope.tile(id: String, flashing: String?, content: @Composable () -> Unit) = item(key = id) {
+    DashboardCard(highlighted = flashing == id) { SettingsTile(content = content) }
+}
 
 /** The widget's measures, ordered and shown or hidden like a dashboard's cards, with what its chart shows above them. */
 @Composable

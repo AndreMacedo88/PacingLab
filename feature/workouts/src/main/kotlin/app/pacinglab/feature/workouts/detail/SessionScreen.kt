@@ -49,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.intervals.PhaseKind
 import app.pacinglab.core.analytics.load.EffortLoad
 import app.pacinglab.core.data.weather.SessionWeatherState
+import app.pacinglab.core.designsystem.component.SectionHeading
 import app.pacinglab.core.designsystem.component.label
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
@@ -228,33 +229,46 @@ private fun ScopeContent(
         val stressScore = rated?.let { EffortLoad.stressScore(it, wholeMillis) }
             ?: scope.analysis.load?.takeIf { it.heartRateMillis > 0 }?.stressScore
         item(key = "metrics") { Metrics(scope, stressScore, toggle, locale) }
+        if (scope.routes.isNotEmpty()) {
+            item(key = "map") { RouteSection(scope, routeColoring, toggle.showSpeed) }
+        }
+        item(key = "effort-heading") { SectionHeading(stringResource(R.string.session_section_effort)) }
         // Heart rate says little about lifting, so a gym session leads with its effort.
         if (scope.sport == Sport.STRENGTH && scope.workoutIds.isNotEmpty()) {
             item(key = "effort") { EffortCard(effort, wholeMillis, onRateEffort) }
         }
-        if (scope.routes.isNotEmpty()) {
-            item(key = "map") { RouteSection(scope, routeColoring, toggle.showSpeed) }
-        }
-        // Nothing to show while the weather is looked up, switched off or without a place.
-        if (weather != null && weather != SessionWeatherState.Off && weather != SessionWeatherState.NoPlace) {
-            item(key = "conditions") { ConditionsCard(weather, locale, heatAdjustment = heatAdjustment) }
-        }
         item(key = "heart-rate") { HeartRateCard(scope.analysis.zones, scope.heartRate, scope.zoneOffset ?: zoneId, onOpenPhysiology) }
+        // The effort card shows the load of a rated gym session.
+        scope.analysis.load?.takeIf { it.heartRateMillis > 0 && rated == null }?.let { load ->
+            item(key = "load") { LoadCard(load) }
+        }
+        val decoupling = scope.decoupling
+        if (scope.analysis.isIntervalSession || scope.splits.isNotEmpty() || decoupling != null) {
+            item(key = "structure-heading") { SectionHeading(stringResource(R.string.session_section_structure)) }
+        }
         if (scope.analysis.isIntervalSession) {
             item(key = "intervals") { IntervalsCard(scope.analysis, toggle, locale) }
         }
         if (scope.splits.isNotEmpty()) {
             item(key = "splits") { SplitsCard(scope.splits, toggle, locale) }
         }
-        scope.form?.let { form ->
-            item(key = "form") { RunningFormCard(form, locale) }
+        decoupling?.let {
+            item(key = "decoupling") { DecouplingCard(it, toggle, locale, heat = weather.heat()) }
         }
-        scope.decoupling?.let { decoupling ->
-            item(key = "decoupling") { DecouplingCard(decoupling, toggle, locale, heat = weather.heat()) }
+        // Nothing to show while the weather is looked up, switched off or without a place.
+        val conditions = weather?.takeIf { it != SessionWeatherState.Off && it != SessionWeatherState.NoPlace }
+        val form = scope.form
+        if (conditions != null || form != null) {
+            item(key = "conditions-heading") { SectionHeading(stringResource(R.string.session_section_conditions)) }
         }
-        // The effort card shows the load of a rated gym session.
-        scope.analysis.load?.takeIf { it.heartRateMillis > 0 && rated == null }?.let { load ->
-            item(key = "load") { LoadCard(load) }
+        conditions?.let {
+            item(key = "conditions") { ConditionsCard(it, locale, heatAdjustment = heatAdjustment) }
+        }
+        form?.let {
+            item(key = "form") { RunningFormCard(it, locale) }
+        }
+        if (estimates != null || parts.isNotEmpty() || scope.recording != null) {
+            item(key = "session-heading") { SectionHeading(stringResource(R.string.session_section_session)) }
         }
         estimates?.let { used ->
             item(key = "estimates") { EstimatesCard(used, onUseForEstimates) }

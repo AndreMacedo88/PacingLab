@@ -26,8 +26,11 @@ spotless {
     val composeRules = "io.nlopez.compose.rules:ktlint:${libs.versions.composeRules.get()}"
     // Kotlin's official coding conventions. Spotless does not pick the style up from .editorconfig.
     val ktlintStyle = mapOf("ktlint_code_style" to "intellij_idea")
-    // The map renderer is app-wide infrastructure, like the theme, so it may travel as a CompositionLocal.
-    val composeStyle = ktlintStyle + ("compose_allowed_composition_locals" to "LocalMapSnapshots")
+    // The map renderer and the app frame's dashboard services (search, pinning to Today) are app-wide infrastructure,
+    // like the theme, so they may travel as CompositionLocals; LocalCardPress links a card to the charts inside it, and
+    // LocalSharedScreens gives shared elements the frame's transition scopes.
+    val composeStyle =
+        ktlintStyle + ("compose_allowed_composition_locals" to "LocalMapSnapshots,LocalDashboardHost,LocalCardPress,LocalSharedScreens")
     kotlin {
         target(sources("**/*.kt"))
         ktlint(ktlintVersion)

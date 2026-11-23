@@ -84,7 +84,7 @@ data class EfficiencyHistory(val points: List<EfficiencyPoint>, val trend: List<
  * What the athlete's runs say about racing.
  *
  * @property allTime best efforts over every run.
- * @property recent best efforts of the last [CriticalSpeed.WINDOW_DAYS] days.
+ * @property recent best efforts of the last [RECENT_EFFORT_DAYS] days, the three months the card names.
  * @property vo2max today's VO2max from the trend, which the predictions use.
  * @property decoupling every steady long run's decoupling, oldest first.
  * @property shape the marathon shape that tempers the predictions of long races; null without VO2max.
@@ -290,7 +290,7 @@ class PerformanceRepository @Inject constructor(
             val efforts = analysed.map { it.second.efforts }
             // Best efforts are what the watch measured; critical speed and decoupling read heart rate as well.
             val estimating = analysed.filter { it.first.second !in counted.leftOut }
-            val recentFrom = today.minusDays(CriticalSpeed.WINDOW_DAYS)
+            val recentFrom = today.minusDays(RECENT_EFFORT_DAYS)
             val criticalSpeed = CriticalSpeed.of(estimating.map { it.second.efforts }, today)
             val vo2max = vo2.trend?.current?.value
             val shape = vo2max?.let { v ->
@@ -362,6 +362,9 @@ class PerformanceRepository @Inject constructor(
     companion object {
         /** Origin of values the athlete entered, as opposed to those an app wrote to Health Connect. */
         const val TEST_ORIGIN = "app.pacinglab.test"
+
+        /** The recent best efforts: three months, as the span buttons name them everywhere. */
+        const val RECENT_EFFORT_DAYS = 91L
 
         /** Steady stretches at which a day's own estimate counts fully. */
         private const val FULL_WEIGHT_WINDOWS = 20.0

@@ -47,68 +47,15 @@ import app.pacinglab.core.designsystem.theme.StatusColors
 import app.pacinglab.core.designsystem.theme.chartColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import app.pacinglab.core.model.SleepStageType
+import app.pacinglab.core.ui.NightlyTileData
 import app.pacinglab.core.ui.StrainPill
+import app.pacinglab.core.ui.Tile
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import app.pacinglab.core.ui.R as UiR
-
-/** Two tiles side by side, equally tall; a lone tile keeps its half and leaves the other empty. */
-@Composable
-internal fun TileRow(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
-    Row(
-        modifier = modifier.fillMaxWidth().height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        content = content,
-    )
-}
-
-@Composable
-internal fun RowScope.EmptyTile() {
-    Spacer(Modifier.weight(1f))
-}
-
-/**
- * A small card: label, headline value, one line of context, a mini chart and, at the bottom, a status
- * pill. The pill sits at the foot of the tile so that pills line up across a row.
- */
-@Composable
-internal fun Tile(
-    label: String,
-    value: String,
-    detail: String?,
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
-    status: (@Composable () -> Unit)? = null,
-    chart: @Composable () -> Unit = {},
-) {
-    val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
-    val content: @Composable () -> Unit = {
-        Column(modifier = Modifier.fillMaxHeight().padding(14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = MaterialTheme.typography.titleLarge.tabularNumbers(), maxLines = 1)
-            Text(
-                text = detail ?: "",
-                style = MaterialTheme.typography.bodySmall.tabularNumbers(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Box(Modifier.padding(top = 8.dp)) { chart() }
-            if (status != null) {
-                Spacer(Modifier.weight(1f))
-                Box(Modifier.padding(top = 10.dp)) { status() }
-            }
-        }
-    }
-    if (onClick == null) {
-        Card(modifier = modifier.fillMaxHeight(), colors = colors) { content() }
-    } else {
-        Card(onClick = onClick, modifier = modifier.fillMaxHeight(), colors = colors) { content() }
-    }
-}
 
 /** One value per day of the last week, oldest first, null for days without a night. */
 internal fun TodayUiState.Loaded.byNight(value: (Night) -> Double?): List<Double?> {
@@ -121,6 +68,10 @@ internal fun TodayUiState.Loaded.days(locale: Locale): List<String> =
     weekdayInitials((TodayViewModel.TILE_DAYS - 1 downTo 0).map { today.minusDays(it.toLong()) }, locale)
 
 internal fun TodayUiState.Loaded.lastNight(): Night? = nights.lastOrNull()?.takeIf { it.date == today }
+
+/** What the tile of a nightly [metric] shows today. */
+internal fun TodayUiState.Loaded.nightlyTile(metric: NightlyMetric): NightlyTileData =
+    NightlyTileData.of(nights, metric, today, ranges[metric].orEmpty(), rangeNights[metric] ?: 0)
 
 @Composable
 internal fun SleepTile(state: TodayUiState.Loaded, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -231,91 +182,6 @@ internal fun SleepRating.label(): Int = when (this) {
     SleepRating.GOOD -> R.string.sleep_good
     SleepRating.FAIR -> R.string.sleep_fair
     SleepRating.POOR -> R.string.sleep_poor
-}
-
-/**
- * A nightly measure against the athlete's own range: last night's value, the range, the week as a
- * sparkline over each day's range, and whether last night fell inside it.
- */
-@Composable
-internal fun NightlyTile(state: TodayUiState.Loaded, metric: NightlyMetric, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val locale = LocalConfiguration.current.locales[0]
-    val night = state.lastNight()
-    val value = night?.let(metric.value)
-    val range = state.rangeTonight(metric)
-    val colors = chartColors()
-    Tile(
-        label = stringResource(metric.label()),
-        value = value?.let { metric.format(it, locale) } ?: DASH,
-        detail = when {
-            range != null -> stringResource(
-                R.string.tile_range,
-                metric.format(range.low, locale, unit = false),
-                metric.format(range.high, locale),
-            )
-
-            else -> pluralStringResource(
-                R.plurals.tile_range_learning,
-                NightlyRange.MIN_NIGHTS,
-                state.rangeNights[metric] ?: 0,
-                NightlyRange.MIN_NIGHTS,
-            )
-        },
-        modifier = modifier,
-        onClick = onClick,
-        status = when {
-            value != null -> ({ RangePill(range?.standing(value)) })
-
-            metric == NightlyMetric.HRV && night?.hrvPartial == true -> (
-                {
-                    StatusPill(stringResource(R.string.tile_hrv_partial), MaterialTheme.colorScheme.outline, PacingLabIcons.Info)
-                }
-                )
-
-            else -> null
-        },
-    ) {
-        Sparkline(
-            values = state.byNight { night -> metric.value(night)?.let(metric::rounded) },
-            color = when (metric) {
-                NightlyMetric.HRV -> colors.series[0]
-                NightlyMetric.RESTING_HR -> colors.restingHr
-                NightlyMetric.BREATHING_RATE -> colors.series[2]
-                NightlyMetric.SLEEPING_HR -> colors.restingHr
-                NightlyMetric.OXYGEN_SATURATION -> colors.oxygenSaturation
-                NightlyMetric.SKIN_TEMPERATURE -> colors.skinTemperature
-            },
-            bands = state.ranges[metric].orEmpty().map { it?.let { r -> r.low..r.high } },
-            labels = state.days(locale),
-        )
-    }
-}
-
-internal fun NightlyMetric.label(): Int = when (this) {
-    NightlyMetric.HRV -> R.string.tile_hrv
-    NightlyMetric.RESTING_HR -> R.string.tile_resting_hr
-    NightlyMetric.BREATHING_RATE -> R.string.tile_breathing
-    NightlyMetric.SLEEPING_HR -> R.string.tile_sleeping_hr
-    NightlyMetric.OXYGEN_SATURATION -> R.string.tile_oxygen
-    NightlyMetric.SKIN_TEMPERATURE -> R.string.tile_skin_temperature
-}
-
-/** "62 ms", "57 bpm", "13.4 /min"; without the unit for the lower end of a range. */
-@Composable
-internal fun NightlyMetric.format(value: Double, locale: Locale, unit: Boolean = true): String {
-    val number = when (this) {
-        NightlyMetric.BREATHING_RATE, NightlyMetric.OXYGEN_SATURATION -> "%.1f".format(locale, value)
-        NightlyMetric.SKIN_TEMPERATURE -> "%+.1f".format(locale, value)
-        else -> value.roundToInt().toString()
-    }
-    if (!unit) return number
-    return when (this) {
-        NightlyMetric.HRV -> stringResource(R.string.unit_ms_text, number)
-        NightlyMetric.RESTING_HR, NightlyMetric.SLEEPING_HR -> stringResource(R.string.unit_bpm_text, number)
-        NightlyMetric.BREATHING_RATE -> stringResource(R.string.unit_breaths, number)
-        NightlyMetric.OXYGEN_SATURATION -> stringResource(R.string.unit_percent, number)
-        NightlyMetric.SKIN_TEMPERATURE -> stringResource(R.string.unit_celsius, number)
-    }
 }
 
 @Composable

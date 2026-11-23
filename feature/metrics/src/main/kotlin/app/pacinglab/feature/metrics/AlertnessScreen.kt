@@ -47,6 +47,7 @@ import app.pacinglab.core.designsystem.chart.ChartLevel
 import app.pacinglab.core.designsystem.chart.HistoryChart
 import app.pacinglab.core.designsystem.component.AdvancedInfo
 import app.pacinglab.core.designsystem.component.InfoText
+import app.pacinglab.core.designsystem.component.Span
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.StatusColors
 import app.pacinglab.core.designsystem.theme.chartColors

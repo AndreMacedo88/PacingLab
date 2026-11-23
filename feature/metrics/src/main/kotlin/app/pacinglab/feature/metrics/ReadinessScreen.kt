@@ -47,6 +47,9 @@ import app.pacinglab.core.data.repository.TrainingLoadRepository
 import app.pacinglab.core.designsystem.chart.ChartLevel
 import app.pacinglab.core.designsystem.chart.HistoryChart
 import app.pacinglab.core.designsystem.component.RangePill
+import app.pacinglab.core.designsystem.component.SharedBounds
+import app.pacinglab.core.designsystem.component.SharedKeys
+import app.pacinglab.core.designsystem.component.Span
 import app.pacinglab.core.designsystem.component.StatusPill
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.StatusColors
@@ -88,7 +91,7 @@ class ReadinessViewModel @Inject constructor(nights: NightRepository, trainingLo
 @Composable
 fun ReadinessRoute(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: ReadinessViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    ReadinessScreen(state, onBack, modifier)
+    SharedBounds(SharedKeys.READINESS, modifier) { ReadinessScreen(state, onBack) }
 }
 
 /**
@@ -114,9 +117,9 @@ fun ReadinessScreen(state: ReadinessState?, onBack: () -> Unit, modifier: Modifi
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             return@Scaffold
         }
-        var span by rememberSaveable { mutableIntStateOf(initialSpan.ordinal) }
+        var span by rememberSaveable { mutableIntStateOf(PERIOD_SPANS.indexOf(initialSpan)) }
         var end by rememberSaveable { mutableLongStateOf(state.today.toEpochDay()) }
-        val period = Period(Span.entries[span], LocalDate.ofEpochDay(end))
+        val period = Period(PERIOD_SPANS[span], LocalDate.ofEpochDay(end))
         var selected by rememberSaveable(span, end) { mutableStateOf<Int?>(null) }
         val days = remember(state, period) { period.days.map(state::on) }
         val scores = days.map { it.score?.toDouble() }
@@ -128,7 +131,7 @@ fun ReadinessScreen(state: ReadinessState?, onBack: () -> Unit, modifier: Modifi
         ) {
             item(key = "period") {
                 PeriodControls(period, state.today, onPeriod = {
-                    span = it.span.ordinal
+                    span = PERIOD_SPANS.indexOf(it.span)
                     end = it.end.toEpochDay()
                 }, locale = locale)
             }

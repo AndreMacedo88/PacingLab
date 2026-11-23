@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="workouts_title">Workouts</string>
     <string name="navigate_back">Back</string>
     <string name="workouts_empty">No workouts yet. Workouts recorded with your watch appear here after the next sync.</string>
     <string name="workouts_importing">Importing your workout history</string>
@@ -200,4 +199,26 @@
     <string name="session_estimates_used">Counts towards VO2max, threshold and efficiency</string>
     <string name="session_estimates_left_out">Left out; load and best efforts still count</string>
     <string name="session_estimates_info">Whether this session feeds PacingLab\'s estimates of your fitness: VO2max, threshold and maximum heart rate, aerobic efficiency and the other measures that read heart rate against pace.\n\nTurn it off when heart rate did not follow the effort: a run spent talking, a day you were ill, a reading that went wrong. Those estimates would otherwise carry the error, and a session that comes back every week would pull them the same way each time.\n\n# Left out\n- VO2max from this session, and Fitbit\'s value of the same day\n- Threshold and maximum heart rate estimated from your workouts\n- Aerobic efficiency and decoupling\n- Critical speed\n- Heart rate recovery after reps\n\n# Still counted\nTraining load, fitness and form, time in zones, the kind of run and best efforts. The work was done, even if heart rate makes it look harder.\n\nThe switch applies to the whole session and can be turned back on at any time.</string>
+    <string name="calendar_title">Training calendar</string>
+    <string name="calendar_previous">Previous month</string>
+    <string name="calendar_next">Next month</string>
+    <string name="calendar_no_heart_rate">Gym and other</string>
+    <string name="calendar_day_description">%1$s: load %2$d, %3$s</string>
+    <plurals name="sessions_summary">
+        <item quantity="one">%1$d session · %2$s · load %3$d</item>
+        <item quantity="other">%1$d sessions · %2$s · load %3$d</item>
+    </plurals>
+    <string name="calendar_info" formatted="false">Your training day by day: which days you trained, how much, and what each day was for. It shows at a glance how hard and easy days alternate, which matters as much as the total.\n\nA dot on each day with training. Its area grows with the day\'s load (the largest dot is the biggest day of the last six months); its colour is the goal of the day\'s hardest session, in the zone colours of the intensity focus (Seiler 2010 names sessions by their goal: an interval day counts as hard although most of its minutes are easy).\n\n- Runs take the kind their session page names: easy and long runs below VT1, tempo and threshold work between the thresholds, VO2max intervals and sprints above VT2. A threshold session counts as threshold work even when its heart rate crossed VT2 for a while.\n- Other runs and rides go by heart rate: above VT2 from 15 % of the time, between the thresholds from 20 %, otherwise below VT1.\n- Grey days had only other training, such as gym sessions or walks, or no heart rate: zones describe running and riding, not lifting.\n\nThe line under the month adds up its sessions (a warm-up and the interval workout after it count as one), time and load. Tap a day with training to list its sessions under the calendar.</string>
+    <string name="sessions_list">List</string>
+    <string name="sessions_calendar">Calendar</string>
+    <string name="sessions_week">Week of %1$s</string>
+    <plurals name="sessions_summary_time">
+        <item quantity="one">%1$d session · %2$s</item>
+        <item quantity="other">%1$d sessions · %2$s</item>
+    </plurals>
+    <string name="sessions_day_empty">No sessions on this day.</string>
+    <string name="session_section_effort">Effort</string>
+    <string name="session_section_structure">Structure</string>
+    <string name="session_section_conditions">Conditions and form</string>
+    <string name="session_section_session">This session</string>
 </resources>

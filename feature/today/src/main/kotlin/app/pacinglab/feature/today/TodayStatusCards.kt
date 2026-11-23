@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,12 +25,14 @@ import app.pacinglab.core.analytics.recovery.VitalSign
 import app.pacinglab.core.analytics.recovery.Vitals
 import app.pacinglab.core.designsystem.component.CardHeader
 import app.pacinglab.core.designsystem.component.RangePill
+import app.pacinglab.core.designsystem.component.dashboardCardColors
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.StatusColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import app.pacinglab.core.ui.AlertnessSummary
 import app.pacinglab.core.ui.VitalsVerdict
 import app.pacinglab.core.ui.detail
+import app.pacinglab.core.ui.format
 import app.pacinglab.core.ui.icon
 import app.pacinglab.core.ui.label
 import app.pacinglab.core.ui.tint
@@ -54,8 +55,8 @@ internal fun TodayUiState.Loaded.vitals(): Vitals? {
 internal fun VitalsTodayCard(vitals: Vitals?, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val locale = LocalConfiguration.current.locales[0]
     TodayWideCard(
-        stringResource(R.string.vitals_title),
-        stringResource(R.string.vitals_info),
+        stringResource(UiR.string.vitals_title),
+        stringResource(UiR.string.vitals_info),
         onClick,
         modifier,
         advanced = stringResource(UiR.string.ui_nightly_range_advanced),
@@ -109,11 +110,12 @@ internal fun AlertnessTodayCard(
         modifier,
         advanced = stringResource(UiR.string.alertness_advanced),
     ) {
-        AlertnessSummary(history, today, zone, onTest = onTest)
+        // A due test is offered in the To do card at the top.
+        AlertnessSummary(history, today, zone, onTest = onTest, testButton = false)
     }
 }
 
-/** The training status in a word, what it means, and the load ratio behind it. Opens Trends. */
+/** The training status in a word, what it means, and the load ratio behind it. Opens Training > Load. */
 @Composable
 internal fun TrainingStatusTodayCard(status: TrainingStatus?, onClick: () -> Unit, modifier: Modifier = Modifier) {
     TodayWideCard(
@@ -153,11 +155,7 @@ private fun TodayWideCard(
     advanced: String? = null,
     content: @Composable () -> Unit,
 ) {
-    Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) {
+    Card(onClick = onClick, modifier = modifier.fillMaxWidth(), colors = dashboardCardColors()) {
         Column(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),

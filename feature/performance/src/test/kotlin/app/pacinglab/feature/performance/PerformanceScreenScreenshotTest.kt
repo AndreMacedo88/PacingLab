@@ -30,11 +30,14 @@ import app.pacinglab.core.analytics.performance.Vo2MaxPoint
 import app.pacinglab.core.analytics.performance.Vo2MaxSource
 import app.pacinglab.core.analytics.performance.Vo2MaxTrend
 import app.pacinglab.core.analytics.session.RepRecovery
+import app.pacinglab.core.analytics.zones.Zones
 import app.pacinglab.core.data.repository.EfficiencyHistory
 import app.pacinglab.core.data.repository.RunningPerformance
 import app.pacinglab.core.data.repository.SessionRecoveryPoint
 import app.pacinglab.core.data.repository.Vo2MaxHistory
 import app.pacinglab.core.designsystem.theme.PacingLabTheme
+import app.pacinglab.core.model.HeartRateAnchors
+import app.pacinglab.core.model.ZoneModel
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -50,7 +53,7 @@ import kotlin.math.sin
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h3800dp-xxhdpi")
+@Config(sdk = [Config.NEWEST_SDK], qualifiers = "w384dp-h4400dp-xxhdpi")
 class PerformanceScreenScreenshotTest {
     @get:Rule
     val compose = createComposeRule()
@@ -153,6 +156,15 @@ class PerformanceScreenScreenshotTest {
         recoveries = listOf(24.0, 23.0, 26.5, 22.0, 27.0, 25.0, 28.5, 27.0, 30.0, 29.0).mapIndexed { i, drop ->
             SessionRecoveryPoint(today.minusDays(100L - 10 * i), "r$i", RepRecovery(drop, 4, 178))
         },
+        heartRateValues = HeartRateAnchors(maxHr = 186, thresholdHr = 167, restingHr = 52).let { anchors ->
+            HeartRateValues(
+                anchors = anchors,
+                zones = Zones.of(ZoneModel.LTHR_FIVE, anchors),
+                maxSource = ValueSource.MAX_ESTIMATE,
+                thresholdSource = ValueSource.THRESHOLD_ESTIMATE,
+                restingSource = ValueSource.NIGHTS,
+            )
+        },
     )
 
     /** Twenty weeks of 30 km with a 16 km long run every other week. */
@@ -176,6 +188,28 @@ class PerformanceScreenScreenshotTest {
 
     @Test
     fun withCriticalSpeedDark() = capture(loaded(fitted), darkTheme = true)
+
+    /** Opened from Today's 5 km tile: scrolled to the race predictions, which flash once. */
+    @Test
+    @Config(qualifiers = "w384dp-h832dp-xxhdpi")
+    fun openedAtRaces() {
+        compose.setContent {
+            PacingLabTheme { PerformanceScreen(loaded(fitted), onOpenWorkout = {}, focus = PerformanceCardKind.RACES.id) }
+        }
+        compose.onRoot().captureRoboImage()
+    }
+
+    @Test
+    fun theZonesCardOpensHeartRateAndZones() {
+        var opened = false
+        compose.setContent {
+            PacingLabTheme { PerformanceScreen(loaded(fitted), onOpenWorkout = {}, onOpenPhysiology = { opened = true }) }
+        }
+
+        compose.onNodeWithText("Heart rate zones").performScrollTo().performClick()
+
+        assertThat(opened).isEqualTo(true)
+    }
 
     @Test
     fun aBestEffortOpensItsRun() {

@@ -44,6 +44,8 @@ import app.pacinglab.core.analytics.performance.BestPair
 import app.pacinglab.core.analytics.performance.Effort
 import app.pacinglab.core.analytics.performance.EffortBests
 import app.pacinglab.core.analytics.performance.RaceDistance
+import app.pacinglab.core.designsystem.component.Span
+import app.pacinglab.core.designsystem.component.SpanButtons
 import app.pacinglab.core.designsystem.theme.chartColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
 import java.time.format.DateTimeFormatter
@@ -51,12 +53,6 @@ import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.ln
-
-/** Which runs the best efforts come from. */
-enum class EffortRange(val label: Int) {
-    RECENT(R.string.efforts_recent),
-    ALL(R.string.efforts_all),
-}
 
 /**
  * Best efforts: the speed-duration curve (pace against duration on a log scale) and the fastest time
@@ -69,23 +65,15 @@ enum class EffortRange(val label: Int) {
 internal fun BestEffortsCard(
     recent: EffortBests,
     allTime: EffortBests,
-    initialRange: EffortRange,
+    initialSpan: Span,
     onOpenWorkout: (String) -> Unit,
     locale: Locale,
     modifier: Modifier = Modifier,
 ) {
-    var range by rememberSaveable { mutableStateOf(initialRange) }
-    val bests = if (range == EffortRange.RECENT) recent else allTime
+    var span by rememberSaveable { mutableStateOf(initialSpan) }
+    val bests = if (span == Span.THREE_MONTHS) recent else allTime
     PerformanceCard(stringResource(R.string.efforts_title), stringResource(R.string.efforts_info), modifier) {
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            EffortRange.entries.forEachIndexed { i, option ->
-                SegmentedButton(
-                    selected = range == option,
-                    onClick = { range = option },
-                    shape = SegmentedButtonDefaults.itemShape(i, EffortRange.entries.size),
-                ) { Text(stringResource(option.label)) }
-            }
-        }
+        SpanButtons(listOf(Span.THREE_MONTHS, Span.ALL), span, onSelect = { span = it })
         if (bests.isEmpty()) {
             Text(
                 stringResource(R.string.efforts_none_recent),

@@ -53,6 +53,8 @@ import app.pacinglab.core.analytics.load.TrainingStatus
 import app.pacinglab.core.analytics.performance.FitnessAge
 import app.pacinglab.core.analytics.performance.Vo2MaxSource
 import app.pacinglab.core.data.repository.Vo2MaxHistory
+import app.pacinglab.core.designsystem.component.Span
+import app.pacinglab.core.designsystem.component.SpanButtons
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.chartColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
@@ -65,12 +67,8 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
-/** How far back the VO2max chart reaches. */
-enum class Vo2MaxRange(val days: Long?, val label: Int) {
-    THREE_MONTHS(91, R.string.range_three_months),
-    YEAR(365, R.string.range_year),
-    ALL(null, R.string.range_all),
-}
+/** The spans the VO2max chart offers: its trend moves slowly, so the shortest is three months. */
+private val VO2MAX_SPANS = listOf(Span.THREE_MONTHS, Span.YEAR, Span.ALL)
 
 /**
  * VO2max: today's value from the trend with its uncertainty, and a chart of the trend with a band of
@@ -87,8 +85,9 @@ internal fun Vo2MaxCard(
     locale: Locale,
     modifier: Modifier = Modifier,
     fitness: FitnessComparison? = null,
+    hero: Boolean = false,
 ) {
-    var range by rememberSaveable { mutableStateOf(Vo2MaxRange.THREE_MONTHS) }
+    var range by rememberSaveable { mutableStateOf(Span.THREE_MONTHS) }
     var adding by rememberSaveable { mutableStateOf(false) }
     val trend = history.trend
     PerformanceCard(
@@ -96,12 +95,14 @@ internal fun Vo2MaxCard(
         info = stringResource(R.string.vo2_info),
         modifier = modifier,
         advanced = stringResource(R.string.vo2_advanced),
+        hero = hero,
     ) {
         if (trend == null) {
             Text(stringResource(R.string.vo2_empty), style = MaterialTheme.typography.bodyMedium)
         } else {
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("%.1f".format(locale, trend.current.value), style = MaterialTheme.typography.displaySmall.tabularNumbers())
+                val size = if (hero) MaterialTheme.typography.displayMedium else MaterialTheme.typography.displaySmall
+                Text("%.1f".format(locale, trend.current.value), style = size.tabularNumbers())
                 Column {
                     Text(
                         stringResource(R.string.vo2_unit),
@@ -121,15 +122,7 @@ internal fun Vo2MaxCard(
                 }
             }
             fitness?.let { FitnessAgeLine(it, locale) }
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                Vo2MaxRange.entries.forEachIndexed { i, option ->
-                    SegmentedButton(
-                        selected = option == range,
-                        onClick = { range = option },
-                        shape = SegmentedButtonDefaults.itemShape(i, Vo2MaxRange.entries.size),
-                    ) { Text(stringResource(option.label)) }
-                }
-            }
+            SpanButtons(VO2MAX_SPANS, range, onSelect = { range = it })
             Legend(history.points.map { it.source }.toSet())
             Vo2MaxChart(
                 history,
@@ -217,7 +210,7 @@ private fun LegendItem(label: String, modifier: Modifier = Modifier, width: Dp =
 private fun Vo2MaxChart(
     history: Vo2MaxHistory,
     today: LocalDate,
-    range: Vo2MaxRange,
+    range: Span,
     locale: Locale,
     description: String,
     modifier: Modifier = Modifier,

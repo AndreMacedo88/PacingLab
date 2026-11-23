@@ -26,34 +26,40 @@ import app.pacinglab.core.analytics.recovery.SleepRating
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.designsystem.chart.Sparkline
 import app.pacinglab.core.designsystem.chart.weekdayInitials
+import app.pacinglab.core.designsystem.component.CardActions
+import app.pacinglab.core.designsystem.component.DashboardCard
+import app.pacinglab.core.designsystem.component.dashboardCardColors
+import app.pacinglab.core.designsystem.component.heroBorder
 import app.pacinglab.core.designsystem.format.Formats
 import app.pacinglab.core.designsystem.icon.PacingLabIcons
 import app.pacinglab.core.designsystem.theme.StatusColors
 import app.pacinglab.core.designsystem.theme.chartColors
 import app.pacinglab.core.designsystem.theme.tabularNumbers
+import java.time.LocalDate
 import java.util.Locale
 
-/**
- * Four tiles with the last week: the night's score and the two weeks' sleep health on top, time asleep
- * and sleep debt below, each with a status.
- */
+/** The night's score and time asleep, each with the week up to it: the hero of Night. */
 @Composable
-internal fun TopTiles(loaded: SleepUiState.Loaded, night: Night, locale: Locale, modifier: Modifier = Modifier) {
+internal fun NightTiles(
+    loaded: SleepUiState.Loaded,
+    night: Night,
+    locale: Locale,
+    modifier: Modifier = Modifier,
+    tileActions: (String?) -> CardActions? = { null },
+) {
     val days = (WEEK - 1 downTo 0).map { night.date.minusDays(it) }
     val labels = weekdayInitials(days, locale)
     val byDate = loaded.nights.associateBy { it.date }
     val score = loaded.scores.getValue(night.date)
     val need = loaded.needs.getValue(night.date)
-    val health = loaded.health[night.date]
-    val debt = loaded.debts[night.date]
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(modifier = modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        DashboardCard(Modifier.weight(1f), tileActions(TODAY_SLEEP_SCORE)) {
             Tile(
                 label = stringResource(R.string.sleep_score_title),
                 value = score.score.toString(),
                 status = stringResource(score.rating.label()),
                 good = score.rating == SleepRating.GOOD,
-                modifier = Modifier.weight(1f),
+                hero = true,
             ) {
                 Sparkline(
                     values = days.map { loaded.scores[it]?.score?.toDouble() },
@@ -61,28 +67,15 @@ internal fun TopTiles(loaded: SleepUiState.Loaded, night: Night, locale: Locale,
                     labels = labels,
                 )
             }
-            Tile(
-                label = stringResource(R.string.sleep_health_title),
-                value = health?.score?.toString() ?: DASH,
-                status = health?.let { stringResource(it.rating.label()) } ?: stringResource(R.string.sleep_health_learning),
-                good = health?.rating == SleepRating.GOOD,
-                modifier = Modifier.weight(1f),
-            ) {
-                Sparkline(
-                    values = days.map { loaded.health[it]?.score?.toDouble() },
-                    band = SleepScore.GOOD_FROM.toDouble()..100.0,
-                    labels = labels,
-                )
-            }
         }
-        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            val met = night.asleepMillis >= need
+        val met = night.asleepMillis >= need
+        DashboardCard(Modifier.weight(1f), tileActions(null)) {
             Tile(
                 label = stringResource(R.string.sleep_time_asleep),
                 value = Formats.hoursMinutes(night.asleepMillis),
                 status = stringResource(if (met) R.string.sleep_need_met else R.string.sleep_need_missed),
                 good = met,
-                modifier = Modifier.weight(1f),
+                hero = true,
             ) {
                 Sparkline(
                     values = days.map { byDate[it]?.asleepMillis?.div(HOUR) },
@@ -91,12 +84,46 @@ internal fun TopTiles(loaded: SleepUiState.Loaded, night: Night, locale: Locale,
                     labels = labels,
                 )
             }
+        }
+    }
+}
+
+/** Two weeks' sleep health and sleep debt, each with the week up to [date]: the hero of Patterns. */
+@Composable
+internal fun HabitTiles(
+    loaded: SleepUiState.Loaded,
+    date: LocalDate,
+    locale: Locale,
+    modifier: Modifier = Modifier,
+    tileActions: (String?) -> CardActions? = { null },
+) {
+    val days = (WEEK - 1 downTo 0).map { date.minusDays(it) }
+    val labels = weekdayInitials(days, locale)
+    val health = loaded.health[date]
+    val debt = loaded.debts[date]
+    Row(modifier = modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        DashboardCard(Modifier.weight(1f), tileActions(TODAY_SLEEP_HEALTH)) {
+            Tile(
+                label = stringResource(R.string.sleep_health_title),
+                value = health?.score?.toString() ?: DASH,
+                status = health?.let { stringResource(it.rating.label()) } ?: stringResource(R.string.sleep_health_learning),
+                good = health?.rating == SleepRating.GOOD,
+                hero = true,
+            ) {
+                Sparkline(
+                    values = days.map { loaded.health[it]?.score?.toDouble() },
+                    band = SleepScore.GOOD_FROM.toDouble()..100.0,
+                    labels = labels,
+                )
+            }
+        }
+        DashboardCard(Modifier.weight(1f), tileActions(TODAY_SLEEP_DEBT)) {
             Tile(
                 label = stringResource(R.string.sleep_debt_title),
                 value = debt?.let { Formats.hoursMinutes(it.millis) } ?: DASH,
                 status = debt?.let { stringResource(it.level.label()) } ?: stringResource(R.string.sleep_health_learning),
                 good = debt != null && debt.level <= SleepDebtLevel.LOW,
-                modifier = Modifier.weight(1f),
+                hero = true,
             ) {
                 Sparkline(
                     values = days.map { loaded.debts[it]?.millis?.div(HOUR) },
@@ -108,6 +135,11 @@ internal fun TopTiles(loaded: SleepUiState.Loaded, night: Night, locale: Locale,
         }
     }
 }
+
+/** The Today tiles these tiles can be pinned as. */
+private const val TODAY_SLEEP_SCORE = "sleep"
+private const val TODAY_SLEEP_HEALTH = "sleep_health"
+private const val TODAY_SLEEP_DEBT = "sleep_debt"
 
 /** Debt up to this many hours is low; the tile's band. */
 private const val LOW_DEBT_HOURS = 2.0
@@ -126,12 +158,10 @@ private fun Tile(
     status: String,
     good: Boolean,
     modifier: Modifier = Modifier,
+    hero: Boolean = false,
     chart: @Composable () -> Unit,
 ) {
-    Card(
-        modifier = modifier.fillMaxHeight(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-    ) {
+    Card(modifier = modifier.fillMaxHeight(), colors = dashboardCardColors(hero), border = heroBorder(hero)) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.headlineSmall.tabularNumbers())

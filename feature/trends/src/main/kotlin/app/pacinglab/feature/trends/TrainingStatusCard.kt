@@ -34,12 +34,13 @@ import app.pacinglab.core.ui.R as UiR
  * VO2max trend, fitness over two weeks and HRV against its normal range.
  */
 @Composable
-internal fun TrainingStatusCard(status: TrainingStatus?, locale: Locale, modifier: Modifier = Modifier) {
+internal fun TrainingStatusCard(status: TrainingStatus?, locale: Locale, modifier: Modifier = Modifier, hero: Boolean = false) {
     TrendCard(
         title = stringResource(UiR.string.training_status_title),
         info = stringResource(R.string.status_info),
         modifier = modifier,
         advanced = stringResource(UiR.string.ui_training_status_advanced),
+        hero = hero,
     ) {
         if (status == null) {
             Text(
@@ -51,7 +52,10 @@ internal fun TrainingStatusCard(status: TrainingStatus?, locale: Locale, modifie
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(painterResource(status.kind.icon()), contentDescription = null, tint = status.kind.tint(), modifier = Modifier.size(28.dp))
-            Text(stringResource(status.kind.label()), style = MaterialTheme.typography.headlineSmall)
+            Text(
+                stringResource(status.kind.label()),
+                style = if (hero) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
+            )
         }
         Text(stringResource(status.kind.detail()), style = MaterialTheme.typography.bodyMedium)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

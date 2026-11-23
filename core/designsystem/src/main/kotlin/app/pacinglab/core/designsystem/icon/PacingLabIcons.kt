@@ -9,23 +9,29 @@ object PacingLabIcons {
 
     @DrawableRes val TodaySelected = R.drawable.ic_home_filled
 
-    @DrawableRes val Workouts = R.drawable.ic_directions_run_outline
+    @DrawableRes val Training = R.drawable.ic_directions_run_outline
 
-    @DrawableRes val WorkoutsSelected = R.drawable.ic_directions_run_filled
+    @DrawableRes val TrainingSelected = R.drawable.ic_directions_run_filled
 
     @DrawableRes val Performance = R.drawable.ic_trophy_outline
 
     @DrawableRes val PerformanceSelected = R.drawable.ic_trophy_filled
 
-    @DrawableRes val Trends = R.drawable.ic_monitoring_outline
+    @DrawableRes val Body = R.drawable.ic_favorite_outline
 
-    @DrawableRes val TrendsSelected = R.drawable.ic_monitoring_filled
+    @DrawableRes val BodySelected = R.drawable.ic_favorite
 
     @DrawableRes val Sleep = R.drawable.ic_bedtime_outline
 
     @DrawableRes val SleepSelected = R.drawable.ic_bedtime
 
     @DrawableRes val Settings = R.drawable.ic_settings_outline
+
+    @DrawableRes val Search = R.drawable.ic_search
+
+    @DrawableRes val Close = R.drawable.ic_close
+
+    @DrawableRes val Pin = R.drawable.ic_keep
 
     @DrawableRes val Add = R.drawable.ic_add
 

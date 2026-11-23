@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.pacinglab.core.designsystem.R
 import app.pacinglab.core.designsystem.component.ZoneSwatch
+import app.pacinglab.core.designsystem.component.claimsPress
 import app.pacinglab.core.designsystem.component.zoneName
 import app.pacinglab.core.designsystem.component.zoneNumber
 import app.pacinglab.core.designsystem.theme.chartColors
@@ -110,6 +111,7 @@ fun HeartRateChart(
                 .then(
                     if (scrubbable) {
                         Modifier
+                            .claimsPress()
                             .pointerInput(heartRate) {
                                 detectTapGestures(onPress = { offset ->
                                     scrubbed = nearest(heartRate, start, end, offset.x / (size.width - axisWidth.toPx()))

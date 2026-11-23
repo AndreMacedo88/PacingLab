@@ -1,8 +1,11 @@
 package app.pacinglab.core.data.repository
 
+import androidx.datastore.core.DataMigration
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.Flow
@@ -14,9 +17,17 @@ import javax.inject.Singleton
 /** The screens whose cards the athlete can arrange, and the home-screen widget's measures. */
 enum class Dashboard(val key: String) {
     TODAY("today"),
+
+    /** Training > Load. */
+    LOAD("load"),
     PERFORMANCE("performance"),
-    TRENDS("trends"),
+    BODY("body"),
+
+    /** Sleep > Night; its key is the one the whole sleep screen had before it was split. */
     SLEEP("sleep"),
+
+    /** Sleep > Patterns. */
+    SLEEP_PATTERNS("sleep_patterns"),
     WIDGET("widget"),
 }
 
@@ -69,6 +80,22 @@ class DashboardRepository @Inject constructor(private val dataStore: DataStore<P
         }
     }
 
+    /**
+     * Shows or hides one card of [catalog], as pinning a card to Today from another screen does; every other card
+     * keeps its place and visibility.
+     */
+    suspend fun setVisible(dashboard: Dashboard, catalog: List<CardSpec>, id: String, visible: Boolean) {
+        dataStore.edit {
+            val layout = DashboardLayout(
+                order = it[orderKey(dashboard)]?.split(SEPARATOR)?.filter(String::isNotEmpty),
+                hidden = it[hiddenKey(dashboard)],
+            )
+            val cards = layout.arrange(catalog).map { card -> if (card.id == id) card.copy(visible = visible) else card }
+            it[orderKey(dashboard)] = cards.joinToString(SEPARATOR) { card -> card.id }
+            it[hiddenKey(dashboard)] = cards.filterNot { card -> card.visible }.mapTo(HashSet()) { card -> card.id }
+        }
+    }
+
     /** Back to the default arrangement. */
     suspend fun reset(dashboard: Dashboard) {
         dataStore.edit {
@@ -77,11 +104,65 @@ class DashboardRepository @Inject constructor(private val dataStore: DataStore<P
         }
     }
 
-    private fun orderKey(dashboard: Dashboard) = stringPreferencesKey("dashboard_${dashboard.key}_order")
+    companion object {
+        private const val SEPARATOR = ","
 
-    private fun hiddenKey(dashboard: Dashboard) = stringSetPreferencesKey("dashboard_${dashboard.key}_hidden")
+        internal fun orderKey(dashboard: Dashboard) = orderKey(dashboard.key)
 
-    private companion object {
-        const val SEPARATOR = ","
+        internal fun hiddenKey(dashboard: Dashboard) = hiddenKey(dashboard.key)
+
+        internal fun orderKey(key: String) = stringPreferencesKey("dashboard_${key}_order")
+
+        internal fun hiddenKey(key: String) = stringSetPreferencesKey("dashboard_${key}_hidden")
+    }
+}
+
+/**
+ * Carries arrangements over the reorganisation of 2026-11 (version 2), in which Trends was split into
+ * Training > Load and Body and Sleep into Night and Patterns: Load and Body take Trends' order and hidden cards,
+ * Patterns takes Sleep's, and Today goes back to its new default, which leaves to Body and Sleep the tiles they
+ * now hold. Run once by the data store on upgrade, and on a restored backup made before it.
+ */
+object DashboardMigration {
+    /** The version of the arrangements in a store; absent means 1. */
+    val VERSION = intPreferencesKey("dashboards_version")
+
+    const val CURRENT = 2
+
+    private const val TRENDS = "trends"
+
+    /** The cards each new dashboard took from Trends. */
+    private val FROM_TRENDS = mapOf(
+        Dashboard.LOAD to setOf("status", "form", "weeks", "running", "focus"),
+        Dashboard.BODY to setOf("recovery", "strain"),
+    )
+
+    val dataMigration: DataMigration<Preferences> = object : DataMigration<Preferences> {
+        override suspend fun shouldMigrate(currentData: Preferences): Boolean = (currentData[VERSION] ?: 1) < CURRENT
+
+        override suspend fun migrate(currentData: Preferences): Preferences =
+            currentData.toMutablePreferences().also { upgrade(it) }.toPreferences()
+
+        override suspend fun cleanUp() = Unit
+    }
+
+    /** Moves version 1 arrangements in [prefs] to version 2; does nothing to a store already there. */
+    fun upgrade(prefs: MutablePreferences) {
+        if ((prefs[VERSION] ?: 1) >= CURRENT) return
+        val trendsOrder = prefs[DashboardRepository.orderKey(TRENDS)]?.split(",")?.filter(String::isNotEmpty)
+        val trendsHidden = prefs[DashboardRepository.hiddenKey(TRENDS)].orEmpty()
+        if (trendsOrder != null) {
+            for ((dashboard, ids) in FROM_TRENDS) {
+                prefs[DashboardRepository.orderKey(dashboard)] = trendsOrder.filter { it in ids }.joinToString(",")
+                prefs[DashboardRepository.hiddenKey(dashboard)] = trendsHidden.intersect(ids)
+            }
+        }
+        prefs.remove(DashboardRepository.orderKey(TRENDS))
+        prefs.remove(DashboardRepository.hiddenKey(TRENDS))
+        prefs[DashboardRepository.orderKey(Dashboard.SLEEP)]?.let { prefs[DashboardRepository.orderKey(Dashboard.SLEEP_PATTERNS)] = it }
+        prefs[DashboardRepository.hiddenKey(Dashboard.SLEEP)]?.let { prefs[DashboardRepository.hiddenKey(Dashboard.SLEEP_PATTERNS)] = it }
+        prefs.remove(DashboardRepository.orderKey(Dashboard.TODAY))
+        prefs.remove(DashboardRepository.hiddenKey(Dashboard.TODAY))
+        prefs[VERSION] = CURRENT
     }
 }

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,21 +35,13 @@ import java.util.Locale
 import kotlin.math.floor
 
 /**
- * How rested the athlete felt on the [morning] shown, and whether the sleep score follows that feeling:
- * the 1 to 5 question for that morning (Today asks it only until answered, so this is where an answer
- * is changed or a forgotten one given), then a dot per rated morning, its score across and the answer up
- * the side, with each answer's median score marked and the shown morning's dot ringed. The rank
+ * Whether the sleep score follows how rested the athlete felt: a dot per rated morning, its score across and
+ * the answer up the side, with each answer's median score marked and the [morning] shown ringed. The rank
  * correlation joins from [FeelingAgreement.MIN_MORNINGS] mornings; until then the card counts towards it.
+ * The question itself is on Night, under [RestedQuestionCard].
  */
 @Composable
-internal fun FeelingCard(
-    agreement: FeelingAgreement,
-    morning: LocalDate,
-    rating: Int?,
-    onRate: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-    today: LocalDate? = null,
-) {
+internal fun FeelingCard(agreement: FeelingAgreement, morning: LocalDate, modifier: Modifier = Modifier) {
     val locale = LocalConfiguration.current.locales[0]
     val count = agreement.mornings.size
     SleepCard(
@@ -59,17 +50,6 @@ internal fun FeelingCard(
         modifier,
         advanced = stringResource(R.string.feeling_advanced),
     ) {
-        val question = if (morning == today) {
-            stringResource(R.string.feeling_ask_today)
-        } else {
-            val date = remember(locale) { DateTimeFormatter.ofPattern("EEEE d MMMM", locale) }
-            stringResource(R.string.feeling_ask_day, date.format(morning))
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(question, style = MaterialTheme.typography.titleSmall)
-            RestedPicker(rating, onRate)
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         val rho = agreement.rho
         when {
             rho != null -> Row(verticalAlignment = Alignment.Bottom) {
@@ -162,6 +142,24 @@ private fun FeelingStrip(agreement: FeelingAgreement, morning: LocalDate, locale
                 drawLine(median, Offset(x(middle), y(rating) - half), Offset(x(middle), y(rating) + half), 2.dp.toPx())
             }
         }
+    }
+}
+
+/**
+ * How rested the athlete felt on the morning after the night shown, 1 to 5. Today asks it until answered; here
+ * an answer can be given late or changed, for any morning.
+ */
+@Composable
+internal fun RestedQuestionCard(morning: LocalDate, rating: Int?, onRate: (Int) -> Unit, today: LocalDate?, modifier: Modifier = Modifier) {
+    val locale = LocalConfiguration.current.locales[0]
+    val date = remember(locale) { DateTimeFormatter.ofPattern("EEEE d MMMM", locale) }
+    val question = if (morning == today) {
+        stringResource(R.string.feeling_ask_today)
+    } else {
+        stringResource(R.string.feeling_ask_day, date.format(morning))
+    }
+    SleepCard(question, stringResource(R.string.sleep_rested_info), modifier) {
+        RestedPicker(rating, onRate)
     }
 }
 
