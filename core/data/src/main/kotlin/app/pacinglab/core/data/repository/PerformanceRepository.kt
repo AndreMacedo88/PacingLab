@@ -293,12 +293,7 @@ class PerformanceRepository @Inject constructor(
             val recentFrom = today.minusDays(RECENT_EFFORT_DAYS)
             val criticalSpeed = CriticalSpeed.of(estimating.map { it.second.efforts }, today)
             val vo2max = vo2.trend?.current?.value
-            val shape = vo2max?.let { v ->
-                val distances = runs.mapNotNull { run ->
-                    run.summary.distanceMeters?.let { RunDistance(TrainingLoads.dateOf(run, clock.zone), it) }
-                }
-                MarathonShapes.of(distances, v, today)
-            }
+            val shape = vo2max?.let { shapeOf(runs, it, today) }
             RunningPerformance(
                 allTime = BestEfforts.best(efforts),
                 recent = BestEfforts.best(analysed.filter { it.first.first > recentFrom }.map { it.second.efforts }),
@@ -315,6 +310,21 @@ class PerformanceRepository @Inject constructor(
         .flowOn(Dispatchers.Default)
 
     fun observeRunning(): Flow<RunningPerformance> = running
+
+    /**
+     * The marathon shape at today's VO2max, which race predictions from VO2max take into account: run distances
+     * only, so much lighter than [observeRunning] for a caller that needs no best efforts.
+     */
+    fun observeShape(): Flow<MarathonShape?> = combine(runs, history) { counted, vo2 ->
+        vo2.trend?.current?.value?.let { shapeOf(counted.all, it, LocalDate.now(clock)) }
+    }
+
+    private fun shapeOf(runs: List<Workout>, vo2max: Double, today: LocalDate): MarathonShape {
+        val distances = runs.mapNotNull { run ->
+            run.summary.distanceMeters?.let { RunDistance(TrainingLoads.dateOf(run, clock.zone), it) }
+        }
+        return MarathonShapes.of(distances, vo2max, today)
+    }
 
     private data class RunningInputs(val runs: Runs, val timeline: AnchorTimeline, val vo2: Vo2MaxHistory, val wbgt: Map<String, Double>)
 

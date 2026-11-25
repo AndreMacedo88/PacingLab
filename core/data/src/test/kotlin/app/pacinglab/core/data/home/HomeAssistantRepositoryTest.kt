@@ -209,7 +209,23 @@ class HomeAssistantRepositoryTest {
         val yaml = HomeAssistantYaml.of("pacinglab_0123")
 
         assertThat(yaml).contains("webhook_id: \"pacinglab_0123\"")
-        for (value in HomeAssistantYaml.VALUES) assertThat(yaml).contains("unique_id: pacinglab_${value.key}")
+        for (value in HomeAssistantYaml.VALUES + HomeAssistantYaml.BINARY) assertThat(yaml).contains("unique_id: pacinglab_${value.key}")
         assertThat(yaml).contains("unit_of_measurement: \"ms\"")
+        assertThat(yaml).contains("at: \"00:00:00\"")
+    }
+
+    @Test
+    fun `values of the day clear at midnight and the others keep their state`() {
+        val yaml = HomeAssistantYaml.of("pacinglab_0123")
+        fun block(key: String) = yaml.substringAfter("unique_id: pacinglab_$key\n").substringBefore("      - name:")
+
+        assertThat(block("readiness")).contains("else none }}")
+        assertThat(block("readiness")).contains("else false }}")
+        assertThat(block("fitness")).contains("else this.state }}")
+        assertThat(
+            block("week_load"),
+        ).contains(
+            "band_low: \"{{ trigger.json.get('week_load_low') if trigger.platform == 'webhook' else this.attributes.get('band_low') }}\"",
+        )
     }
 }

@@ -286,9 +286,7 @@ class TodayViewModel @Inject constructor(
 
     /** The newest gym session from yesterday or today, unless one of its workouts is rated. */
     private fun gymToRate(sessions: List<TrainingSession>, rated: Map<String, Int>, today: LocalDate): GymToRate? {
-        val session = sessions.firstOrNull { it.sport == Sport.STRENGTH } ?: return null
-        val date = TrainingLoads.dateOf(session.workouts.first(), clock.zone)
-        if (date < today.minusDays(1) || session.workouts.any { it.id in rated }) return null
+        val session = EffortRepository.toRate(sessions, rated, today, clock.zone) ?: return null
         val end = session.workouts.maxOf { it.end }
         return GymToRate(
             sessionId = session.id,
