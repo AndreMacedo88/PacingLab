@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.pacinglab.core.analytics.recovery.SleepScore
+import app.pacinglab.core.data.reminder.MorningCheck
 import app.pacinglab.core.data.repository.BackupFiles
 import app.pacinglab.core.data.repository.BackupFormatException
 import app.pacinglab.core.data.repository.BackupRepository
@@ -34,6 +35,7 @@ import java.time.Clock
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalTime
 import javax.inject.Inject
 
 /** The outcome of a backup or restore, shown once. */
@@ -54,6 +56,7 @@ class SettingsViewModel @Inject constructor(
     private val clock: Clock,
     private val dashboards: DashboardRepository,
     private val homeScreenWidget: HomeScreenWidget,
+    private val morningCheck: MorningCheck,
     nights: NightRepository,
 ) : ViewModel() {
     val preferences: StateFlow<UserPreferences> =
@@ -93,7 +96,15 @@ class SettingsViewModel @Inject constructor(
 
     fun setBirthDate(date: LocalDate?) = launch { repository.setBirthDate(date) }
 
-    fun setMorningReminder(on: Boolean) = launch { repository.setMorningReminder(on) }
+    /** Switches the reminder and, with it, the morning checks that look for last night. */
+    fun setMorningReminder(on: Boolean) = launch {
+        repository.setMorningReminder(on)
+        morningCheck.run()
+    }
+
+    fun setMorningFallback(time: LocalTime) = launch { repository.setMorningFallback(time) }
+
+    fun setGymReminder(on: Boolean) = launch { repository.setGymReminder(on) }
 
     fun setSessionWeather(on: Boolean) = launch { repository.setSessionWeather(on) }
 

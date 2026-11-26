@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Answer buttons in question notifications, after Material 3's connected button group. -->
+    <dimen name="question_button_height">48dp</dimen>
+    <dimen name="question_button_height_compact">36dp</dimen>
+    <dimen name="question_text_size">18sp</dimen>
+    <dimen name="question_text_size_compact">15sp</dimen>
+    <dimen name="question_gap">3dp</dimen>
+    <dimen name="question_outer_radius">24dp</dimen>
+    <dimen name="question_inner_radius">8dp</dimen>
+    <!-- Rows of ten: smaller ends and numbers, so that "10" keeps its margins. -->
+    <dimen name="question_outer_radius_dense">16dp</dimen>
+    <dimen name="question_text_size_dense">16sp</dimen>
+    <dimen name="question_text_size_dense_compact">14sp</dimen>
+</resources>

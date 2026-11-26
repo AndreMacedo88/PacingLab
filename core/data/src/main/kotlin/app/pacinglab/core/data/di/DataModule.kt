@@ -11,9 +11,11 @@ import app.pacinglab.core.data.home.HomeAssistantSync
 import app.pacinglab.core.data.home.HomeAssistantValues
 import app.pacinglab.core.data.home.KeystoreSecretBox
 import app.pacinglab.core.data.home.SecretBox
+import app.pacinglab.core.data.reminder.GymEffortReminder
+import app.pacinglab.core.data.reminder.MorningCheck
+import app.pacinglab.core.data.reminder.MorningCheckAlarm
 import app.pacinglab.core.data.reminder.MorningReminder
-import app.pacinglab.core.data.reminder.PlatformReminderNotifier
-import app.pacinglab.core.data.reminder.ReminderNotifier
+import app.pacinglab.core.data.reminder.PlatformMorningCheckAlarm
 import app.pacinglab.core.data.repository.DashboardMigration
 import app.pacinglab.core.data.strain.StillHeartRateFiller
 import app.pacinglab.core.data.sync.AfterSync
@@ -60,11 +62,20 @@ interface DataBindings {
     fun weatherCache(cache: FileWeatherCache): WeatherCache
 
     @Binds
-    fun reminderNotifier(notifier: PlatformReminderNotifier): ReminderNotifier
+    fun morningCheckAlarm(alarm: PlatformMorningCheckAlarm): MorningCheckAlarm
 
     @Binds
     @IntoSet
     fun morningReminder(reminder: MorningReminder): AfterSync
+
+    /** Sets the morning checks again after a restart or an update, which clear alarms. */
+    @Binds
+    @IntoSet
+    fun morningCheck(check: MorningCheck): AfterSync
+
+    @Binds
+    @IntoSet
+    fun gymEffortReminder(reminder: GymEffortReminder): AfterSync
 
     @Binds
     @IntoSet

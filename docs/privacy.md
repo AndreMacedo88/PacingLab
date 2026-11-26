@@ -60,8 +60,9 @@ sync, where it appears as sensors. It goes nowhere else.
 - You can review or revoke PacingLab's access at any time in Health Connect's settings, and for the
   Google Health API in your Google account's security settings. Location access can be revoked in
   Android's app settings. Weather for sessions can be switched off in Settings > Data.
-- The morning reminder is off until you switch it on in Settings > Sleep; it is a notification on
-  your phone and sends nothing anywhere.
+- The morning and gym reminders are off until you switch them on in Settings > Sleep and Settings >
+  Training; they are notifications on your phone, and an answer tapped on one is saved on the phone
+  like one given in the app. They send nothing anywhere.
 - Settings > Back up your entries saves what you entered by hand (heart rate values, tests, ratings
   and settings) to a file you choose; PacingLab never sends it anywhere.
 - Settings > Data sources > Home Assistant > Disconnect forgets the server, the token and the bedroom

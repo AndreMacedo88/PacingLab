@@ -20,6 +20,7 @@ import app.pacinglab.core.analytics.recovery.SleepHistory
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.analytics.workout.TrainingSession
 import app.pacinglab.core.analytics.zones.Zones
+import app.pacinglab.core.data.reminder.MorningQuestion
 import app.pacinglab.core.data.repository.AlertnessRepository
 import app.pacinglab.core.data.repository.Dashboard
 import app.pacinglab.core.data.repository.DashboardLayout
@@ -132,6 +133,8 @@ sealed interface TodayUiState {
      * @property weekSessions training sessions this week; a warm-up and an interval workout make one.
      * @property heartRateValuesSet false until the athlete has entered a maximal heart rate.
      * @property rested how rested the athlete said they feel today, 1 to 5; null before they answer.
+     * @property restedOpen the morning question is open: last night has synced or the fallback time has come
+     *   ([MorningQuestion]); it waits otherwise, so that no question shows between midnight and waking.
      * @property gymToRate the newest gym session of today or yesterday when it has no effort rating yet.
      * @property ranges each nightly metric's usual range on each of the last [TodayViewModel.TILE_DAYS]
      *   days, oldest first; null before there are enough nights.
@@ -154,6 +157,7 @@ sealed interface TodayUiState {
         val heartRateValuesSet: Boolean,
         val readinessHistory: List<Readiness> = listOf(readiness),
         val rested: Int? = null,
+        val restedOpen: Boolean = true,
         val gymToRate: GymToRate? = null,
         val ranges: Map<NightlyMetric, List<NightlyRange?>> = emptyMap(),
         val rangeNights: Map<NightlyMetric, Int> = emptyMap(),
@@ -238,7 +242,10 @@ class TodayViewModel @Inject constructor(
         .mapLatest { build(it) }
         .flowOn(Dispatchers.Default)
 
-    private val arrangement = combine(cards, preferences.preferences.map { it.routeColoring }.distinctUntilChanged(), ::Pair)
+    /** The time of day, again whenever the morning question can open or close by the clock alone. */
+    private val morning = MorningQuestion.observeClock(clock, preferences.preferences.map { it.morningFallback }.distinctUntilChanged())
+
+    private val arrangement = combine(cards, preferences.preferences.map { it.routeColoring }.distinctUntilChanged(), morning, ::Triple)
 
     val state: StateFlow<TodayUiState> = combine(
         built,
@@ -246,8 +253,14 @@ class TodayViewModel @Inject constructor(
         ratings.observe(),
         arrangement,
         extras,
-    ) { state, sessions, rated, (placed, coloring), extra ->
-        state.copy(gymToRate = gymToRate(sessions, rated, state.today), cards = placed, extras = extra, routeColoring = coloring)
+    ) { state, sessions, rated, (placed, coloring, clockNow), extra ->
+        state.copy(
+            gymToRate = gymToRate(sessions, rated, state.today),
+            restedOpen = clockNow.isOpen(nightIn = state.nights.any { it.date == clockNow.now.toLocalDate() }),
+            cards = placed,
+            extras = extra,
+            routeColoring = coloring,
+        )
     }.stateIn<TodayUiState>(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TodayUiState.Loading)
 
     /** Saves the athlete's arrangement of Today. */

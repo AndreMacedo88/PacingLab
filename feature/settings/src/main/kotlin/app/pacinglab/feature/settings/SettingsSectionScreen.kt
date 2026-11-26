@@ -64,6 +64,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.pacinglab.core.analytics.recovery.SleepScore
 import app.pacinglab.core.analytics.workout.TrainingSessions
+import app.pacinglab.core.data.reminder.MorningQuestion
 import app.pacinglab.core.data.repository.BackupRepository
 import app.pacinglab.core.data.repository.DarkMode
 import app.pacinglab.core.data.repository.PlacedCard
@@ -87,6 +88,7 @@ import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -109,11 +111,15 @@ fun SettingsSectionRoute(
         uri?.let(viewModel::backUp)
     }
     val openBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(viewModel::restore) }
-    // The reminder needs permission to notify; it is switched on only once that is granted.
-    val askToNotify = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+    // The reminders need permission to notify; each is switched on only once that is granted.
+    val askForMorning = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) viewModel.setMorningReminder(true)
     }
+    val askForGym = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) viewModel.setGymReminder(true)
+    }
     val context = LocalContext.current
+    val mayNotify = { context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED }
     SettingsSectionScreen(
         section = section,
         preferences = preferences,
@@ -131,8 +137,11 @@ fun SettingsSectionRoute(
             onSex = viewModel::setSex,
             onBirthDate = viewModel::setBirthDate,
             onMorningReminder = { on ->
-                val allowed = context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-                if (on && !allowed) askToNotify.launch(Manifest.permission.POST_NOTIFICATIONS) else viewModel.setMorningReminder(on)
+                if (on && !mayNotify()) askForMorning.launch(Manifest.permission.POST_NOTIFICATIONS) else viewModel.setMorningReminder(on)
+            },
+            onMorningFallback = viewModel::setMorningFallback,
+            onGymReminder = { on ->
+                if (on && !mayNotify()) askForGym.launch(Manifest.permission.POST_NOTIFICATIONS) else viewModel.setGymReminder(on)
             },
             onSessionWeather = viewModel::setSessionWeather,
             onFreeDays = viewModel::setFreeDays,
@@ -165,6 +174,8 @@ class SettingsActions(
     val onSex: (Sex) -> Unit = {},
     val onBirthDate: (LocalDate?) -> Unit = {},
     val onMorningReminder: (Boolean) -> Unit = {},
+    val onMorningFallback: (LocalTime) -> Unit = {},
+    val onGymReminder: (Boolean) -> Unit = {},
     val onSessionWeather: (Boolean) -> Unit = {},
     val onFreeDays: (Set<DayOfWeek>) -> Unit = {},
     val onRunningIncrease: (Int) -> Unit = {},
@@ -274,6 +285,14 @@ fun SettingsSectionScreen(
                             onChange = actions.onStrengthInLoad,
                         )
                     }
+                    tile("gym_reminder", flashing) {
+                        SwitchItem(
+                            title = stringResource(R.string.settings_gym_reminder),
+                            summary = stringResource(R.string.settings_gym_reminder_summary),
+                            checked = preferences.gymReminder,
+                            onChange = actions.onGymReminder,
+                        )
+                    }
                     tile("running_increase", flashing) {
                         RangeItem(
                             title = stringResource(R.string.settings_running_increase),
@@ -307,6 +326,7 @@ fun SettingsSectionScreen(
                             onChange = actions.onMorningReminder,
                         )
                     }
+                    tile("morning_fallback", flashing) { MorningFallbackItem(preferences.morningFallback, actions.onMorningFallback) }
                 }
 
                 SettingsSection.APPEARANCE -> {
@@ -378,8 +398,8 @@ fun SettingsSectionScreen(
  */
 internal val SETTINGS_ON_PAGE: Map<SettingsSection, List<String>> = mapOf(
     SettingsSection.PROFILE to listOf("sex", "birth_date", "physiology"),
-    SettingsSection.TRAINING to listOf("merge_gap", "strength_in_load", "running_increase", "heat"),
-    SettingsSection.SLEEP to listOf("sleep_need", "free_days", "morning_reminder"),
+    SettingsSection.TRAINING to listOf("merge_gap", "strength_in_load", "gym_reminder", "running_increase", "heat"),
+    SettingsSection.SLEEP to listOf("sleep_need", "free_days", "morning_reminder", "morning_fallback"),
     SettingsSection.APPEARANCE to listOf("theme", "dark_mode", "speed", "route_coloring"),
     SettingsSection.DATA to listOf("data_sources", "session_weather", "backup", "restore"),
 )
@@ -468,6 +488,32 @@ private fun SleepNeedItem(need: Duration?, automatic: Duration?, onChange: (Dura
         },
     )
 }
+
+/**
+ * The time from which the morning question opens even when last night has not synced, in quarter hours. It
+ * applies to Today's question and to the reminder alike.
+ */
+@Composable
+private fun MorningFallbackItem(time: LocalTime, onChange: (LocalTime) -> Unit, modifier: Modifier = Modifier) {
+    val range = MorningQuestion.FALLBACK_RANGE.let { it.start.minuteOfDay()..it.endInclusive.minuteOfDay() }
+    RangeItem(
+        title = stringResource(R.string.settings_morning_fallback),
+        summary = stringResource(R.string.settings_morning_fallback_summary),
+        value = time.minuteOfDay().coerceIn(range),
+        range = range,
+        step = MORNING_FALLBACK_STEP,
+        format = { minutes -> LocalTime.ofSecondOfDay(minutes * 60L).format(CLOCK_TIME) },
+        onChange = { onChange(LocalTime.ofSecondOfDay(it * 60L)) },
+        modifier = modifier,
+        default = MorningQuestion.DEFAULT_FALLBACK.minuteOfDay(),
+    )
+}
+
+private fun LocalTime.minuteOfDay(): Int = toSecondOfDay() / 60
+
+private val CLOCK_TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+private const val MORNING_FALLBACK_STEP = 15
 
 /** The weekdays without work, as chips in the locale's order of the week starting on Monday. */
 @OptIn(ExperimentalLayoutApi::class)

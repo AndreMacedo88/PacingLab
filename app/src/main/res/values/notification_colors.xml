@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Answer buttons in question notifications take the system's colours, as the shade around them does:
+        secondary container for the buttons, primary for the chosen answer. Light shade.
+    -->
+    <color name="question_button">@android:color/system_secondary_container_light</color>
+    <color name="question_on_button">@android:color/system_on_secondary_container_light</color>
+    <color name="question_chosen">@android:color/system_primary_light</color>
+    <color name="question_on_chosen">@android:color/system_on_primary_light</color>
+</resources>

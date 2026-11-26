@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- First answer of a row of ten, where full round ends would take most of a narrow button. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/question_button" />
+    <corners
+        android:bottomLeftRadius="@dimen/question_outer_radius_dense"
+        android:bottomRightRadius="@dimen/question_inner_radius"
+        android:topLeftRadius="@dimen/question_outer_radius_dense"
+        android:topRightRadius="@dimen/question_inner_radius" />
+</shape>

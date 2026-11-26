@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import app.pacinglab.core.analytics.load.BanisterWeighting
 import app.pacinglab.core.analytics.workout.TrainingSessions
+import app.pacinglab.core.data.reminder.MorningQuestion
 import app.pacinglab.core.model.RouteColoring
 import app.pacinglab.core.model.ZoneBoundaries
 import kotlinx.coroutines.flow.Flow
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.map
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.Period
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -62,6 +64,8 @@ enum class WidgetChart {
  * @property zoneBoundaries zone boundaries the athlete set; empty to work them out from threshold heart rate.
  * @property birthDate the athlete's, for comparisons with people of the same age; null when not given.
  * @property morningReminder a notification asks the morning question when it is still open after waking.
+ * @property morningFallback from this time the morning question opens even when last night has not synced.
+ * @property gymReminder a notification asks for the effort of a gym session once it has synced.
  * @property sessionWeather the weather at the start of each session is looked up when a session opens.
  * @property weeksInFiveZones Trends' weekly table splits time over the five zones rather than the three.
  * @property freeDays days without work or other fixed start, for sleep timing (the mornings of those days).
@@ -82,6 +86,8 @@ data class UserPreferences(
     val zoneBoundaries: ZoneBoundaries = ZoneBoundaries(),
     val birthDate: LocalDate? = null,
     val morningReminder: Boolean = false,
+    val morningFallback: LocalTime = MorningQuestion.DEFAULT_FALLBACK,
+    val gymReminder: Boolean = false,
     val sessionWeather: Boolean = true,
     val weeksInFiveZones: Boolean = true,
     val freeDays: Set<DayOfWeek> = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
@@ -112,6 +118,9 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
             ),
             birthDate = values[BIRTH_DATE]?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
             morningReminder = values[MORNING_REMINDER] ?: false,
+            morningFallback = values[MORNING_FALLBACK_MINUTES]?.let { LocalTime.ofSecondOfDay(it * 60L) }
+                ?.takeIf { it in MorningQuestion.FALLBACK_RANGE } ?: MorningQuestion.DEFAULT_FALLBACK,
+            gymReminder = values[GYM_REMINDER] ?: false,
             sessionWeather = values[SESSION_WEATHER] ?: true,
             weeksInFiveZones = values[WEEKS_IN_FIVE_ZONES] ?: true,
             freeDays = values[FREE_DAYS]?.mapNotNull { name -> DayOfWeek.entries.firstOrNull { it.name == name } }?.toSet()
@@ -179,6 +188,15 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         dataStore.edit { it[MORNING_REMINDER] = on }
     }
 
+    suspend fun setMorningFallback(time: LocalTime) {
+        require(time in MorningQuestion.FALLBACK_RANGE) { "Fallback time must be within ${MorningQuestion.FALLBACK_RANGE}" }
+        dataStore.edit { it[MORNING_FALLBACK_MINUTES] = time.toSecondOfDay() / 60 }
+    }
+
+    suspend fun setGymReminder(on: Boolean) {
+        dataStore.edit { it[GYM_REMINDER] = on }
+    }
+
     suspend fun setSessionWeather(on: Boolean) {
         dataStore.edit { it[SESSION_WEATHER] = on }
     }
@@ -230,6 +248,8 @@ class UserPreferencesRepository @Inject constructor(private val dataStore: DataS
         private val POLARIZED_ZONES = stringPreferencesKey("zones_polarized")
         private val BIRTH_DATE = stringPreferencesKey("birth_date")
         private val MORNING_REMINDER = booleanPreferencesKey("morning_reminder")
+        private val MORNING_FALLBACK_MINUTES = intPreferencesKey("morning_fallback_minutes")
+        private val GYM_REMINDER = booleanPreferencesKey("gym_reminder")
         private val SESSION_WEATHER = booleanPreferencesKey("session_weather")
         private val WEEKS_IN_FIVE_ZONES = booleanPreferencesKey("trends_weeks_five_zones")
         private val FREE_DAYS = stringSetPreferencesKey("free_days")

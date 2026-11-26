@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- First answer of a connected row: round outside, tight towards its neighbour. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/question_button" />
+    <corners
+        android:bottomLeftRadius="@dimen/question_outer_radius"
+        android:bottomRightRadius="@dimen/question_inner_radius"
+        android:topLeftRadius="@dimen/question_outer_radius"
+        android:topRightRadius="@dimen/question_inner_radius" />
+</shape>

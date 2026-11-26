@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    A question with one-tap answers, as the expanded content of a notification: the title, an optional
+    detail line, a connected row of 5 or 10 buttons (the rest are hidden) and the words for both ends of
+    the scale under it. QuestionViews fills it; once answered, the chosen button stays and "Saved" shows.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="4dp">
+
+    <TextView
+        android:id="@+id/question_title"
+        style="@android:style/TextAppearance.Material.Notification.Title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="2" />
+
+    <TextView
+        android:id="@+id/question_detail"
+        style="@android:style/TextAppearance.Material.Notification"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:maxLines="1"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/question_row"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/question_button_height"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/question_b1"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/question_button_middle"
+            android:fontFamily="sans-serif-medium"
+            android:fontFeatureSettings="tnum"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="1"
+            android:textColor="@color/question_on_button"
+            android:textSize="@dimen/question_text_size"
+            tools:ignore="HardcodedText" />
+        <TextView
+            android:id="@+id/question_b2"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/question_gap"
+            android:background="@drawable/question_button_middle"
+            android:fontFamily="sans-serif-medium"
+            android:fontFeatureSettings="tnum"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="2"
+            android:textColor="@color/question_on_button"
+            android:textSize="@dimen/question_text_size"
+            tools:ignore="HardcodedText" />
+        <TextView
+            android:id="@+id/question_b3"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/question_gap"
+            android:background="@drawable/question_button_middle"
+            android:fontFamily="sans-serif-medium"
+            android:fontFeatureSettings="tnum"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="3"
+            android:textColor="@color/question_on_button"
+            android:textSize="@dimen/question_text_size"
+            tools:ignore="HardcodedText" />
+        <TextView
+            android:id="@+id/question_b4"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/question_gap"
+            android:background="@drawable/question_button_middle"
+            android:fontFamily="sans-serif-medium"
+            android:fontFeatureSettings="tnum"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="4"
+            android:textColor="@color/question_on_button"
+            android:textSize="@dimen/question_text_size"
+            tools:ignore="HardcodedText" />
+        <TextView
+            android:id="@+id/question_b5"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/question_gap"
+            android:background="@drawable/question_button_middle"
+            android:fontFamily="sans-serif-medium"
+            android:fontFeatureSettings="tnum"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="5"
+            android:textColor="@color/question_on_button"
+            android:textSize="@dimen/question_text_size"
+            tools:ignore="HardcodedText" />
+        <TextView
+            android:id="@+id/question_b6"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/question_gap"
+            android:background="@drawable/question_button_middle"
+            android:fontFamily="sans-serif-medium"
+            android:fontFeatureSettings="tnum"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="6"
+            android:textColor="@color/question_on_button"
+            android:textSize="@dimen/question_text_size"
+            tools:ignore="HardcodedText" />
+        <TextView
+            android:id="@+id/question_b7"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/question_gap"
+            android:background="@drawable/question_button_middle"
+            android:fontFamily="sans-serif-medium"
+            android:fontFeatureSettings="tnum"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="7"
+            android:textColor="@color/question_on_button"
+            android:textSize="@dimen/question_text_size"
+            tools:ignore="HardcodedText" />
+        <TextView
+            android:id="@+id/question_b8"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/question_gap"
+            android:background="@drawable/question_button_middle"
+            android:fontFamily="sans-serif-medium"
+            android:fontFeatureSettings="tnum"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="8"
+            android:textColor="@color/question_on_button"
+            android:textSize="@dimen/question_text_size"
+            tools:ignore="HardcodedText" />
+        <TextView
+            android:id="@+id/question_b9"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/question_gap"
+            android:background="@drawable/question_button_middle"
+            android:fontFamily="sans-serif-medium"
+            android:fontFeatureSettings="tnum"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="9"
+            android:textColor="@color/question_on_button"
+            android:textSize="@dimen/question_text_size"
+            tools:ignore="HardcodedText" />
+        <TextView
+            android:id="@+id/question_b10"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/question_gap"
+            android:background="@drawable/question_button_middle"
+            android:fontFamily="sans-serif-medium"
+            android:fontFeatureSettings="tnum"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:text="10"
+            android:textColor="@color/question_on_button"
+            android:textSize="@dimen/question_text_size"
+            tools:ignore="HardcodedText" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/question_word_start"
+            style="@android:style/TextAppearance.Material.Notification.Info"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/question_word_end"
+            style="@android:style/TextAppearance.Material.Notification.Info"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:maxLines="1" />
+    </LinearLayout>
+</LinearLayout>

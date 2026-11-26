@@ -7,7 +7,14 @@
     <!-- Forecasts are downloaded from Open-Meteo. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- The morning reminder, only when the athlete switches it on in Settings. -->
+    <!-- The morning and gym reminders, only when the athlete switches them on in Settings. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+        <!-- Morning checks for last night, set by MorningCheck while the morning reminder is on. -->
+        <receiver
+            android:name="app.pacinglab.core.data.reminder.MorningCheckReceiver"
+            android:exported="false" />
+    </application>
 
 </manifest>

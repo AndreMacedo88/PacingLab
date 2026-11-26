@@ -327,9 +327,12 @@ fun TodayScreen(
     }
 }
 
-/** What the To do card holds now; the morning question stays while [answering] so that the answer shows. */
+/**
+ * What the To do card holds now: the morning question once it is open and until it is answered, and while
+ * [answering] so that the answer shows.
+ */
 private fun TodayUiState.Loaded.todo(answering: Boolean) = TodoItems(
-    rested = rested == null || answering,
+    rested = (restedOpen && rested == null) || answering,
     rating = rested,
     gym = gymToRate,
     testDue = extras.alertness?.testDue == true,

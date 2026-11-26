@@ -273,7 +273,11 @@
     <string name="settings_birth_date_save">Save</string>
     <string name="settings_birth_date_clear">Remove</string>
     <string name="settings_morning_reminder">Morning reminder</string>
-    <string name="settings_morning_reminder_summary">A notification asks how rested you feel once last night has synced, if you have not answered by then (until 13:00)</string>
+    <string name="settings_morning_reminder_summary">A silent notification asks how rested you feel once last night has synced, if you have not answered yet (until 13:00). Answer with one tap on it.</string>
+    <string name="settings_morning_fallback">Fallback time</string>
+    <string name="settings_morning_fallback_summary">When last night has not synced by then, the morning question opens anyway, on Today and in the reminder. It never opens before 05:00.</string>
+    <string name="settings_gym_reminder">Gym effort reminder</string>
+    <string name="settings_gym_reminder_summary">A silent notification asks how hard a gym session felt once it has synced, if you have not rated it yet. Answer with one tap on it.</string>
     <string name="settings_session_weather">Weather for sessions</string>
     <string name="settings_session_weather_summary">Looks up the weather when you open a session: the start of the route, rounded to about a kilometre, and the date go to Open-Meteo</string>
     <string name="home_assistant_title">Home Assistant</string>

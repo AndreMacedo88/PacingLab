@@ -1,10 +1,12 @@
 package app.pacinglab.di
 
 import android.content.Context
+import app.pacinglab.core.data.reminder.QuestionNotifier
 import app.pacinglab.core.data.repository.HomeScreenWidget
 import app.pacinglab.core.data.sync.AfterSync
 import app.pacinglab.core.maps.MapLibreSnapshots
 import app.pacinglab.core.maps.MapSnapshots
+import app.pacinglab.notification.PlatformQuestionNotifier
 import app.pacinglab.widget.WidgetRefresher
 import dagger.Binds
 import dagger.Module
@@ -40,4 +42,8 @@ interface AppBindings {
     /** Settings redraw it when its measures change. */
     @Binds
     fun homeScreenWidget(refresher: WidgetRefresher): HomeScreenWidget
+
+    /** The morning and gym questions, answered on the notification itself. */
+    @Binds
+    fun questionNotifier(notifier: PlatformQuestionNotifier): QuestionNotifier
 }

@@ -55,4 +55,15 @@
     <string name="widget_vital_oxygen">SpO2</string>
     <string name="widget_vital_skin">Skin temp</string>
     <string name="widget_learning">Learning</string>
+    <string name="notification_rested_channel">Morning question</string>
+    <string name="notification_rested_channel_description">Asks how rested you feel once last night has synced, if you have not answered yet. Answer with one tap on the notification.</string>
+    <string name="notification_rested_title">How rested do you feel?</string>
+    <string name="notification_effort_channel">Gym effort</string>
+    <string name="notification_effort_channel_description">Asks how hard a gym session felt once it has synced, if you have not rated it yet. Answer with one tap on the notification.</string>
+    <string name="notification_effort_title">How hard was the gym session?</string>
+    <string name="notification_effort_when">%1$s %2$s, %3$s</string>
+    <string name="notification_today">Today</string>
+    <string name="notification_yesterday">Yesterday</string>
+    <string name="notification_saved">Saved</string>
+    <string name="notification_answer">%1$d, %2$s</string>
 </resources>

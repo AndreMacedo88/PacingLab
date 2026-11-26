@@ -11,6 +11,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import app.pacinglab.core.data.reminder.GymEffortReminder
+import app.pacinglab.core.data.reminder.MorningCheck
 import app.pacinglab.core.data.reminder.MorningReminder
 import app.pacinglab.core.database.store.EffortStore
 import app.pacinglab.core.database.store.ExcludedWorkoutStore
@@ -262,7 +264,8 @@ class BackupRepository @Inject constructor(
         private val FAR_FUTURE = Instant.parse("2200-01-01T00:00:00Z")
 
         /** Preference keys that belong to this installation, not to the athlete. */
-        internal val DEVICE_KEYS: Set<String> = GoogleHealthRepository.DEVICE_KEYS + MorningReminder.DEVICE_KEYS
+        internal val DEVICE_KEYS: Set<String> =
+            GoogleHealthRepository.DEVICE_KEYS + MorningReminder.DEVICE_KEYS + MorningCheck.DEVICE_KEYS + GymEffortReminder.DEVICE_KEYS
 
         /** The suggested file name for a backup made on [date]. */
         fun fileName(date: LocalDate): String = "pacinglab-backup-$date.json"

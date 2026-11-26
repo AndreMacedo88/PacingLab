@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- An answer between two others in a connected row. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/question_button" />
+    <corners
+        android:bottomLeftRadius="@dimen/question_inner_radius"
+        android:bottomRightRadius="@dimen/question_inner_radius"
+        android:topLeftRadius="@dimen/question_inner_radius"
+        android:topRightRadius="@dimen/question_inner_radius" />
+</shape>

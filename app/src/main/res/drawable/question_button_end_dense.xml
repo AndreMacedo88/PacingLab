@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Last answer of a row of ten. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/question_button" />
+    <corners
+        android:bottomLeftRadius="@dimen/question_inner_radius"
+        android:bottomRightRadius="@dimen/question_outer_radius_dense"
+        android:topLeftRadius="@dimen/question_inner_radius"
+        android:topRightRadius="@dimen/question_outer_radius_dense" />
+</shape>

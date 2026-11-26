@@ -56,6 +56,10 @@
                 android:resource="@xml/today_widget_info" />
         </receiver>
 
+        <!-- Answers tapped on the morning and gym question notifications. -->
+        <receiver
+            android:name=".notification.QuestionAnswerReceiver"
+            android:exported="false" />
         <!-- WorkManager is configured by PacingLabApplication so that workers can use Hilt. -->
         <provider
             android:name="androidx.startup.InitializationProvider"
